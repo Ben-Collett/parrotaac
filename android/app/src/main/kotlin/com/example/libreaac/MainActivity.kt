@@ -1,4 +1,4 @@
-package com.example.openaac
+package com.example.libreaac
 
 import io.flutter.embedding.android.FlutterActivity
 
