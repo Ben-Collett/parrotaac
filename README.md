@@ -1,16 +1,35 @@
-# openaac
+# OpenAAC
 
-A new Flutter project.
+OpenAAC is a program written in flutter. It is currently in development and has not been released yet.
+## What is an AAC?
+How you found this repo with no knowledge of what an AAC is beyond me. But an AAC device in simple terms is any device that can be used by people who are nonverbal to communicate. The most common AAC device that I have seen(besides TTS technically) is a device that lets a user press buttons to say a word which corresponds with the button. Usually with the text of what the word is on the button along with an image. This is the kind of AAC this app intends to be.
 
-## Getting Started
+## Mission
+The ultimate goal of OpenAAC is to serve as an open source alternative to current AAC's on the market. It aims to be both free as in cost and free as in freedom. OpenAAC aims to allow users full control of their AAC, thus no data of users will be collected, and there are no plans of allowing any central servers for people to connect to. If such servers ever did come to exist than designing it so that users can self-host would be the top priority. The reason for this is that many AAC apps connect to a central server and because of that the owners' of said severs can flip the switch on users speech at any time. No one should be able to take away a persons sole means of speech, as free speech is a fundamental human right. OpenAAC will be cross-platform for both IOS and Android and while not being designed for computer it will be written such that it can function on them (just don't expect as smooth of an experience on PC as on mobile). 
+## Installation
+First, ensure that you have git and flutter installed, then execute the command:
+```
+git clone https://github.com/Ben-Collett/openaac
+```
+then get the dependencies: 
+```
+flutter pub get
+```
+if you just want to run the program on a connected device then use:
+```
+flutter run --release
+```
+if you want to build the code then install it to a connected device then run:
+```
+flutter build <platform> --release
+```
+The command you put in for \<platform\> will depend on your target platform, to know the instruction consult the official flutter documentation.
 
-This project is a starting point for a Flutter application.
 
-A few resources to get you started if this is your first Flutter project:
+Then after building, to install OpenAAC on your device, use:
+```
+flutter install
+```
 
-- [Lab: Write your first Flutter app](https://docs.flutter.dev/get-started/codelab)
-- [Cookbook: Useful Flutter samples](https://docs.flutter.dev/cookbook)
-
-For help getting started with Flutter development, view the
-[online documentation](https://docs.flutter.dev/), which offers tutorials,
-samples, guidance on mobile development, and a full API reference.
+## License
+This project is licensed under the MIT License. See the [LICENSE](LICENSE) file for more details
