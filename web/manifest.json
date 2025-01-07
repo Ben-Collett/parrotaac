@@ -1,6 +1,6 @@
 {
-    "name": "libreaac",
-    "short_name": "libreaac",
+    "name": "parrotaac",
+    "short_name": "parrotaac",
     "start_url": ".",
     "display": "standalone",
     "background_color": "#0175C2",
