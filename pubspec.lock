@@ -171,6 +171,15 @@ packages:
       url: "https://pub.dev"
     source: hosted
     version: "1.15.0"
+  openboard_wrapper:
+    dependency: "direct main"
+    description:
+      path: "."
+      ref: HEAD
+      resolved-ref: "723ddb59f95d3fd305e0724777e2ec484cd5fcd7"
+      url: "https://github.com/Ben-Collett/openboard_wrapper.git"
+    source: git
+    version: "1.0.0"
   path:
     dependency: transitive
     description:
