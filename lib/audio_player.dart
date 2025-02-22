@@ -10,7 +10,7 @@ class PreemptiveAudioPlayer {
   static final PreemptiveAudioPlayer _internal =
       PreemptiveAudioPlayer._privateConstructor();
   factory PreemptiveAudioPlayer() => _internal;
-  final FlutterTts _tts = FlutterTts();
+  final _LinuxSupportingTts _tts = _LinuxSupportingTts();
   final AudioPlayer _audioPlayer = AudioPlayer();
 
   void playFromPath(String path) async {
@@ -25,23 +25,35 @@ class PreemptiveAudioPlayer {
   }
 
   ///if you are running on linux you need to have "speak" as a command to play audio
-  ///if running on linux then it won't be prempted on press.
   void playTTS(String toSpeak) async {
-    if (Platform.isLinux) {
-      Process.run('speak', [toSpeak]);
-    } else {
-      await stop();
-      _tts.speak(toSpeak);
-    }
+    await stop();
+    _tts.speak(toSpeak);
   }
   //TODO: add way to get tts voices and set the current tts
 
   ///won't stop linux tts
   Future<void> stop() async {
-    //TODO: try to find a way to make the linux tts process to be killed on stop.
-    if (!Platform.isLinux) {
+    await _tts.stop();
+    await _audioPlayer.stop();
+  }
+}
+
+class _LinuxSupportingTts {
+  final FlutterTts _tts = FlutterTts();
+  Process? linuxTtsProcess;
+  void speak(String toSpeak) async {
+    if (Platform.isLinux) {
+      linuxTtsProcess = await Process.start("speak", [toSpeak]);
+    } else {
+      _tts.speak(toSpeak);
+    }
+  }
+
+  Future<void> stop() async {
+    if (Platform.isLinux) {
+      linuxTtsProcess?.kill();
+    } else {
       await _tts.stop();
     }
-    await _audioPlayer.stop();
   }
 }
