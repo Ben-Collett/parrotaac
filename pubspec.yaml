@@ -28,11 +28,14 @@ environment:
 # the latest version available on pub.dev. To see which dependencies have newer
 # versions available, run `flutter pub outdated`.
 dependencies:
+  archive: ^4.0.3
   audioplayers: ^6.2.0
   cupertino_icons: ^1.0.8
+  file: ^7.0.1
   flutter:
     sdk: flutter
   flutter_tts: ^4.2.2
+  mockito: ^5.4.5
   openboard_wrapper:
     git:
       url: https://github.com/Ben-Collett/openboard_wrapper.git
@@ -41,7 +44,7 @@ dependencies:
   record: ^5.2.1
 
 dev_dependencies:
-  flutter_launcher_icons: ^0.9.2
+  #flutter_launcher_icons: ^0.9.2
 
   # The "flutter_lints" package below contains a set of recommended lints to
   # encourage good coding practices. The lint set provided by the package is
