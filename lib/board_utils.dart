@@ -1,6 +1,5 @@
 import 'dart:io';
 
-import 'package:archive/archive_io.dart';
 import 'package:openboard_wrapper/obf.dart';
 import 'package:openboard_wrapper/obz.dart';
 import 'package:path_provider/path_provider.dart';
@@ -29,6 +28,7 @@ Future<String> get projectTargetPath async {
     projectDirectory.createSync();
   }
   _projectTargetPathCache = projectDirPath;
+  print(await projectTargetPath);
   return projectDirPath;
 }
 

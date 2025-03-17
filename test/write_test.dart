@@ -1,4 +1,4 @@
-//TODO: the test work, even ran in a group, but I get async gaps and missing pluggin warnings when doing so, for now running the test one at a time is the best option until I have time to go back and figure out how to sort out the error.
+//TODO: the test work, even ran in a group, but I get async gaps and missing plugin warnings when doing so, for now running the test one at a time is the best option until I have time to go back and figure out how to sort out the error.
 import 'dart:convert';
 import 'dart:io';
 import 'package:file/memory.dart';
@@ -123,7 +123,7 @@ void main() {
 
     var expected = ParrotProjectDisplayData(name);
 
-    expect(ParrotProjectDisplayData.fromDirectory(dir), expected);
+    expect(ParrotProjectDisplayData.fromDir(dir), expected);
 
     dir.deleteSync(recursive: true);
   });

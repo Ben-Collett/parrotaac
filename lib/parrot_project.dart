@@ -1,29 +1,54 @@
 //TODO: I need to work out away to test this with the application directory, perhaps an integration test would work but path_provider doesn't load for unit test
 import 'dart:convert';
 import 'dart:io';
+import 'package:flutter/widgets.dart';
 
 import 'package:archive/archive_io.dart';
+import 'package:flutter_svg/flutter_svg.dart';
 import 'package:openboard_wrapper/obz.dart';
 import 'package:openboard_wrapper/obf.dart';
 import 'package:parrotaac/file_utils.dart';
 import 'package:parrotaac/project_interface.dart';
 import 'package:path/path.dart' as p;
 import 'package:parrotaac/board_utils.dart';
-import 'package:path_provider/path_provider.dart';
 import 'package:parrotaac/parrot_board.dart';
 
+final SvgPicture logo = SvgPicture.asset("assets/images/logo/white_bg.svg");
+
 class ParrotProject extends Obz with AACProject {
-  static const String _targetDirectoryName = 'projects_directory';
   static const String _nameKey = "ext_name";
+  static const String _imagePathKey = 'ext_display_image_path';
+
+  String? get displayImagePath {
+    return manifestExtendedProperties[_imagePathKey];
+  }
+
+  set displayImagePath(String? path) {
+    if (path == null) {
+      manifestExtendedProperties.remove(_imagePathKey);
+    } else {
+      manifestExtendedProperties[_imagePathKey] = path;
+    }
+  }
+
+  @override
+  Widget get displayImage =>
+      displayImagePath != null ? Image.file(File(displayImagePath!)) : logo;
   @override
   String get name {
     return manifestExtendedProperties[_nameKey];
   }
 
-  ///the default directory path for projects
-  static Future<String> get targetDirectoryPath async {
-    return getApplicationDocumentsDirectory()
-        .then((dir) => p.join(dir.path, _targetDirectoryName));
+  static Future<Directory> get projectParentDirectory async {
+    return Directory(await projectTargetPath);
+  }
+
+  static Future<Iterable<Directory>> projectDirs() async {
+    Directory convertPathToDir(String path) => Directory(path);
+    Iterable<Directory> getTheSubDirs(Directory dir) =>
+        dir.listSync().whereType<Directory>();
+
+    return projectTargetPath.then(convertPathToDir).then(getTheSubDirs);
   }
 
   ///if name is defined in manifest.json using ext_name return it else return dir base name
@@ -56,7 +81,7 @@ class ParrotProject extends Obz with AACProject {
 
   ParrotProject.fromDirectory(Directory dir) : super.fromDirectory(dir) {
     Map<String, dynamic> manifest = manifestJson;
-    name = manifest[_nameKey] ?? p.basename(dir.path);
+    rename(manifest[_nameKey] ?? p.basename(dir.path));
   }
 
   static Future<String> _determineProjectName(String path) async {
@@ -181,13 +206,13 @@ class ParrotProject extends Obz with AACProject {
   }
 
   Future<String> get projectPath {
-    return targetDirectoryPath.then((path) => p.join(path, baseName));
+    return projectTargetPath;
   }
 
   ///returns a Future with a directory object set to the the path of the project, this method does not create that directory, nor does it write a any data to it.
   Future<Directory> get _asDirectory {
     Directory maptToDir(String path) => Directory(path);
-    return targetDirectoryPath
+    return projectPath
         .then((target) => p.join(target, baseName))
         .then(maptToDir);
   }
@@ -211,17 +236,34 @@ class ParrotProject extends Obz with AACProject {
   }
 }
 
-//TODO: figure out how to add image
-class ParrotProjectDisplayData {
+class ParrotProjectDisplayData extends DisplayData {
+  @override
   String name;
-  ParrotProjectDisplayData(this.name);
-  ParrotProjectDisplayData.fromDirectory(Directory dir)
+  Widget? _image;
+  @override
+  Widget get image {
+    return _image ?? logo;
+  }
+
+  @override
+  set image(Widget? image) {
+    _image = image;
+  }
+
+  ParrotProjectDisplayData(this.name, {Widget? image}) : _image = image;
+  ParrotProjectDisplayData.fromDir(Directory dir)
       : name = p.basename(dir.path) {
     File? manifest = ParrotProject._getManifestFile(dir);
     if (manifest != null) {
       Map<String, dynamic> json = jsonDecode(manifest.readAsStringSync());
       if (json.containsKey(ParrotProject._nameKey)) {
         name = json[ParrotProject._nameKey];
+      }
+
+      if (json.containsKey(ParrotProject._imagePathKey)) {
+        String path = dir.path;
+        path = p.join(dir.path, json[ParrotProject._imagePathKey]);
+        image = Image.file(File(path));
       }
     }
   }

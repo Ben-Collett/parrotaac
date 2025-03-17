@@ -34,6 +34,8 @@ dependencies:
   file: ^7.0.1
   flutter:
     sdk: flutter
+  flutter_riverpod: ^2.6.1
+  flutter_svg: ^2.0.17
   flutter_tts: ^4.2.2
   mockito: ^5.4.5
   openboard_wrapper:
@@ -77,9 +79,9 @@ flutter:
   # the material Icons class.
   uses-material-design: true
   # To add assets to your application, add an assets section, like this:
-  # assets:
-  #   - images/a_dot_burr.jpeg
-  #   - images/a_dot_ham.jpeg
+  assets:
+    - assets/images/logo/white_bg.svg
+     #   - images/a_dot_ham.jpeg
   # An image asset can refer to one or more resolution-specific "variants", see
   # https://flutter.dev/to/resolution-aware-images
   # For details regarding adding assets from package dependencies, see
