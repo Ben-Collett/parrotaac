@@ -1,3 +1,4 @@
+import 'dart:convert';
 import 'dart:io';
 
 import 'package:audioplayers/audioplayers.dart';
@@ -13,6 +14,11 @@ class PreemptiveAudioPlayer {
   final _LinuxSupportingTts _tts = _LinuxSupportingTts();
   final AudioPlayer _audioPlayer = AudioPlayer();
 
+  void playFromRawData(String raw) async {
+    await stop();
+    _audioPlayer.play(BytesSource(Utf8Encoder().convert(raw)));
+  }
+
   void playFromPath(String path) async {
     await stop();
     _audioPlayer.play(DeviceFileSource(path));
@@ -26,6 +32,9 @@ class PreemptiveAudioPlayer {
 
   ///if you are running on linux you need to have "speak" as a command to play audio
   void playTTS(String toSpeak) async {
+    if (toSpeak == '') {
+      return;
+    }
     await stop();
     _tts.speak(toSpeak);
   }
