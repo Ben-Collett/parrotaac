@@ -7,6 +7,8 @@ import 'package:archive/archive_io.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 import 'package:openboard_wrapper/obz.dart';
 import 'package:openboard_wrapper/obf.dart';
+import 'package:parrotaac/board_selector.dart';
+import 'package:parrotaac/default_board_strings.dart';
 import 'package:parrotaac/file_utils.dart';
 import 'package:parrotaac/project_interface.dart';
 import 'package:path/path.dart' as p;
@@ -16,18 +18,18 @@ import 'package:parrotaac/parrot_board.dart';
 final SvgPicture logo = SvgPicture.asset("assets/images/logo/white_bg.svg");
 
 class ParrotProject extends Obz with AACProject {
-  static const String _nameKey = "ext_name";
-  static const String _imagePathKey = 'ext_display_image_path';
+  static const String nameKey = "ext_name";
+  static const String imagePathKey = 'ext_display_image_path';
 
   String? get displayImagePath {
-    return manifestExtendedProperties[_imagePathKey];
+    return manifestExtendedProperties[imagePathKey];
   }
 
   set displayImagePath(String? path) {
     if (path == null) {
-      manifestExtendedProperties.remove(_imagePathKey);
+      manifestExtendedProperties.remove(imagePathKey);
     } else {
-      manifestExtendedProperties[_imagePathKey] = path;
+      manifestExtendedProperties[imagePathKey] = path;
     }
   }
 
@@ -36,7 +38,21 @@ class ParrotProject extends Obz with AACProject {
       displayImagePath != null ? Image.file(File(displayImagePath!)) : logo;
   @override
   String get name {
-    return manifestExtendedProperties[_nameKey];
+    return manifestExtendedProperties[nameKey];
+  }
+
+  static Future<ParrotProject> writeDefaultProject(
+    String projectName, {
+    String? projectImagePath,
+  }) async {
+    ParrotProject project = ParrotProject(
+        boards: [Obf.fromJsonString(defaultRootObf)], name: projectName);
+
+    project
+        .parseManifestString(
+            defaultManifest(name: projectName, imagePath: projectImagePath))
+        .write();
+    return project;
   }
 
   static Future<Directory> get projectParentDirectory async {
@@ -62,7 +78,7 @@ class ParrotProject extends Obz with AACProject {
 
     Map<String, dynamic> decodeTheManifest(String json) => jsonDecode(json);
     String getTheName(Map<String, dynamic> json) =>
-        json[_nameKey]?.toString() ?? dirName;
+        json[nameKey]?.toString() ?? dirName;
 
     return file.readAsString().then(decodeTheManifest).then(getTheName);
   }
@@ -76,12 +92,12 @@ class ParrotProject extends Obz with AACProject {
   }
 
   ParrotProject({super.boards, required String name}) : super() {
-    manifestExtendedProperties[_nameKey] = name;
+    manifestExtendedProperties[nameKey] = name;
   }
 
   ParrotProject.fromDirectory(Directory dir) : super.fromDirectory(dir) {
     Map<String, dynamic> manifest = manifestJson;
-    rename(manifest[_nameKey] ?? p.basename(dir.path));
+    rename(manifest[nameKey] ?? p.basename(dir.path));
   }
 
   static Future<String> _determineProjectName(String path) async {
@@ -152,7 +168,7 @@ class ParrotProject extends Obz with AACProject {
   @override
   Future<bool> rename(String name, {Directory? projectDirectory}) async {
     String originalName = name;
-    manifestExtendedProperties[_nameKey] = name;
+    manifestExtendedProperties[nameKey] = name;
     Directory? projectDirOptional =
         projectDirectory ?? await getProjectDir(name);
     if (projectDirectory?.existsSync() ?? false) {
@@ -162,7 +178,7 @@ class ParrotProject extends Obz with AACProject {
         String parentPath = p.dirname(projectDir.path);
         projectDir.renameSync(p.join(parentPath, baseName));
       } catch (e) {
-        manifestExtendedProperties[_nameKey] = originalName;
+        manifestExtendedProperties[nameKey] = originalName;
         return false;
       }
     }
@@ -256,13 +272,13 @@ class ParrotProjectDisplayData extends DisplayData {
     File? manifest = ParrotProject._getManifestFile(dir);
     if (manifest != null) {
       Map<String, dynamic> json = jsonDecode(manifest.readAsStringSync());
-      if (json.containsKey(ParrotProject._nameKey)) {
-        name = json[ParrotProject._nameKey];
+      if (json.containsKey(ParrotProject.nameKey)) {
+        name = json[ParrotProject.nameKey];
       }
 
-      if (json.containsKey(ParrotProject._imagePathKey)) {
+      if (json.containsKey(ParrotProject.imagePathKey)) {
         String path = dir.path;
-        path = p.join(dir.path, json[ParrotProject._imagePathKey]);
+        path = p.join(dir.path, json[ParrotProject.imagePathKey]);
         image = Image.file(File(path));
       }
     }

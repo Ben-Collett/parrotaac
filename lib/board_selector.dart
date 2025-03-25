@@ -8,7 +8,6 @@ final _viewTypeProvider = StateProvider((ref) => ViewType.list);
 final _searchTextProvider = StateProvider((ref) => "");
 final _projectDirProvider =
     FutureProvider((ref) async => ParrotProject.projectDirs());
-
 List<DisplayEntry> _displayDataFromDirList(Iterable<Directory> dirs) =>
     dirs.map(DisplayEntry.entryFromOpenboardDir).toList();
 List<DisplayEntry> filteredEntries(Iterable<Directory> dirs, String search) {
@@ -30,7 +29,17 @@ class BoardSelector extends StatelessWidget {
       child: Container(
         color: Colors.blue,
         child: Row(
-          children: [SearchBar()],
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          children: [
+            SearchBar(),
+            Container(
+              color: Colors.orangeAccent,
+              child: TextButton(
+                onPressed: () => _showBoardDialog(context),
+                child: Text("add project"),
+              ),
+            ),
+          ],
         ),
       ),
     );
@@ -60,6 +69,83 @@ class BoardSelector extends StatelessWidget {
   }
 }
 
+void _showBoardDialog(BuildContext context) {
+  final TextEditingController controller = TextEditingController();
+  final formKey = GlobalKey<FormState>();
+
+  String? validate(String? text, List<String> names) {
+    if (names.contains(text)) return "name already used";
+    return null;
+  }
+
+  showDialog(
+    context: context,
+    builder: (context) {
+      return AlertDialog(
+        title: Text('Create Project'),
+        content: SingleChildScrollView(
+          child: Form(
+            key: formKey,
+            child: Column(
+              children: [
+                ConstrainedBox(
+                  constraints: BoxConstraints(minWidth: 0, maxWidth: 250),
+                  child: SizedBox(
+                    width: 250,
+                    child: Consumer(builder: (_, ref, __) {
+                      Iterable<Directory> dirs =
+                          switch (ref.watch(_projectDirProvider)) {
+                        AsyncData(:final value) => value,
+                        _ => [],
+                      };
+                      List<String> displayNames = _displayDataFromDirList(dirs)
+                          .map((d) => d.displayName.data)
+                          .whereType<String>()
+                          .toList();
+
+                      return TextFormField(
+                        controller: controller,
+                        validator: (text) => validate(text, displayNames),
+                        decoration: InputDecoration(
+                          border: OutlineInputBorder(),
+                          labelText: "Project Name",
+                        ),
+                      );
+                    }),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
+        actions: [
+          IconButton(
+            color: Colors.red,
+            icon: Icon(Icons.cancel),
+            onPressed: () {
+              Navigator.of(context).pop();
+            },
+          ),
+          Consumer(builder: (_, ref, ___) {
+            return IconButton(
+              color: Colors.green,
+              icon: Icon(Icons.check),
+              onPressed: () async {
+                // Trigger form validation
+                if (formKey.currentState!.validate()) {
+                  ref.invalidate(_projectDirProvider);
+                  await ParrotProject.writeDefaultProject(controller.text);
+                  if (context.mounted) Navigator.of(context).pop();
+                }
+              },
+            );
+          }),
+        ],
+      );
+    },
+  );
+}
+
 class SearchBar extends ConsumerWidget {
   const SearchBar({
     super.key,
@@ -68,15 +154,7 @@ class SearchBar extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     //TODO: I should fine a way to not have the width constant
-    Iterable<Directory> dirs = switch (ref.watch(_projectDirProvider)) {
-      AsyncData(:final value) => value,
-      _ => [],
-    };
 
-    List<String> filteredNames(String search) => _displayDataFromDirList(dirs)
-        .map((data) => data.displayName.data ?? "")
-        .where((name) => name.startsWith(search))
-        .toList();
     return Container(
       width: 200,
       color: Colors.white,

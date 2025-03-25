@@ -35,7 +35,7 @@ Future<String> get projectTargetPath async {
 void importProjectFromPath(String path) {
   if (p.extension(path) == '.obz') {
     _importObzFromPath(path);
-  } else if (p.extension(p.extension(path)) == '.obf') {
+  } else if (p.extension(path) == '.obf') {
     _importObfFromPath(path);
   }
 }
