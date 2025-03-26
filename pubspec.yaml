@@ -37,6 +37,7 @@ dependencies:
   flutter_riverpod: ^2.6.1
   flutter_svg: ^2.0.17
   flutter_tts: ^4.2.2
+  image_picker: ^1.1.2
   mockito: ^5.4.5
   openboard_wrapper:
     git:

@@ -1,8 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:image_picker/image_picker.dart';
 import 'dart:io';
 import 'package:parrotaac/parrot_project.dart';
 import 'package:parrotaac/project_interface.dart';
+import 'package:parrotaac/utils.dart';
 
 final _viewTypeProvider = StateProvider((ref) => ViewType.list);
 final _searchTextProvider = StateProvider((ref) => "");
@@ -59,7 +61,7 @@ class BoardSelector extends StatelessWidget {
               color: Colors.orangeAccent,
               child: TextButton(
                 onPressed: () => _showBoardDialog(context),
-                child: Text("add project"),
+                child: Text("create project"),
               ),
             ),
           ],
@@ -96,26 +98,57 @@ void _showBoardDialog(BuildContext context) {
   final TextEditingController controller = TextEditingController();
   final formKey = GlobalKey<FormState>();
 
-  String? validate(String? text, List<String> names) {
-    if (names.contains(text)) return "name already used";
-    return null;
-  }
-
   showDialog(
     context: context,
     builder: (context) {
-      return AlertDialog(
-        title: Text('Create Project'),
-        content: SingleChildScrollView(
-          child: Form(
-            key: formKey,
-            child: Column(
-              children: [
-                ConstrainedBox(
-                  constraints: BoxConstraints(minWidth: 0, maxWidth: 250),
-                  child: SizedBox(
-                    width: 250,
-                    child: Consumer(builder: (_, ref, __) {
+      return CreateProjectDialog(formKey: formKey, controller: controller);
+    },
+  );
+}
+
+class CreateProjectDialog extends StatefulWidget {
+  const CreateProjectDialog({
+    super.key,
+    required this.formKey,
+    required this.controller,
+  });
+
+  final GlobalKey<FormState> formKey;
+  final TextEditingController controller;
+
+  @override
+  State<CreateProjectDialog> createState() => _CreateProjectDialogState();
+}
+
+class _CreateProjectDialogState extends State<CreateProjectDialog> {
+  Future<XFile?>? _image;
+  void setImage(Future<XFile?> image) {
+    setState(() {
+      _image = image;
+    });
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    String? validate(String? text, List<String> names) {
+      if (names.contains(text)) return "name already used";
+      return null;
+    }
+
+    double maxWidth = 250;
+    return AlertDialog(
+      title: Text('Create Project'),
+      content: SingleChildScrollView(
+        child: Form(
+          key: widget.formKey,
+          child: Column(
+            children: [
+              ConstrainedBox(
+                constraints: BoxConstraints(minWidth: 0, maxWidth: maxWidth),
+                child: SizedBox(
+                  width: maxWidth,
+                  child: Consumer(
+                    builder: (_, ref, __) {
                       Iterable<Directory> dirs =
                           switch (ref.watch(_projectDirProvider)) {
                         AsyncData(:final value) => value,
@@ -125,48 +158,83 @@ void _showBoardDialog(BuildContext context) {
                           .map((d) => d.displayName.data)
                           .whereType<String>()
                           .toList();
-
-                      return TextFormField(
-                        controller: controller,
-                        validator: (text) => validate(text, displayNames),
-                        decoration: InputDecoration(
-                          border: OutlineInputBorder(),
-                          labelText: "Project Name",
+                      List<Widget> column = [
+                        TextFormField(
+                          controller: widget.controller,
+                          validator: (text) => validate(text, displayNames),
+                          decoration: InputDecoration(
+                            border: OutlineInputBorder(),
+                            labelText: "Project Name",
+                          ),
                         ),
+                      ];
+
+                      if (_image != null) {
+                        column.add(
+                          FutureBuilder(
+                            future: _image,
+                            builder: (_, snapshot) {
+                              if (snapshot.data == null) {
+                                return SizedBox(width: 0, height: 0);
+                              }
+                              XFile data = snapshot.requireData!;
+                              return ConstrainedBox(
+                                constraints: BoxConstraints(maxHeight: 100),
+                                child: imageFromPath(data.path),
+                              );
+                            },
+                          ),
+                        );
+                      }
+                      column.add(TextButton(
+                        child: Text("select project image"),
+                        onPressed: () => setImage(getImage()),
+                      ));
+
+                      return Column(
+                        children: column,
                       );
-                    }),
+                    },
                   ),
                 ),
-              ],
-            ),
+              ),
+            ],
           ),
         ),
-        actions: [
-          IconButton(
-            color: Colors.red,
-            icon: Icon(Icons.cancel),
-            onPressed: () {
-              Navigator.of(context).pop();
-            },
-          ),
-          Consumer(builder: (_, ref, ___) {
-            return IconButton(
-              color: Colors.green,
-              icon: Icon(Icons.check),
-              onPressed: () async {
-                // Trigger form validation
-                if (formKey.currentState!.validate()) {
-                  ref.invalidate(_projectDirProvider);
-                  await ParrotProject.writeDefaultProject(controller.text);
-                  if (context.mounted) Navigator.of(context).pop();
+      ),
+      actions: [
+        IconButton(
+          color: Colors.red,
+          icon: Icon(Icons.cancel),
+          onPressed: () {
+            Navigator.of(context).pop();
+          },
+        ),
+        Consumer(builder: (_, ref, ___) {
+          return IconButton(
+            color: Colors.green,
+            icon: Icon(Icons.check),
+            onPressed: () async {
+              // Trigger form validation
+              if (widget.formKey.currentState!.validate()) {
+                ref.invalidate(_projectDirProvider);
+                String? imagePath;
+                if (_image != null) {
+                  XFile? image = await _image;
+                  imagePath = image?.path;
                 }
-              },
-            );
-          }),
-        ],
-      );
-    },
-  );
+                await ParrotProject.writeDefaultProject(
+                  widget.controller.text,
+                  projectImagePath: imagePath,
+                );
+                if (context.mounted) Navigator.of(context).pop();
+              }
+            },
+          );
+        }),
+      ],
+    );
+  }
 }
 
 class SearchBar extends ConsumerWidget {

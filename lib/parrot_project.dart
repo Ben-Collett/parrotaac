@@ -46,12 +46,26 @@ class ParrotProject extends Obz with AACProject {
     String? projectImagePath,
   }) async {
     ParrotProject project = ParrotProject(
-        boards: [Obf.fromJsonString(defaultRootObf)], name: projectName);
+      boards: [Obf.fromJsonString(defaultRootObf)],
+      name: projectName,
+    );
 
-    project
+    await project
         .parseManifestString(
             defaultManifest(name: projectName, imagePath: projectImagePath))
         .write();
+
+    if (projectImagePath != null) {
+      Directory projectDir = await project._asDirectory;
+      String imgDirPath = p.join(projectDir.path, 'images/');
+      Directory(imgDirPath).createSync();
+
+      String imageFilePath = p.join(imgDirPath, 'project_image');
+      String extension = p.extension(projectImagePath);
+      imageFilePath = p.setExtension(imageFilePath, extension);
+
+      await File(projectImagePath).copy(imageFilePath);
+    }
     return project;
   }
 
