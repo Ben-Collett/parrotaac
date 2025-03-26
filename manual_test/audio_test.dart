@@ -104,7 +104,6 @@ class _RecordButtonState extends State<RecordButton> {
         builder: (context, isRecording, child) {
           return TextButton(
               onPressed: () async {
-                //print(isRecording);
                 Directory targetDir = await recordTargetDir();
                 if (isRecording) {
                   MyAudioRecorder().stop();

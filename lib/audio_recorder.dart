@@ -55,8 +55,6 @@ class _LinuxSupportingRecorder {
   Future<void> stop() async {
     if (Platform.isLinux) {
       recordProcess?.kill(ProcessSignal.sigint);
-      print(recordProcess);
-      print("exit code: ${await recordProcess?.exitCode}");
     } else {
       await _recorder.stop();
     }

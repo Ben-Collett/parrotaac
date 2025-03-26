@@ -279,7 +279,13 @@ class ParrotProjectDisplayData extends DisplayData {
       if (json.containsKey(ParrotProject.imagePathKey)) {
         String path = dir.path;
         path = p.join(dir.path, json[ParrotProject.imagePathKey]);
-        image = Image.file(File(path));
+        File file = File(path);
+        BoxFit fit = BoxFit.contain;
+        if (p.extension(path) == '.svg') {
+          image = SvgPicture.file(file, fit: fit);
+        } else {
+          image = Image.file(file, fit: fit);
+        }
       }
     }
   }

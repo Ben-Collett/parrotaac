@@ -8,11 +8,34 @@ final _viewTypeProvider = StateProvider((ref) => ViewType.list);
 final _searchTextProvider = StateProvider((ref) => "");
 final _projectDirProvider =
     FutureProvider((ref) async => ParrotProject.projectDirs());
-List<DisplayEntry> _displayDataFromDirList(Iterable<Directory> dirs) =>
-    dirs.map(DisplayEntry.entryFromOpenboardDir).toList();
-List<DisplayEntry> filteredEntries(Iterable<Directory> dirs, String search) {
+List<DisplayEntry> _displayDataFromDirList(
+  Iterable<Directory> dirs, {
+  double? imageWidth,
+  double? imageHeight,
+  TextStyle? textStyle,
+}) =>
+    dirs
+        .map(
+          (dir) => DisplayEntry.entryFromOpenboardDir(
+            dir,
+            imageWidth: imageWidth,
+            imageHeight: imageHeight,
+            textStyle: textStyle,
+          ),
+        )
+        .toList();
+List<DisplayEntry> filteredEntries(
+  Iterable<Directory> dirs,
+  String search, {
+  double? imageWidth,
+  double? imageHeight,
+  TextStyle? textStyle,
+}) {
   bool match(Text text) => text.data?.startsWith(search) ?? true;
-  return _displayDataFromDirList(dirs)
+  return _displayDataFromDirList(dirs,
+          imageWidth: imageWidth,
+          imageHeight: imageHeight,
+          textStyle: textStyle)
       .where((entry) => match(entry.displayName))
       .toList();
 }
@@ -209,16 +232,10 @@ class DisplayView extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    DisplayEntry dirToDisplayEntry(Directory dir) =>
-        DisplayEntry.entryFromOpenboardDir(
-          dir,
-          imageWidth: 65,
-          imageHeight: 85,
-          textStyle: TextStyle(fontSize: 45),
-        );
     String search = ref.watch(_searchTextProvider);
     Widget listView(Iterable<Directory> data) {
-      List<DisplayEntry> filtered = filteredEntries(data, search);
+      List<DisplayEntry> filtered = filteredEntries(data, search,
+          imageWidth: 65, imageHeight: 85, textStyle: TextStyle(fontSize: 45));
       return ListView.separated(
         key: ValueKey(0),
         itemCount: filtered.length,
@@ -253,7 +270,7 @@ class DisplayEntry extends ConsumerWidget {
   final Directory? dir;
 
   ///A sized box containing the image
-  final SizedBox image;
+  final Widget image;
   const DisplayEntry({
     super.key,
     required this.displayName,
@@ -283,10 +300,15 @@ class DisplayEntry extends ConsumerWidget {
       this.dir,
       TextStyle? textStyle})
       : displayName = Text(data.name, style: textStyle),
-        image = SizedBox(
-          width: imageWidth,
-          height: imageHeight,
-          child: data.image,
+        image = ConstrainedBox(
+          constraints: BoxConstraints(
+              maxWidth: imageWidth ?? double.infinity,
+              maxHeight: imageHeight ?? double.infinity),
+          child: SizedBox(
+            width: imageWidth,
+            height: imageHeight,
+            child: data.image,
+          ),
         );
 
   @override

@@ -28,7 +28,6 @@ Future<String> get projectTargetPath async {
     projectDirectory.createSync();
   }
   _projectTargetPathCache = projectDirPath;
-  print(await projectTargetPath);
   return projectDirPath;
 }
 
