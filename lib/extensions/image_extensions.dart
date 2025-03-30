@@ -1,9 +1,9 @@
 import 'dart:convert';
-import 'dart:io';
 
 import 'package:flutter/material.dart';
 import 'package:flutter_svg/svg.dart';
 import 'package:openboard_wrapper/image_data.dart';
+import 'package:parrotaac/utils.dart';
 import 'package:path/path.dart' as p;
 
 extension ToImage on ImageData {
@@ -17,12 +17,7 @@ extension ToImage on ImageData {
       }
     } else if (path != null && projectPath != null) {
       String absolutePath = p.join(projectPath, path);
-      File file = File(absolutePath);
-      if (p.extension(absolutePath) == '.svg') {
-        return SvgPicture.file(file);
-      } else {
-        return Image.file(file);
-      }
+      return imageFromPath(absolutePath);
     } else if (url != null) {
       //TODO: handle svg over url
       return Image.network(url!);

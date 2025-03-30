@@ -48,12 +48,14 @@ class MainScreen extends StatelessWidget {
       ButtonData(image: urlImage, label: "url", sound: urlSound),
     ];
 
-    List<Widget> boxes = dataList
-        .map((data) => ParrotButton(initialData: data))
+    List<ParrotButtonNotifier> notfiers =
+        dataList.map((data) => ParrotButtonNotifier(data: data)).toList();
+    List<Widget> boxes = notfiers
+        .map((notifier) => ParrotButton(controller: notifier))
         .map((button) => SizedBox(width: 150, height: 150, child: button))
         .toList();
-
-    ParrotButton update = ParrotButton();
+    ParrotButtonNotifier notfier = ParrotButtonNotifier();
+    ParrotButton update = ParrotButton(controller: notfier);
     return Scaffold(
       appBar: AppBar(
           title: const Text('entry test'), backgroundColor: Color(0xFFAFABDF)),
@@ -65,17 +67,16 @@ class MainScreen extends StatelessWidget {
             width: 50,
             height: 50,
             child: TextButton(
-                child: Text("hello"),
-                onPressed: () {
-                  update.update((entry) {
-                    entry.label = "hello";
-                    entry.sound = urlSound;
-                    entry.backgroundColor =
-                        ColorData.fromString("RGB(255,0,0)");
-                    entry.image = rawSvg;
-                    entry.borderColor = ColorData.fromString("RGB(0,0,255)");
-                  });
-                }),
+              child: Text("hello"),
+              onPressed: () {
+                notfier.setLabel("hello");
+                notfier.setSound(urlSound);
+                notfier
+                    .setBackgroundColor(ColorData.fromString("RGB(255,0,0)"));
+                notfier.setImage(rawSvg);
+                notfier.setBorderColor(ColorData.fromString("RGB(0,0,255)"));
+              },
+            ),
           ),
         ],
       ),

@@ -1,7 +1,6 @@
 import 'dart:io';
 
 import 'package:openboard_wrapper/obf.dart';
-import 'package:openboard_wrapper/obz.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:path/path.dart' as p;
 
@@ -49,7 +48,7 @@ void _importObzFromPath(String path) async {}
 ///using the following structure name, name_1, name_2, name_3, name_4 ... name_n
 
 void importObf(File file) {
-  Obz project = Obf.fromFile(file).toSimpleObz();
+  Obf.fromFile(file).toSimpleObz();
 }
 
 File? exportProject(Directory dir) {

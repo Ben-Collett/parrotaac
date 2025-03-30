@@ -1,4 +1,3 @@
-import 'package:parrotaac/parrot_board.dart';
 import 'package:parrotaac/parrot_project.dart';
 
 const defaultRootObf =

@@ -7,10 +7,10 @@ import 'package:archive/archive_io.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 import 'package:openboard_wrapper/obz.dart';
 import 'package:openboard_wrapper/obf.dart';
-import 'package:parrotaac/board_selector.dart';
 import 'package:parrotaac/default_board_strings.dart';
 import 'package:parrotaac/file_utils.dart';
 import 'package:parrotaac/project_interface.dart';
+import 'package:parrotaac/utils.dart';
 import 'package:path/path.dart' as p;
 import 'package:parrotaac/board_utils.dart';
 import 'package:parrotaac/parrot_board.dart';
@@ -293,13 +293,8 @@ class ParrotProjectDisplayData extends DisplayData {
       if (json.containsKey(ParrotProject.imagePathKey)) {
         String path = dir.path;
         path = p.join(dir.path, json[ParrotProject.imagePathKey]);
-        File file = File(path);
         BoxFit fit = BoxFit.contain;
-        if (p.extension(path) == '.svg') {
-          image = SvgPicture.file(file, fit: fit);
-        } else {
-          image = Image.file(file, fit: fit);
-        }
+        image = imageFromPath(path, fit: fit);
       }
     }
   }

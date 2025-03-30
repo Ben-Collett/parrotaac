@@ -493,10 +493,10 @@ packages:
     description:
       path: "."
       ref: HEAD
-      resolved-ref: "068f5f0cf621cfafe738ea3639d0e86829808988"
+      resolved-ref: "5186554cf5144e1a06ea0425b4136d929bc2ee40"
       url: "https://github.com/Ben-Collett/openboard_wrapper.git"
     source: git
-    version: "1.2.1"
+    version: "1.2.2"
   package_config:
     dependency: transitive
     description:
