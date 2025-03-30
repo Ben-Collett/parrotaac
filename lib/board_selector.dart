@@ -313,7 +313,10 @@ class DisplayView extends ConsumerWidget {
     }
 
     Widget gridView(Iterable<Directory> data) {
-      List<DisplayEntry> filtered = filteredEntries(data, search);
+      List<DisplayEntry> filtered = filteredEntries(data, search,
+          textStyle: TextStyle(fontSize: 45),
+          imageWidth: 170,
+          imageHeight: 250);
       return GridView.count(
         key: ValueKey(1),
         crossAxisCount: 3,
@@ -367,7 +370,8 @@ class DisplayEntry extends ConsumerWidget {
       double? imageHeight,
       this.dir,
       TextStyle? textStyle})
-      : displayName = Text(data.name, style: textStyle),
+      : displayName = Text(data.name,
+            style: textStyle, maxLines: 1, overflow: TextOverflow.ellipsis),
         image = ConstrainedBox(
           constraints: BoxConstraints(
               maxWidth: imageWidth ?? double.infinity,
