@@ -41,11 +41,12 @@ class MainScreen extends StatelessWidget {
         image: ImageData(url: "https://picsum.photos/400/300"));
     ParrotButton fromData(ButtonData data) =>
         ParrotButton(controller: ParrotButtonNotifier(data: data));
-    List<List<Widget?>> buttons = [
+    List<List<ParrotButton?>> buttons = [
       [fromData(bd), fromData(bd2)],
       [null, fromData(bd3)],
     ];
-    GridNotfier grid = GridNotfier(widgets: buttons, draggable: true);
+    GridNotfier<ParrotButton> grid =
+        GridNotfier<ParrotButton>(widgets: buttons, draggable: true);
     return Scaffold(
         appBar: AppBar(
             title: Row(

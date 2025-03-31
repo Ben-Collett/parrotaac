@@ -1,6 +1,8 @@
+import 'dart:collection';
+
 import 'package:flutter/material.dart';
 
-class GridNotfier extends ChangeNotifier {
+class GridNotfier<T extends Widget> extends ChangeNotifier {
   bool _draggable;
   bool get draggable => _draggable;
   set draggable(bool draggable) {
@@ -10,7 +12,7 @@ class GridNotfier extends ChangeNotifier {
     notifyListeners();
   }
 
-  final List<List<Widget?>> _widgets;
+  List<List<T?>> _widgets;
 
   int get rows {
     return _widgets.length;
@@ -20,7 +22,20 @@ class GridNotfier extends ChangeNotifier {
     return _widgets.isEmpty ? 0 : _widgets[0].length;
   }
 
-  GridNotfier({required List<List<Widget?>> widgets, bool draggable = true})
+  UnmodifiableListView<UnmodifiableListView<T?>> get widgets {
+    return UnmodifiableListView(
+      _widgets.map(
+        (list) => UnmodifiableListView(list),
+      ),
+    );
+  }
+
+  void setWidgets(List<List<T?>> widgets) {
+    _widgets = widgets;
+    notifyListeners();
+  }
+
+  GridNotfier({required List<List<T?>> widgets, bool draggable = true})
       : _widgets = widgets,
         _draggable = draggable;
   void addRow() {
@@ -29,18 +44,18 @@ class GridNotfier extends ChangeNotifier {
   }
 
   void addColumn() {
-    for (List<Widget?> row in _widgets) {
+    for (List<T?> row in _widgets) {
       row.add(null);
     }
     notifyListeners();
   }
 
-  void setWidget({required int row, required int col, Widget? widget}) {
+  void setWidget({required int row, required int col, T? widget}) {
     _widgets[row][col] = widget;
     notifyListeners();
   }
 
-  Widget? getWidget(int row, int column) {
+  T? getWidget(int row, int column) {
     return _widgets[row][column];
   }
 

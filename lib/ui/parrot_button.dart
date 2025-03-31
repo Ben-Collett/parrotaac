@@ -2,15 +2,22 @@ import 'package:flutter/material.dart';
 import 'package:openboard_wrapper/button_data.dart';
 import 'package:openboard_wrapper/color_data.dart';
 import 'package:openboard_wrapper/image_data.dart';
+import 'package:openboard_wrapper/obf.dart';
 import 'package:openboard_wrapper/sound_data.dart';
 import 'package:parrotaac/audio_player.dart';
 import 'package:parrotaac/extensions/color_extensions.dart';
 import 'package:parrotaac/extensions/sound_extensions.dart';
 import 'package:parrotaac/extensions/image_extensions.dart';
 
+void Function(Obf) _defaultGoToLinkedBoard = (_) {};
+
 class ParrotButtonNotifier extends ChangeNotifier {
   ButtonData data;
-  ParrotButtonNotifier({ButtonData? data}) : data = data ?? ButtonData();
+  void Function(Obf) goToLinkedBoard;
+
+  ParrotButtonNotifier({ButtonData? data, void Function(Obf)? goToLinkedBoard})
+      : data = data ?? ButtonData(),
+        goToLinkedBoard = goToLinkedBoard ?? _defaultGoToLinkedBoard;
 
   void setLabel(String label) {
     data.label = label;
@@ -48,6 +55,11 @@ class ParrotButton extends StatelessWidget {
     } else {
       PreemptiveAudioPlayer()
           .playTTS(buttonData.voclization ?? buttonData.label ?? "");
+    }
+
+    if (buttonData.linkedBoard != null) {
+      Obf linkedBoard = buttonData.linkedBoard!;
+      controller.goToLinkedBoard(linkedBoard);
     }
   }
 
