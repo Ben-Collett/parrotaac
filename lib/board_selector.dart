@@ -4,6 +4,7 @@ import 'package:image_picker/image_picker.dart';
 import 'dart:io';
 import 'package:parrotaac/parrot_project.dart';
 import 'package:parrotaac/project_interface.dart';
+import 'package:parrotaac/setting_screen.dart';
 import 'package:parrotaac/utils.dart';
 
 final _viewTypeProvider = StateProvider((ref) => ViewType.list);
@@ -81,15 +82,33 @@ class BoardSelector extends StatelessWidget {
         ),
       ),
     );
-    return Column(
-      //ensures that it looks normal when there is no data or a loading circle
-      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+    return Scaffold(
+      appBar: AppBar(
+        title: Row(
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          children: [
+            const Text('ParrotAAC'),
+            IconButton(
+              icon: Icon(Icons.settings),
+              onPressed: () => Navigator.push(
+                context,
+                MaterialPageRoute(builder: (_) => SettingsScreen()),
+              ),
+            )
+          ],
+        ),
+        backgroundColor: Color(0xFFAFABDF),
+      ),
+      body: Column(
+        //ensures that it looks normal when there is no data or a loading circle
+        mainAxisAlignment: MainAxisAlignment.spaceBetween,
 
-      children: [
-        top,
-        Flexible(child: DisplayView()),
-        bottom,
-      ],
+        children: [
+          top,
+          Flexible(child: DisplayView()),
+          bottom,
+        ],
+      ),
     );
   }
 }

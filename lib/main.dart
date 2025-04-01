@@ -23,10 +23,6 @@ class MainScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(
-          title: const Text('ParrotAAC'), backgroundColor: Color(0xFFAFABDF)),
-      body: BoardSelector(),
-    );
+    return BoardSelector();
   }
 }

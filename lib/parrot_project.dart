@@ -216,8 +216,6 @@ class ParrotProject extends Obz with AACProject {
     manifest.createSync(
         recursive: true); // should create dir as well as the manifest
 
-    manifest.writeAsStringSync(manifestString);
-
     String fullPath(Obf obf) => p.join(dir.path, obf.path);
     Set<String> usedFilePaths = {};
     for (Obf board in boards) {
@@ -232,6 +230,7 @@ class ParrotProject extends Obz with AACProject {
       await board.writeTo(pathToWrite);
     }
 
+    manifest.writeAsStringSync(manifestString);
     return dir.path;
   }
 

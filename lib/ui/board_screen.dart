@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:openboard_wrapper/button_data.dart';
 import 'package:openboard_wrapper/obf.dart';
+import 'package:parrotaac/setting_screen.dart';
 import 'package:parrotaac/ui/util_widgets/draggable_grid.dart';
 
 import '../parrot_project.dart';
@@ -18,6 +19,7 @@ class _BoardScreenState extends State<BoardScreen> {
   static const String defaultBoardName = "default name";
   static const String defaultID = "board";
   late final GridNotfier<ParrotButton> notfier;
+  final ValueNotifier<bool> builderMode = ValueNotifier(false);
   late Obf currentObf;
 
   @override
@@ -29,8 +31,24 @@ class _BoardScreenState extends State<BoardScreen> {
           id: defaultID,
         );
 
-    notfier = GridNotfier(widgets: _getButtonsFromObf(currentObf));
+    notfier =
+        GridNotfier(widgets: _getButtonsFromObf(currentObf), draggable: false);
+    builderMode.addListener(() {
+      if (!builderMode.value) {
+        updateObf();
+        writeToDisk();
+      }
+    });
+
+    builderMode.addListener(() {
+      notfier.draggable = builderMode.value;
+    });
+
     super.initState();
+  }
+
+  void writeToDisk() {
+    widget.obz.write();
   }
 
   void changeObf(Obf obf) {
@@ -68,6 +86,7 @@ class _BoardScreenState extends State<BoardScreen> {
   void dispose() {
     updateObf();
     notfier.dispose();
+    builderMode.dispose();
     super.dispose();
   }
 
@@ -81,6 +100,39 @@ class _BoardScreenState extends State<BoardScreen> {
 
   @override
   Widget build(BuildContext context) {
-    return DraggableGrid(gridNotfier: notfier);
+    return Scaffold(
+      appBar: AppBar(
+        title: Row(
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          children: [
+            const Text('ParrotAAC'),
+            Row(
+              children: [
+                IconButton(
+                  icon: ValueListenableBuilder(
+                      valueListenable: builderMode,
+                      builder: (_, val, __) {
+                        if (val) {
+                          return const Icon(Icons.close);
+                        }
+                        return const Icon(Icons.handyman);
+                      }),
+                  onPressed: () => builderMode.value = !builderMode.value,
+                ),
+                IconButton(
+                  icon: Icon(Icons.settings),
+                  onPressed: () => Navigator.push(
+                    context,
+                    MaterialPageRoute(builder: (_) => SettingsScreen()),
+                  ),
+                ),
+              ],
+            )
+          ],
+        ),
+        backgroundColor: Color(0xFFAFABDF),
+      ),
+      body: DraggableGrid(gridNotfier: notfier),
+    );
   }
 }
