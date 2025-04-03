@@ -9,7 +9,9 @@ import 'parrot_button.dart';
 
 class BoardScreen extends StatefulWidget {
   final ParrotProject obz;
-  const BoardScreen({super.key, required this.obz});
+  //WARNING: storing the path will only work if I wait to rename a project somehow
+  final String? path;
+  const BoardScreen({super.key, required this.obz, this.path});
 
   @override
   State<BoardScreen> createState() => _BoardScreenState();
@@ -71,6 +73,7 @@ class _BoardScreenState extends State<BoardScreen> {
               controller: ParrotButtonNotifier(
                 data: button,
                 goToLinkedBoard: changeObf,
+                rootBoardPath: widget.path,
               ),
             ),
           );

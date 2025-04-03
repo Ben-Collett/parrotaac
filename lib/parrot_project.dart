@@ -216,7 +216,13 @@ class ParrotProject extends Obz with AACProject {
     manifest.createSync(
         recursive: true); // should create dir as well as the manifest
 
-    String fullPath(Obf obf) => p.join(dir.path, obf.path);
+    _setBoardPaths();
+    _writeBoards(dir);
+    manifest.writeAsStringSync(manifestString);
+    return dir.path;
+  }
+
+  void _setBoardPaths() {
     Set<String> usedFilePaths = {};
     for (Obf board in boards) {
       String path =
@@ -226,12 +232,15 @@ class ParrotProject extends Obz with AACProject {
       path = p.setExtension(path, '.obf');
 
       board.path = path;
+    }
+  }
+
+  void _writeBoards(Directory projectDir) async {
+    String fullPath(Obf obf) => p.join(projectDir.path, obf.path);
+    for (Obf board in boards) {
       String pathToWrite = fullPath(board);
       await board.writeTo(pathToWrite);
     }
-
-    manifest.writeAsStringSync(manifestString);
-    return dir.path;
   }
 
   Future<String> get projectPath {
@@ -252,15 +261,18 @@ class ParrotProject extends Obz with AACProject {
   }
 
   @override
-  ParrotProject parseManifestString(String json, {bool fullOverride = false}) {
-    super.parseManifestString(json, fullOverride: fullOverride);
+  ParrotProject parseManifestString(String json,
+      {bool fullOverride = false, bool updateLinkedBoards = true}) {
+    super.parseManifestString(json,
+        fullOverride: fullOverride, updateLinkedBoards: updateLinkedBoards);
     return this;
   }
 
   @override
   ParrotProject parseManifestJson(Map<String, dynamic> manifestJson,
-      {bool fullOverride = true}) {
-    super.parseManifestJson(manifestJson, fullOverride: fullOverride);
+      {bool fullOverride = true, bool updateLinkedBoards = true}) {
+    super.parseManifestJson(manifestJson,
+        fullOverride: fullOverride, updateLinkedBoards: updateLinkedBoards);
     return this;
   }
 }

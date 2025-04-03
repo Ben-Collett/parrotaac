@@ -14,9 +14,13 @@ void Function(Obf) _defaultGoToLinkedBoard = (_) {};
 class ParrotButtonNotifier extends ChangeNotifier {
   ButtonData data;
   void Function(Obf) goToLinkedBoard;
+  String? rootBoardPath;
 
-  ParrotButtonNotifier({ButtonData? data, void Function(Obf)? goToLinkedBoard})
-      : data = data ?? ButtonData(),
+  ParrotButtonNotifier({
+    ButtonData? data,
+    void Function(Obf)? goToLinkedBoard,
+    this.rootBoardPath,
+  })  : data = data ?? ButtonData(),
         goToLinkedBoard = goToLinkedBoard ?? _defaultGoToLinkedBoard;
 
   void setLabel(String label) {
@@ -50,8 +54,7 @@ class ParrotButton extends StatelessWidget {
   const ParrotButton({super.key, required this.controller});
   void onTap() {
     if (buttonData.sound != null) {
-      //TODO: I need to pass a root path
-      buttonData.sound?.play();
+      buttonData.sound?.play(rootPath: controller.rootBoardPath);
     } else {
       PreemptiveAudioPlayer()
           .playTTS(buttonData.voclization ?? buttonData.label ?? "");
@@ -70,7 +73,8 @@ class ParrotButton extends StatelessWidget {
         builder: (context, _) {
           List<Widget> column = [];
           if (buttonData.image != null) {
-            column.add(buttonData.image!.toImage());
+            column.add(buttonData.image!
+                .toImage(projectPath: controller.rootBoardPath));
           }
           if (buttonData.label != null) {
             column.add(Flexible(child: Text(buttonData.label!)));

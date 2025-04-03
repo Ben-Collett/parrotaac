@@ -5,6 +5,7 @@ import 'dart:io';
 import 'package:parrotaac/parrot_project.dart';
 import 'package:parrotaac/project_interface.dart';
 import 'package:parrotaac/setting_screen.dart';
+import 'package:parrotaac/ui/board_screen.dart';
 import 'package:parrotaac/utils.dart';
 
 final _viewTypeProvider = StateProvider((ref) => ViewType.list);
@@ -405,7 +406,14 @@ class DisplayEntry extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     List<Widget> children = [image, displayName];
-    void onTap() => print(dir?.path ?? "no directory was provided");
+    void onTap() => Navigator.of(context).push(
+          MaterialPageRoute(
+            builder: (_) => BoardScreen(
+              obz: ParrotProject.fromDirectory(dir!),
+              path: dir!.path,
+            ),
+          ),
+        );
     Widget rowOrCol = ref.watch(_viewTypeProvider) == ViewType.list
         ? Row(children: children)
         : Column(children: children);

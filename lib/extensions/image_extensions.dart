@@ -19,8 +19,7 @@ extension ToImage on ImageData {
       String absolutePath = p.join(projectPath, path);
       return imageFromPath(absolutePath);
     } else if (url != null) {
-      //TODO: handle svg over url
-      return Image.network(url!);
+      return imageFromUrl(url!);
     }
     return Placeholder();
   }
