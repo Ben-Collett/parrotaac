@@ -52,7 +52,11 @@ class ParrotProject extends Obz with AACProject {
 
     await project
         .parseManifestString(
-            defaultManifest(name: projectName, imagePath: projectImagePath))
+          defaultManifest(
+            name: projectName,
+            imagePath: projectImagePath,
+          ),
+        )
         .write();
 
     if (projectImagePath != null) {
@@ -111,7 +115,8 @@ class ParrotProject extends Obz with AACProject {
 
   ParrotProject.fromDirectory(Directory dir) : super.fromDirectory(dir) {
     Map<String, dynamic> manifest = manifestJson;
-    rename(manifest[nameKey] ?? p.basename(dir.path));
+    manifestExtendedProperties[nameKey] =
+        manifest[nameKey] ?? p.basename(dir.path);
   }
 
   static Future<String> _determineProjectName(String path) async {
@@ -217,7 +222,7 @@ class ParrotProject extends Obz with AACProject {
         recursive: true); // should create dir as well as the manifest
 
     _setBoardPaths();
-    _writeBoards(dir);
+    await _writeBoards(dir);
     manifest.writeAsStringSync(manifestString);
     return dir.path;
   }
@@ -235,7 +240,7 @@ class ParrotProject extends Obz with AACProject {
     }
   }
 
-  void _writeBoards(Directory projectDir) async {
+  Future<void> _writeBoards(Directory projectDir) async {
     String fullPath(Obf obf) => p.join(projectDir.path, obf.path);
     for (Obf board in boards) {
       String pathToWrite = fullPath(board);

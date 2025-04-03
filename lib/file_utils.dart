@@ -7,11 +7,17 @@ String sanitzeFileName(String name) {
 }
 
 String determineNoncollidingName(String inputPath, Iterable<String> dirNames) {
+  final String extension = p.extension(inputPath);
+  final String dirName = p.dirname(inputPath);
   String fileName = p.basenameWithoutExtension(inputPath);
   while (dirNames.contains(fileName)) {
     fileName = _incrementName(fileName);
   }
-  return fileName;
+  String out = p.setExtension(fileName, extension);
+  if (dirName != '.') {
+    out = p.join(dirName, out);
+  }
+  return out;
 }
 
 ///increments based on the following pattern [name] -> [name]_1, [name]_n -> [name]_{n+1}

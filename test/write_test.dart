@@ -1,10 +1,8 @@
 //TODO: the test work, even ran in a group, but I get async gaps and missing plugin warnings when doing so, for now running the test one at a time is the best option until I have time to go back and figure out how to sort out the error.
 import 'dart:convert';
 import 'dart:io';
-import 'package:file/memory.dart';
 import 'package:openboard_wrapper/obf.dart';
 import 'package:openboard_wrapper/obz.dart';
-import 'package:path_provider/path_provider.dart';
 
 import 'package:path/path.dart' as p;
 import './boards/board_strings.dart';
@@ -14,14 +12,16 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:parrotaac/parrot_project.dart';
 import 'package:parrotaac/parrot_board.dart';
 
-void equalProjectes(Obz b1, Obz b2) {
+Future<void> equalProjectes(Obz b1, Obz b2) async {
   Map<String, dynamic> toJson(Obf board) => board.toJson();
-  expect(b1.manifestJson, b2.manifestJson);
-  expect(b1.boards.map(toJson).toSet(), b2.boards.map(toJson).toSet());
+  await expectLater(b1.manifestJson, b2.manifestJson);
+  await expectLater(
+      b1.boards.map(toJson).toSet(), b2.boards.map(toJson).toSet());
 }
 
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
+
   //TODO: make this in memory so I don't have to delete files. for some reason the below line works but not with trying to list files which I need
   //MemoryFileSystem system = MemoryFileSystem(style: FileSystemStyle.posix);
   Directory targetDir = Directory.systemTemp;
@@ -35,7 +35,7 @@ void main() {
       File file = File(targetPath);
       Map<String, dynamic> actual = Obf.fromFile(file).toJson();
       file.deleteSync(); //TODO: maybe I can use setup and tearDown or something like that to handle this.
-      expect(actual, expected);
+      expectLater(actual, expected);
     });
     test('test import board', () async {
       //TODO: find a way to get ride of this repeated code
@@ -54,10 +54,9 @@ void main() {
       Obz fromDir = Obz.fromDirectory(dir);
       ParrotProject actualBoard = ParrotProject.fromObz(fromDir, "simple2");
 
-      equalProjectes(actualBoard, expectedBoard);
-
       dir.deleteSync(recursive: true);
       simpleFile.deleteSync();
+      await equalProjectes(actualBoard, expectedBoard);
     });
   });
   group('ParrotProject Tests', () {
@@ -85,10 +84,9 @@ void main() {
       ParrotProject actual =
           ParrotProject.fromDirectory(Directory(projectTargetPath));
 
-      equalProjectes(actual, expected);
-
       File(archivePath).deleteSync();
       Directory(projectTargetPath).deleteSync(recursive: true);
+      await equalProjectes(actual, expected);
     });
   });
 
@@ -96,7 +94,7 @@ void main() {
     ParrotProject simpleProject = await makeSimpleProjectObject('samp');
     String name = 'name';
     await simpleProject.rename(name, projectDirectory: Directory("bull"));
-    expect(simpleProject.name, name);
+    expectLater(simpleProject.name, name);
   });
   test('rename with dir', () async {
     String originalName = 'simp';
@@ -106,8 +104,8 @@ void main() {
     String name = 'name';
     await simpleProject.rename(name, projectDirectory: dir);
     String newPath = p.join(targetDir.path, name);
-    expect(simpleProject.name, name);
     Directory(newPath).deleteSync(recursive: true);
+    await expectLater(simpleProject.name, name);
   });
   test('basename', () {
     String expectedBaseName = "hello world!";
@@ -122,10 +120,10 @@ void main() {
     Directory dir = Directory(path);
 
     var expected = ParrotProjectDisplayData(name);
-
-    expect(ParrotProjectDisplayData.fromDir(dir), expected);
+    var actual = ParrotProjectDisplayData.fromDir(dir);
 
     dir.deleteSync(recursive: true);
+    await expectLater(actual, expected);
   });
 }
 
