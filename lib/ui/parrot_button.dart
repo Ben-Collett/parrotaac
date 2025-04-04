@@ -73,11 +73,14 @@ class ParrotButton extends StatelessWidget {
         builder: (context, _) {
           List<Widget> column = [];
           if (buttonData.image != null) {
-            column.add(buttonData.image!
-                .toImage(projectPath: controller.rootBoardPath));
+            column.add(Expanded(
+              // flex: 3,
+              child: buttonData.image!
+                  .toImage(projectPath: controller.rootBoardPath),
+            ));
           }
           if (buttonData.label != null) {
-            column.add(Flexible(child: Text(buttonData.label!)));
+            column.add(Text(buttonData.label!));
           }
           return Material(
             key: UniqueKey(),

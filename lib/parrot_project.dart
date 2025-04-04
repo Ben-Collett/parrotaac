@@ -35,7 +35,7 @@ class ParrotProject extends Obz with AACProject {
 
   @override
   Widget get displayImage =>
-      displayImagePath != null ? Image.file(File(displayImagePath!)) : logo;
+      displayImagePath != null ? imageFromPath(displayImagePath!) : logo;
   @override
   String get name {
     return manifestExtendedProperties[nameKey];
