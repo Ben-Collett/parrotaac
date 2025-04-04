@@ -21,6 +21,7 @@ class _BoardScreenState extends State<BoardScreen> {
   static const String defaultBoardName = "default name";
   static const String defaultID = "board";
   late final GridNotfier<ParrotButton> notfier;
+  Set<ParrotButton> buttonSet = {};
   final ValueNotifier<bool> builderMode = ValueNotifier(false);
   late Obf currentObf;
 
@@ -35,12 +36,16 @@ class _BoardScreenState extends State<BoardScreen> {
 
     notfier =
         GridNotfier(widgets: _getButtonsFromObf(currentObf), draggable: false);
-    builderMode.addListener(() {
-      if (!builderMode.value) {
-        updateObf();
-        writeToDisk();
-      }
-    });
+    _updateButtonSet();
+    builderMode.addListener(
+      () {
+        if (!builderMode.value) {
+          updateObf();
+          writeToDisk();
+          _updateButtonSet();
+        }
+      },
+    );
 
     builderMode.addListener(() {
       notfier.draggable = builderMode.value;
@@ -48,6 +53,8 @@ class _BoardScreenState extends State<BoardScreen> {
 
     super.initState();
   }
+
+  void updatesParrotControllers() {}
 
   void writeToDisk() {
     widget.obz.write();
@@ -88,9 +95,31 @@ class _BoardScreenState extends State<BoardScreen> {
   @override
   void dispose() {
     updateObf();
+    _updateButtonSet();
+    buttonSet.forEach(_disposeButtonController);
     notfier.dispose();
     builderMode.dispose();
     super.dispose();
+  }
+
+  void _disposeButtonController(ParrotButton button) =>
+      button.controller.dispose();
+  void _updateButtonSet() {
+    final buttonSetFromGrid = _buttonSetFromGrid(notfier.widgets);
+    buttonSet.difference(buttonSetFromGrid).forEach(_disposeButtonController);
+    buttonSet = buttonSetFromGrid;
+  }
+
+  Set<ParrotButton> _buttonSetFromGrid(List<List<ParrotButton?>> buttons) {
+    Set<ParrotButton> out = {};
+    for (List<ParrotButton?> row in buttons) {
+      for (ParrotButton? button in row) {
+        if (button != null) {
+          out.add(button);
+        }
+      }
+    }
+    return out;
   }
 
   void updateObf() {
