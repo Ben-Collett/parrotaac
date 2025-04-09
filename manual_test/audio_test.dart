@@ -1,6 +1,7 @@
 import 'dart:io';
 
 import 'package:flutter/material.dart';
+import 'package:parrotaac/audio/audio_source.dart';
 import 'package:parrotaac/audio_player.dart';
 import 'package:parrotaac/audio_recorder.dart';
 import 'package:path_provider/path_provider.dart';
@@ -43,19 +44,42 @@ class MyHomePage extends StatefulWidget {
 
 class _MyHomePageState extends State<MyHomePage> {
   void playFromUrl() async {
-    PreemptiveAudioPlayer().playFromUrl(
-        'https://www.soundhelix.com/examples/mp3/SoundHelix-Song-1.mp3');
+    PreemptiveAudioPlayer().play(
+      AudioUrlSource(
+          'https://www.soundhelix.com/examples/mp3/SoundHelix-Song-1.mp3'),
+    );
+  }
+
+  void stop() async {
+    PreemptiveAudioPlayer().stop();
   }
 
   void playTTS() async {
-    PreemptiveAudioPlayer().playTTS("hello world");
+    PreemptiveAudioPlayer().play(TTSSource("hello world"));
+  }
+
+  void playMulti() async {
+    PreemptiveAudioPlayer().playIterable([
+      TTSSource("hello world"),
+      AudioUrlSource(
+          "https://www.soundhelix.com/examples/mp3/SoundHelix-Song-1.mp3"),
+    ]);
+  }
+
+  void playMultiPlayerFirst() async {
+    PreemptiveAudioPlayer().playIterable([
+      AudioUrlSource(
+          "http://codeskulptor-demos.commondatastorage.googleapis.com/GalaxyInvaders/explosion%2001.wav"),
+      TTSSource("hello world"),
+    ]);
   }
 
   void playRecorded() async {
     Directory parentDir = await recordTargetDir();
     String filename =
         p.setExtension(recordTargetFileName, recordTargetExtension);
-    PreemptiveAudioPlayer().playFromPath(p.join(parentDir.path, filename));
+    PreemptiveAudioPlayer()
+        .play(AudioFilePathSource(p.join(parentDir.path, filename)));
   }
 
   @override
@@ -77,9 +101,17 @@ class _MyHomePageState extends State<MyHomePage> {
               child: Text("play from url"),
             ),
             FloatingActionButton(
+              onPressed: playMulti,
+              child: Text("play multi"),
+            ),
+            FloatingActionButton(
+                onPressed: playMultiPlayerFirst,
+                child: Text('multi tts second')),
+            FloatingActionButton(
               onPressed: playRecorded,
               child: Text("play recorded"),
             ),
+            FloatingActionButton(onPressed: stop, child: Text("stop")),
             RecordButton(),
           ],
         ),
