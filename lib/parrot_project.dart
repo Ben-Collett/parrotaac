@@ -38,7 +38,7 @@ class ParrotProject extends Obz with AACProject {
       displayImagePath != null ? imageFromPath(displayImagePath!) : logo;
   @override
   String get name {
-    return manifestExtendedProperties[nameKey];
+    return manifestExtendedProperties[nameKey] ?? "unnamed";
   }
 
   static Future<ParrotProject> writeDefaultProject(
@@ -120,23 +120,54 @@ class ParrotProject extends Obz with AACProject {
   }
 
   static Future<String> _determineProjectName(String path) async {
-    String name = p.basename(path);
+    String name = p.basenameWithoutExtension(path);
     List<Directory> dirs = await projectDirectories;
     return determineNoncollidingName(
         name, dirs.map((dir) => p.basename(dir.path)));
   }
 
+  //TODO: write unit test for this function
+  static Future<String> import(
+    String path, {
+    String? outputPath,
+    String? projectName,
+  }) async {
+    String extension = p.extension(path);
+    if (extension == '.obf') {
+      await importFromObfFile(
+        File(path),
+        projectName: projectName,
+        outputPath: outputPath,
+      );
+    } else if (extension == '.obz') {
+      await importArchiveFromPath(
+        path,
+        projectName: projectName,
+        outputPath: outputPath,
+      );
+    }
+    return "";
+  }
+
   ///return the  path of the imported project
   ///[path] is the path to the .obz to import
   ///[outputPath] is the path to output the file
-  static Future<String> importArchiveFromPath(String path,
-      {String? outputPath}) async {
+  static Future<String> importArchiveFromPath(
+    String path, {
+    String? outputPath,
+    String? projectName,
+  }) async {
     final inputStream = InputFileStream(path);
     final Archive archive = ZipDecoder().decodeStream(inputStream);
 
     String outPath;
     if (outputPath == null) {
-      String name = await _determineProjectName(path);
+      String name;
+      if (projectName != null) {
+        name = await _determineProjectName(projectName);
+      } else {
+        name = await _determineProjectName(path);
+      }
       outPath = await projectTargetPath;
       outPath = p.join(outPath, name);
     } else {
@@ -168,18 +199,19 @@ class ParrotProject extends Obz with AACProject {
     String? projectName,
     String? outputPath,
     String? boardPath,
-  }) {
+  }) async {
     final String baseName = p.basenameWithoutExtension(toImport.path);
-    final String importedName = projectName ?? baseName;
+    final String importedName =
+        await _determineProjectName(projectName ?? baseName);
     final Obf board = Obf.fromFile(toImport);
     if (boardPath == null) {
-      board.path = p.join('boards/', p.basename(toImport.path));
+      board.path = p.join('boards/', sanitzeFileName(importedName));
     } else {
       board.path = boardPath;
     }
     final Obz simpleObz = board.toSimpleObz();
-    return ParrotProject.fromObz(simpleObz, importedName)
-        .write(path: outputPath);
+    final simpleProject = ParrotProject.fromObz(simpleObz, importedName);
+    return simpleProject.write(path: outputPath);
   }
 
   ///returns whether or not the rename was successful.
@@ -276,6 +308,9 @@ class ParrotProject extends Obz with AACProject {
   @override
   ParrotProject parseManifestJson(Map<String, dynamic> manifestJson,
       {bool fullOverride = true, bool updateLinkedBoards = true}) {
+    if (manifestJson[nameKey] == null) {
+      manifestJson[nameKey] = name;
+    }
     super.parseManifestJson(manifestJson,
         fullOverride: fullOverride, updateLinkedBoards: updateLinkedBoards);
     return this;

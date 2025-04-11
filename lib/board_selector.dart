@@ -1,3 +1,5 @@
+import 'dart:math';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:image_picker/image_picker.dart';
@@ -89,12 +91,37 @@ class BoardSelector extends StatelessWidget {
           mainAxisAlignment: MainAxisAlignment.spaceBetween,
           children: [
             const Text('ParrotAAC'),
-            IconButton(
-              icon: Icon(Icons.settings),
-              onPressed: () => Navigator.push(
-                context,
-                MaterialPageRoute(builder: (_) => SettingsScreen()),
-              ),
+            Row(
+              children: [
+                Consumer(
+                  builder: (context, ref, __) {
+                    return IconButton(
+                      icon: Icon(Icons.file_download_outlined),
+                      onPressed: () async {
+                        final toImport = await getFilesPaths(["obf", "obz"]);
+                        if (context.mounted) {
+                          _showLoadingDialog(context);
+                        }
+                        for (String path in toImport) {
+                          await ParrotProject.import(path);
+                        }
+                        if (context.mounted) {
+                          Navigator.of(context).pop();
+                        }
+
+                        ref.invalidate(_projectDirProvider);
+                      },
+                    );
+                  },
+                ),
+                IconButton(
+                  icon: Icon(Icons.settings),
+                  onPressed: () => Navigator.push(
+                    context,
+                    MaterialPageRoute(builder: (_) => SettingsScreen()),
+                  ),
+                ),
+              ],
             )
           ],
         ),
@@ -122,6 +149,22 @@ void _showBoardDialog(BuildContext context) {
     context: context,
     builder: (context) {
       return CreateProjectDialog(formKey: formKey, controller: controller);
+    },
+  );
+}
+
+void _showLoadingDialog(BuildContext context) async {
+  showDialog(
+    context: context,
+    barrierDismissible: false,
+    builder: (context) {
+      Size screenSize = MediaQuery.of(context).size;
+      double containerSize = min(screenSize.width, screenSize.height) * .8;
+      return AlertDialog(
+        title: Text("importing"),
+        content: SizedBox.square(
+            dimension: containerSize, child: const CircularProgressIndicator()),
+      );
     },
   );
 }

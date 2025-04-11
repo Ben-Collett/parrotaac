@@ -33,6 +33,7 @@ dependencies:
   audioplayers: ^6.2.0
   cupertino_icons: ^1.0.8
   file: ^7.0.1
+  file_picker: ^10.0.0
   flutter:
     sdk: flutter
   flutter_riverpod: ^2.6.1
