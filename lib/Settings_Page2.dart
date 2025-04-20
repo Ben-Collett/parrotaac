@@ -117,7 +117,7 @@ class _SettingsPageState extends State<SettingsPage> {
               trailing: Switch(
                 value: true,
                 onChanged: (bool value) {
-                  // You could implement notifications settings here.
+                  
                 },
               ),
             ),
