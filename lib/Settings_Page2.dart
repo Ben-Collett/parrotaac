@@ -1,17 +1,17 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_colorpicker/flutter_colorpicker.dart';
 import 'package:provider/provider.dart';
- 
-class SettingsPage extends StatefulWidget {
+
+class setting_screen extends StatefulWidget {
   final Function(Color) onAppBarColorChanged;
 
-  SettingsPage({required this.onAppBarColorChanged});
+  setting_screen({required this.onAppBarColorChanged});
 
   @override
-  _SettingsPageState createState() => _SettingsPageState();
+  _setting_screenState createState() => _setting_screenState();
 }
 
-class _SettingsPageState extends State<SettingsPage> {
+class _setting_screenState extends State<setting_screen> {
   Color _appBarColor = Colors.blue;
   bool _isDarkMode = false;
   double _fontSize = 16.0;
@@ -116,9 +116,7 @@ class _SettingsPageState extends State<SettingsPage> {
               title: Text("Enable Notifications"),
               trailing: Switch(
                 value: true,
-                onChanged: (bool value) {
-                  
-                },
+                onChanged: (bool value) {},
               ),
             ),
           ],
