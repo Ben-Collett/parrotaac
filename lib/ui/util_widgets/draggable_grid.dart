@@ -1,5 +1,4 @@
 import 'dart:collection';
-
 import 'package:flutter/material.dart';
 
 class GridNotfier<T extends Widget> extends ChangeNotifier {
@@ -13,6 +12,7 @@ class GridNotfier<T extends Widget> extends ChangeNotifier {
   }
 
   List<List<T?>> _widgets;
+  Widget? emptySpotWidget;
 
   int get rows {
     return _widgets.length;
@@ -35,7 +35,11 @@ class GridNotfier<T extends Widget> extends ChangeNotifier {
     notifyListeners();
   }
 
-  GridNotfier({required List<List<T?>> widgets, bool draggable = true})
+  void Function(int, int)? onEmptyPressed;
+  GridNotfier(
+      {required List<List<T?>> widgets,
+      bool draggable = true,
+      this.onEmptyPressed})
       : _widgets = widgets,
         _draggable = draggable;
   void addRow() {
@@ -133,6 +137,11 @@ class DraggableGrid extends StatelessWidget {
                   child: GridCell(
                       row: i,
                       column: j,
+                      emptyWidget: IndexedWidget(
+                        row: i,
+                        column: j,
+                        widget: gridNotfier.emptySpotWidget,
+                      ),
                       dragWidth: dragWidth,
                       dragHeight: dragHeight,
                       notfier: gridNotfier),
@@ -153,12 +162,14 @@ class DraggableGrid extends StatelessWidget {
 
 class GridCell extends StatefulWidget {
   final IndexedWidget? child;
+  final IndexedWidget? emptyWidget;
   final int row, column;
   final double dragWidth, dragHeight;
   final GridNotfier notfier;
   const GridCell(
       {super.key,
       this.child,
+      this.emptyWidget,
       required this.dragWidth,
       required this.dragHeight,
       required this.row,
@@ -171,14 +182,28 @@ class GridCell extends StatefulWidget {
 
 class _GridCellState extends State<GridCell> {
   IndexedWidget? currentWidget;
+  IndexedWidget? emptyWidget;
   @override
   void initState() {
     currentWidget = widget.child;
+    emptyWidget = widget.emptyWidget;
     super.initState();
   }
 
   @override
   Widget build(BuildContext context) {
+    Widget tempEmptyWidget = emptyWidget?.widget ?? Container();
+
+    if (widget.notfier.onEmptyPressed != null && emptyWidget != null) {
+      tempEmptyWidget = InkWell(
+        onTap: () {
+          int row = emptyWidget!.row;
+          int col = emptyWidget!.column;
+          widget.notfier.onEmptyPressed!(row, col);
+        },
+        child: tempEmptyWidget,
+      );
+    }
     return DragTarget(
       builder: (BuildContext context, List<IndexedWidget?> candidateData,
           List<dynamic> rejectedData) {
@@ -196,7 +221,7 @@ class _GridCellState extends State<GridCell> {
           }
           return currentWidget!.widget;
         }
-        return Container();
+        return InkWell(child: tempEmptyWidget) ?? Container();
       },
       onAcceptWithDetails: (d) {
         setState(() {
@@ -219,9 +244,17 @@ class _GridCellState extends State<GridCell> {
 
 class IndexedWidget {
   int row, column;
-  Widget widget;
+  Widget? _widget;
+  Widget get widget {
+    return _widget ?? Container();
+  }
 
-  IndexedWidget({this.row = 0, this.column = 0, required this.widget});
+  set widget(Widget widget) {
+    _widget = widget;
+  }
+
+  IndexedWidget({this.row = 0, this.column = 0, Widget? widget})
+      : _widget = widget;
 
   @override
   int get hashCode => Object.hash(row, column, widget);

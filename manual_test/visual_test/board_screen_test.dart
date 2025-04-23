@@ -4,7 +4,8 @@ import 'package:openboard_wrapper/color_data.dart';
 import 'package:openboard_wrapper/obf.dart';
 import 'package:parrotaac/parrot_project.dart';
 import 'package:parrotaac/ui/board_screen.dart';
-
+import 'dart:io';
+import 'package:path/path.dart' as p;
 import '../../test/boards/board_strings.dart';
 
 void main() {
@@ -35,8 +36,8 @@ class MainScreen extends StatelessWidget {
 
     simpleObf.grid.getButtonData(0, 0)?.linkedBoard = voclization;
     voclization.grid.getButtonData(0, 0)?.linkedBoard = simpleObf;
-
-    ParrotProject project = ParrotProject(name: "name");
+    ParrotProject project = ParrotProject(
+        name: "name", path: p.join(Directory.systemTemp.path, 'board test'));
     project.root = simpleObf;
     project.addBoard(voclization).addBoard(simpleObf);
 

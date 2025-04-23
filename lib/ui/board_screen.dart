@@ -7,6 +7,7 @@ import 'package:parrotaac/ui/widgets/sentence_box.dart';
 
 import '../parrot_project.dart';
 import 'parrot_button.dart';
+import 'popups/button_config.dart';
 
 class BoardScreen extends StatefulWidget {
   final ParrotProject obz;
@@ -37,28 +38,92 @@ class _BoardScreenState extends State<BoardScreen> {
         );
 
     sentenceController = SentenceBoxController(projectPath: widget.path);
-    gridNotfier =
-        GridNotfier(widgets: _getButtonsFromObf(currentObf), draggable: false);
+    gridNotfier = GridNotfier(
+      widgets: _getButtonsFromObf(currentObf),
+      draggable: false,
+    );
     _updateButtonSet();
     builderMode.addListener(
-      () {
+      () async {
         if (!builderMode.value) {
-          updateObf();
-          writeToDisk();
+          updateButtonPositionsInObf();
+          await finalizeTempImages();
+          widget.obz.autoResolveAllIdCollisionsInFile();
+          widget.obz.deleteTempFiles();
+          await writeToDisk();
           _updateButtonSet();
         }
       },
     );
+    final Widget emptySpotWidget = Padding(
+        padding: const EdgeInsets.all(4.0),
+        child: Container(
+          decoration: BoxDecoration(
+              borderRadius: BorderRadius.circular(3),
+              border: Border.all(color: Colors.lightBlue, width: 5)),
+          child: Center(
+            child: Icon(Icons.add, color: Colors.lightBlue),
+          ),
+        ));
 
     builderMode.addListener(() {
       gridNotfier.draggable = builderMode.value;
+      if (builderMode.value == true) {
+        gridNotfier.emptySpotWidget = emptySpotWidget;
+        gridNotfier.onEmptyPressed = (row, col) {
+          ParrotButtonNotifier notifier =
+              ParrotButtonNotifier(projectPath: widget.path);
+          showDialog(
+            context: context,
+            barrierDismissible: false,
+            builder: (context) {
+              return AlertDialog(
+                content: SizedBox(
+                  child: ButtonConfigPopup(buttonController: notifier),
+                ),
+                actions: [
+                  IconButton(
+                    color: Colors.red,
+                    icon: Icon(Icons.cancel),
+                    onPressed: () {
+                      notifier.dispose();
+                      Navigator.of(context).pop();
+                    },
+                  ),
+                  IconButton(
+                    color: Colors.green,
+                    icon: Icon(Icons.check),
+                    onPressed: () {
+                      Navigator.of(context).pop();
+                      gridNotfier.setWidget(
+                        row: row,
+                        col: col,
+                        widget: ParrotButton(controller: notifier),
+                      );
+                    },
+                  ),
+                ],
+              );
+            },
+          );
+        };
+      } else {
+        gridNotfier.emptySpotWidget = null;
+        gridNotfier.onEmptyPressed = null;
+      }
     });
 
     super.initState();
   }
 
-  void writeToDisk() {
-    widget.obz.write();
+  Future<void> finalizeTempImages() async {
+    Map<String, String> paths = await widget.obz.mapTempImageToPermantSpot();
+    await widget.obz.moveFiles(paths);
+    widget.obz.updateImagePaths(paths);
+  }
+
+  Future<void> writeToDisk() async {
+    await widget.obz.write(path: widget.path);
   }
 
   void addButtonToSentenceBox(ButtonData buttonData) {
@@ -66,7 +131,7 @@ class _BoardScreenState extends State<BoardScreen> {
   }
 
   void changeObf(Obf obf) {
-    updateObf();
+    updateButtonPositionsInObf();
     currentObf = obf;
     gridNotfier.setWidgets(_getButtonsFromObf(obf));
   }
@@ -100,7 +165,7 @@ class _BoardScreenState extends State<BoardScreen> {
 
   @override
   void dispose() {
-    updateObf();
+    updateButtonPositionsInObf();
     _updateButtonSet();
     buttonSet.forEach(_disposeButtonController);
     gridNotfier.dispose();
@@ -129,10 +194,15 @@ class _BoardScreenState extends State<BoardScreen> {
     return out;
   }
 
-  void updateObf() {
+  void updateButtonPositionsInObf() {
     List<List<ButtonData?>> order = [];
     for (List<ParrotButton?> row in gridNotfier.widgets) {
       order.add(row.map((b) => b?.buttonData).toList());
+      for (ParrotButton? button in row) {
+        if (button != null && !currentObf.buttons.contains(button.buttonData)) {
+          currentObf.buttons.add(button.buttonData);
+        }
+      }
     }
     currentObf.grid.setOrder(order);
   }

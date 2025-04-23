@@ -288,6 +288,8 @@ class _CreateProjectDialogState extends State<CreateProjectDialog> {
                 }
                 await ParrotProject.writeDefaultProject(
                   widget.controller.text,
+                  path: await ParrotProject.determineValidProjectPath(
+                      widget.controller.text),
                   projectImagePath: imagePath,
                 );
                 if (context.mounted) Navigator.of(context).pop();

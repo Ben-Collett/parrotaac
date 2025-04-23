@@ -43,16 +43,18 @@ void main() {
       Obf board = Obf.fromJsonString(simpleBoard);
       board.path = "boards/simple2.obf";
       ParrotProject expectedBoard =
-          ParrotProject.fromObz(board.toSimpleObz(), "simple2");
+          ParrotProject.fromObz(board.toSimpleObz(), "simple2", targetPath);
       await board.writeTo(targetPath);
       File simpleFile = File(targetPath);
-      String importTargetPath = p.join(targetDir.path, "import_dir");
+      String importTargetPath =
+          p.join(targetDir.path, "import_dir", "simple2.obf");
       await ParrotProject.importFromObfFile(simpleFile,
           outputPath: importTargetPath);
 
       Directory dir = Directory(importTargetPath);
       Obz fromDir = Obz.fromDirectory(dir);
-      ParrotProject actualBoard = ParrotProject.fromObz(fromDir, "simple2");
+      ParrotProject actualBoard =
+          ParrotProject.fromObz(fromDir, "simple2", dir.path);
 
       dir.deleteSync(recursive: true);
       simpleFile.deleteSync();
@@ -79,7 +81,8 @@ void main() {
           outputPath: projectTargetPath);
 
       Obf simpleObf = Obf.fromJsonString(simpleBoard);
-      ParrotProject expected = ParrotProject(name: "simp", boards: [simpleObf])
+      ParrotProject expected = ParrotProject(
+              name: "simp", boards: [simpleObf], path: projectTargetPath)
           .parseManifestString(simpleManifestString);
       ParrotProject actual =
           ParrotProject.fromDirectory(Directory(projectTargetPath));
@@ -110,7 +113,7 @@ void main() {
   test('basename', () {
     String expectedBaseName = "hello world!";
     String name = "hell*o\\ wor/ld!";
-    ParrotProject project = ParrotProject(name: name);
+    ParrotProject project = ParrotProject(name: name, path: "tmp");
     expect(project.baseName, expectedBaseName);
   });
   test('get display data', () async {
@@ -137,6 +140,7 @@ Future<ParrotProject> writeSimpleProject(String path) async {
 
 Future<ParrotProject> makeSimpleProjectObject(String path) async {
   List<Obf> boards = [Obf.fromJsonString(simpleBoard)];
-  ParrotProject out = ParrotProject(name: p.basename(path), boards: boards);
+  ParrotProject out =
+      ParrotProject(name: p.basename(path), boards: boards, path: path);
   return out;
 }

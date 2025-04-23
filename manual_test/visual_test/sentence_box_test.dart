@@ -2,8 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:openboard_wrapper/button_data.dart';
 import 'package:openboard_wrapper/image_data.dart';
-import 'package:parrotaac/board_selector.dart';
-import 'package:parrotaac/ui/parrot_button.dart';
 import 'package:parrotaac/ui/widgets/sentence_box.dart';
 
 void main() {

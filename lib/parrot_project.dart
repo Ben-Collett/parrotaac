@@ -5,6 +5,8 @@ import 'package:flutter/widgets.dart';
 
 import 'package:archive/archive_io.dart';
 import 'package:flutter_svg/flutter_svg.dart';
+import 'package:image_picker/image_picker.dart';
+import 'package:openboard_wrapper/image_data.dart';
 import 'package:openboard_wrapper/obz.dart';
 import 'package:openboard_wrapper/obf.dart';
 import 'package:parrotaac/default_board_strings.dart';
@@ -20,9 +22,31 @@ final SvgPicture logo = SvgPicture.asset("assets/images/logo/white_bg.svg");
 class ParrotProject extends Obz with AACProject {
   static const String nameKey = "ext_name";
   static const String imagePathKey = 'ext_display_image_path';
+  static const String tempImageDirName = 'parrot_tmp_images';
+  static String tmpImagePath(String projectPath) =>
+      p.join(projectPath, 'images', 'parrot_tmp');
+  String path;
+  Future<List<File>> get tempImagesList async {
+    final String tmpPath = tmpImagePath(path);
+    Directory imageDir = Directory(tmpPath);
+
+    if (!imageDir.existsSync()) {
+      return [];
+    }
+
+    return imageDir.listSync().whereType<File>().toList();
+  }
 
   String? get displayImagePath {
     return manifestExtendedProperties[imagePathKey];
+  }
+
+  static Future<String> determineValidProjectPath(String name) async {
+    name = sanitzeFileName(name);
+    Iterable<Directory> dirs = await projectDirs();
+    Iterable<String> names = dirs.map((d) => d.path).map(p.basename);
+    name = determineNoncollidingName(name, names);
+    return p.join(await projectTargetPath, name);
   }
 
   set displayImagePath(String? path) {
@@ -38,15 +62,18 @@ class ParrotProject extends Obz with AACProject {
       displayImagePath != null ? imageFromPath(displayImagePath!) : logo;
   @override
   String get name {
-    return manifestExtendedProperties[nameKey] ?? "unnamed";
+    return manifestExtendedProperties[nameKey] ??
+        p.basenameWithoutExtension(path);
   }
 
   static Future<ParrotProject> writeDefaultProject(
     String projectName, {
+    required String path,
     String? projectImagePath,
   }) async {
     ParrotProject project = ParrotProject(
       boards: [Obf.fromJsonString(defaultRootObf)],
+      path: path, //TODO
       name: projectName,
     );
 
@@ -60,8 +87,7 @@ class ParrotProject extends Obz with AACProject {
         .write();
 
     if (projectImagePath != null) {
-      Directory projectDir = await project._asDirectory;
-      String imgDirPath = p.join(projectDir.path, 'images/');
+      String imgDirPath = p.join(path, 'images/');
       Directory(imgDirPath).createSync();
 
       String imageFilePath = p.join(imgDirPath, 'project_image');
@@ -109,11 +135,14 @@ class ParrotProject extends Obz with AACProject {
         .firstOrNull;
   }
 
-  ParrotProject({super.boards, required String name}) : super() {
+  ParrotProject({super.boards, required String name, required this.path})
+      : super() {
     manifestExtendedProperties[nameKey] = name;
   }
 
-  ParrotProject.fromDirectory(Directory dir) : super.fromDirectory(dir) {
+  ParrotProject.fromDirectory(Directory dir)
+      : path = dir.path,
+        super.fromDirectory(dir) {
     Map<String, dynamic> manifest = manifestJson;
     manifestExtendedProperties[nameKey] =
         manifest[nameKey] ?? p.basename(dir.path);
@@ -192,6 +221,79 @@ class ParrotProject extends Obz with AACProject {
     return currentDirs.where(theNameMatches).firstOrNull;
   }
 
+  ///returns the relative path from project dir to the temp image file
+  static Future<String> writeTempImage(
+    Directory projectDir,
+    XFile xfile,
+  ) async {
+    Directory dir = Directory(tmpImagePath(projectDir.path));
+    dir.createSync(recursive: true);
+    Iterable<File> images = dir.listSync().whereType<File>();
+    String extension = p.extension(xfile.path);
+    String name = p.basenameWithoutExtension(xfile.path);
+    Iterable<String> imageNames =
+        images.map((f) => f.path).map(p.basenameWithoutExtension);
+    name = determineNoncollidingName(name, imageNames);
+    String path = p.setExtension(name, extension);
+    path = p.join(dir.path, path);
+
+    await xfile.saveTo(path);
+    return p.relative(path, from: projectDir.path);
+  }
+
+  void deleteTempFiles() {
+    Directory dir = Directory(tmpImagePath(path));
+    if (dir.existsSync()) {
+      dir.deleteSync();
+    }
+  }
+
+  ///maps all the temporary images in projectPath/image/tmp to locations in projectPath/image. Doesn't actually move the files
+  Future<Map<String, String>> mapTempImageToPermantSpot() async {
+    Map<String, String> out = {};
+    String imagesPath = p.join(path, 'images');
+    Directory images = Directory(imagesPath);
+
+    Iterable<String> imagesNames = images.listSync().map(
+          (f) => p.basenameWithoutExtension(f.path),
+        );
+    List<File> tempImages = await tempImagesList;
+    if (tempImages.isNotEmpty) images.createSync(recursive: true);
+
+    for (File imageFile in tempImages) {
+      String newPath = determineNoncollidingName(imageFile.path, imagesNames);
+      String basename = p.basename(newPath);
+      newPath = p.join(imagesPath, basename);
+      out[imageFile.path] = newPath;
+    }
+    return out;
+  }
+
+  ///[map] tells the function where to move the old file from to it's new path
+  Future<void> moveFiles(
+    Map<String, String> map,
+  ) async {
+    for (MapEntry entry in map.entries) {
+      File file = File(entry.key);
+      if (file.existsSync()) {
+        Directory(p.dirname(entry.value)).createSync(recursive: true);
+        file.copySync(entry.value);
+        file.deleteSync(recursive: true);
+      }
+    }
+  }
+
+  ///[map] should map the old location to the new location
+  void updateImagePaths(Map<String, String> paths) {
+    bool pathIsNotNull(ImageData i) => i.path != null;
+    for (ImageData image in images.where(pathIsNotNull)) {
+      String imageDataPath = p.join(path, image.path);
+      if (paths.containsKey(imageDataPath)) {
+        image.path = p.relative(paths[imageDataPath]!, from: path);
+      }
+    }
+  }
+
   ///returns the path to the imported project
   ///automatically sets the board path to boards/(the basename of [toImport]) if [boardPath] is not specified
   static Future<String> importFromObfFile(
@@ -201,8 +303,13 @@ class ParrotProject extends Obz with AACProject {
     String? boardPath,
   }) async {
     final String baseName = p.basenameWithoutExtension(toImport.path);
-    final String importedName =
-        await _determineProjectName(projectName ?? baseName);
+    String importedName;
+    if (outputPath == null) {
+      importedName = await _determineProjectName(projectName ?? baseName);
+    } else {
+      importedName = p.basename(outputPath);
+    }
+
     final Obf board = Obf.fromFile(toImport);
     if (boardPath == null) {
       board.path = p.join('boards/', sanitzeFileName(importedName));
@@ -210,7 +317,8 @@ class ParrotProject extends Obz with AACProject {
       board.path = boardPath;
     }
     final Obz simpleObz = board.toSimpleObz();
-    final simpleProject = ParrotProject.fromObz(simpleObz, importedName);
+    final simpleProject = ParrotProject.fromObz(
+        simpleObz, p.basenameWithoutExtension(importedName), outputPath ?? "");
     return simpleProject.write(path: outputPath);
   }
 
@@ -248,11 +356,9 @@ class ParrotProject extends Obz with AACProject {
     } else {
       dir = Directory(path);
     }
-
     File manifest = File(p.join(dir.path, 'manifest.json'));
     manifest.createSync(
         recursive: true); // should create dir as well as the manifest
-
     _setBoardPaths();
     await _writeBoards(dir);
     manifest.writeAsStringSync(manifestString);
@@ -292,8 +398,8 @@ class ParrotProject extends Obz with AACProject {
         .then(maptToDir);
   }
 
-  factory ParrotProject.fromObz(Obz obz, String name) {
-    return ParrotProject(boards: obz.boards, name: name)
+  factory ParrotProject.fromObz(Obz obz, String name, String path) {
+    return ParrotProject(boards: obz.boards, name: name, path: path)
         .parseManifestJson(obz.manifestJson);
   }
 

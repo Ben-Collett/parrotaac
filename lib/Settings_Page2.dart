@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_colorpicker/flutter_colorpicker.dart';
-import 'package:provider/provider.dart';
 
 class setting_screen extends StatefulWidget {
   final Function(Color) onAppBarColorChanged;
