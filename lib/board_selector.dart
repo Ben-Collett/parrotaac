@@ -1,21 +1,22 @@
-import 'dart:math';
+import 'dart:io';
 
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:image_picker/image_picker.dart';
-import 'dart:io';
 import 'package:parrotaac/parrot_project.dart';
-import 'package:parrotaac/project_interface.dart';
 import 'package:parrotaac/setting_screen.dart';
-import 'package:parrotaac/ui/board_screen.dart';
 import 'package:parrotaac/utils.dart';
+
+import 'shared_providers/future_providers.dart';
+import 'ui/popups/loading.dart';
+import 'ui/widgets/displey_entry.dart';
 
 final _viewTypeProvider = StateProvider((ref) => ViewType.list);
 final _searchTextProvider = StateProvider((ref) => "");
-final _projectDirProvider =
-    FutureProvider((ref) async => ParrotProject.projectDirs());
+
 List<DisplayEntry> _displayDataFromDirList(
   Iterable<Directory> dirs, {
+  required ViewType viewType,
   double? imageWidth,
   double? imageHeight,
   TextStyle? textStyle,
@@ -24,6 +25,7 @@ List<DisplayEntry> _displayDataFromDirList(
         .map(
           (dir) => DisplayEntry.entryFromOpenboardDir(
             dir,
+            viewType: viewType,
             imageWidth: imageWidth,
             imageHeight: imageHeight,
             textStyle: textStyle,
@@ -34,6 +36,7 @@ List<DisplayEntry> filteredEntries(
   Iterable<Directory> dirs,
   String search, {
   double? imageWidth,
+  required ViewType viewType,
   double? imageHeight,
   TextStyle? textStyle,
 }) {
@@ -41,6 +44,7 @@ List<DisplayEntry> filteredEntries(
   return _displayDataFromDirList(dirs,
           imageWidth: imageWidth,
           imageHeight: imageHeight,
+          viewType: viewType,
           textStyle: textStyle)
       .where((entry) => match(entry.displayName))
       .toList();
@@ -61,13 +65,22 @@ class BoardSelector extends StatelessWidget {
           mainAxisAlignment: MainAxisAlignment.spaceBetween,
           children: [
             SearchBar(),
-            Container(
-              color: Colors.orangeAccent,
-              child: TextButton(
-                onPressed: () => _showBoardDialog(context),
-                child: Text("create project"),
+            Row(children: [
+              Container(
+                color: Colors.yellow,
+                child: TextButton(
+                  child: Text("select mode"),
+                  onPressed: () {},
+                ),
               ),
-            ),
+              Container(
+                color: Colors.orangeAccent,
+                child: TextButton(
+                  onPressed: () => _showBoardDialog(context),
+                  child: Text("create project"),
+                ),
+              ),
+            ])
           ],
         ),
       ),
@@ -100,7 +113,7 @@ class BoardSelector extends StatelessWidget {
                       onPressed: () async {
                         final toImport = await getFilesPaths(["obf", "obz"]);
                         if (context.mounted) {
-                          _showLoadingDialog(context);
+                          showLoadingDialog(context, 'importing');
                         }
                         for (String path in toImport) {
                           await ParrotProject.import(path);
@@ -109,7 +122,7 @@ class BoardSelector extends StatelessWidget {
                           Navigator.of(context).pop();
                         }
 
-                        ref.invalidate(_projectDirProvider);
+                        ref.invalidate(projectDirProvider);
                       },
                     );
                   },
@@ -149,22 +162,6 @@ void _showBoardDialog(BuildContext context) {
     context: context,
     builder: (context) {
       return CreateProjectDialog(formKey: formKey, controller: controller);
-    },
-  );
-}
-
-void _showLoadingDialog(BuildContext context) async {
-  showDialog(
-    context: context,
-    barrierDismissible: false,
-    builder: (context) {
-      Size screenSize = MediaQuery.of(context).size;
-      double containerSize = min(screenSize.width, screenSize.height) * .8;
-      return AlertDialog(
-        title: Text("importing"),
-        content: SizedBox.square(
-            dimension: containerSize, child: const CircularProgressIndicator()),
-      );
     },
   );
 }
@@ -213,14 +210,16 @@ class _CreateProjectDialogState extends State<CreateProjectDialog> {
                   child: Consumer(
                     builder: (_, ref, __) {
                       Iterable<Directory> dirs =
-                          switch (ref.watch(_projectDirProvider)) {
+                          switch (ref.watch(projectDirProvider)) {
                         AsyncData(:final value) => value,
                         _ => [],
                       };
-                      List<String> displayNames = _displayDataFromDirList(dirs)
-                          .map((d) => d.displayName.data)
-                          .whereType<String>()
-                          .toList();
+                      final ViewType viewType = ref.watch(_viewTypeProvider);
+                      List<String> displayNames =
+                          _displayDataFromDirList(dirs, viewType: viewType)
+                              .map((d) => d.displayName.data)
+                              .whereType<String>()
+                              .toList();
                       List<Widget> column = [
                         TextFormField(
                           controller: widget.controller,
@@ -280,7 +279,7 @@ class _CreateProjectDialogState extends State<CreateProjectDialog> {
             onPressed: () async {
               // Trigger form validation
               if (widget.formKey.currentState!.validate()) {
-                ref.invalidate(_projectDirProvider);
+                ref.invalidate(projectDirProvider);
                 String? imagePath;
                 if (_image != null) {
                   XFile? image = await _image;
@@ -330,10 +329,10 @@ class BoardCountText extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     String search = ref.watch(_searchTextProvider);
-    return switch (ref.watch(_projectDirProvider)) {
+    return switch (ref.watch(projectDirProvider)) {
       AsyncError(:final error) => Text('error $error'),
-      AsyncData(:final value) =>
-        Text('${filteredEntries(value, search).length} boards'),
+      AsyncData(:final value) => Text(
+          '${filteredEntries(value, search, viewType: ViewType.list).length} boards'),
       _ => const Text('calculating #of boards'),
     };
   }
@@ -368,7 +367,10 @@ class DisplayView extends ConsumerWidget {
     String search = ref.watch(_searchTextProvider);
     Widget listView(Iterable<Directory> data) {
       List<DisplayEntry> filtered = filteredEntries(data, search,
-          imageWidth: 65, imageHeight: 85, textStyle: TextStyle(fontSize: 45));
+          viewType: ViewType.list,
+          imageWidth: 65,
+          imageHeight: 85,
+          textStyle: TextStyle(fontSize: 45));
       return ListView.separated(
         key: ValueKey(0),
         itemCount: filtered.length,
@@ -379,6 +381,7 @@ class DisplayView extends ConsumerWidget {
 
     Widget gridView(Iterable<Directory> data) {
       List<DisplayEntry> filtered = filteredEntries(data, search,
+          viewType: ViewType.grid,
           textStyle: TextStyle(fontSize: 45),
           imageWidth: 170,
           imageHeight: 250);
@@ -390,81 +393,12 @@ class DisplayView extends ConsumerWidget {
     }
 
     final viewType = ref.watch(_viewTypeProvider);
-    return switch (ref.watch(_projectDirProvider)) {
+    //print(viewType);
+    return switch (ref.watch(projectDirProvider)) {
       AsyncError(:final error) => Text('error $error'),
       AsyncData(:final value) =>
         viewType == ViewType.list ? listView(value) : gridView(value),
       _ => const CircularProgressIndicator(),
     };
-  }
-}
-
-enum ViewType { grid, list }
-
-class DisplayEntry extends ConsumerWidget {
-  final Text displayName;
-  final Directory? dir;
-
-  ///A sized box containing the image
-  final Widget image;
-  const DisplayEntry({
-    super.key,
-    required this.displayName,
-    required this.image,
-    this.dir,
-  });
-  factory DisplayEntry.entryFromOpenboardDir(
-    Directory dir, {
-    double? imageWidth,
-    double? imageHeight,
-    TextStyle? textStyle,
-  }) {
-    DisplayData data = ParrotProjectDisplayData.fromDir(dir);
-    return DisplayEntry.fromDisplayData(
-      dir: dir,
-      data: data,
-      imageHeight: imageHeight,
-      imageWidth: imageWidth,
-      textStyle: textStyle,
-    );
-  }
-  DisplayEntry.fromDisplayData(
-      {super.key,
-      required DisplayData data,
-      double? imageWidth,
-      double? imageHeight,
-      this.dir,
-      TextStyle? textStyle})
-      : displayName = Text(data.name,
-            style: textStyle, maxLines: 1, overflow: TextOverflow.ellipsis),
-        image = ConstrainedBox(
-          constraints: BoxConstraints(
-              maxWidth: imageWidth ?? double.infinity,
-              maxHeight: imageHeight ?? double.infinity),
-          child: SizedBox(
-            width: imageWidth,
-            height: imageHeight,
-            child: data.image,
-          ),
-        );
-
-  @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    List<Widget> children = [image, displayName];
-    void onTap() => Navigator.of(context).push(
-          MaterialPageRoute(
-            builder: (_) => BoardScreen(
-              obz: ParrotProject.fromDirectory(dir!),
-              path: dir!.path,
-            ),
-          ),
-        );
-    Widget rowOrCol = ref.watch(_viewTypeProvider) == ViewType.list
-        ? Row(children: children)
-        : Column(children: children);
-    return InkWell(
-      onTap: onTap,
-      child: rowOrCol,
-    );
   }
 }

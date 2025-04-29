@@ -1,3 +1,6 @@
+import 'dart:io';
+
+import 'package:archive/archive_io.dart';
 import 'package:path/path.dart' as p;
 
 //TODO: this function needs improved, I could use an exeteranl dependacny,like legalize, however everything I can find is under LGPL so I would need to learn about licensing for that. I could probably just use there regexes.
@@ -32,4 +35,34 @@ String _incrementName(String name) {
   } else {
     return '${name}_1';
   }
+}
+
+///WARNING: I highly recommend calling from an async context do to the amounts of IO
+Future<void> writeDirectoryAsObz({
+  required String sourceDirPath,
+  required String outputDirPath,
+}) async {
+  final inputDir = Directory(sourceDirPath);
+  if (!await inputDir.exists()) {
+    throw Exception('Input directory does not exist: $sourceDirPath');
+  }
+
+  final dirName = p.basename(inputDir.path);
+  final outputFileName = '$dirName.obz';
+
+  final outputFilePath = p.join(outputDirPath, outputFileName);
+
+  await Directory(outputDirPath).create(recursive: true);
+
+  //Zip the directory and write to .obz file
+  final encoder = ZipFileEncoder();
+  encoder.create(outputFilePath);
+  for (FileSystemEntity f in Directory(sourceDirPath).listSync()) {
+    if (f is File) {
+      await encoder.addFile(f);
+    } else if (f is Directory) {
+      await encoder.addDirectory(f);
+    }
+  }
+  await encoder.close();
 }

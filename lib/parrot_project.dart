@@ -105,8 +105,12 @@ class ParrotProject extends Obz with AACProject {
 
   static Future<Iterable<Directory>> projectDirs() async {
     Directory convertPathToDir(String path) => Directory(path);
-    Iterable<Directory> getTheSubDirs(Directory dir) =>
-        dir.listSync().whereType<Directory>();
+    Iterable<Directory> getTheSubDirs(Directory dir) => dir
+        .listSync()
+        .whereType<Directory>()
+        .where(
+          (d) => d.existsSync(),
+        ); //Need to check for existens otherwise it breaks when deleting files
 
     return projectTargetPath.then(convertPathToDir).then(getTheSubDirs);
   }
@@ -169,6 +173,7 @@ class ParrotProject extends Obz with AACProject {
         outputPath: outputPath,
       );
     } else if (extension == '.obz') {
+      print('yes this is an obz');
       await importArchiveFromPath(
         path,
         projectName: projectName,
@@ -202,7 +207,7 @@ class ParrotProject extends Obz with AACProject {
     } else {
       outPath = outputPath;
     }
-
+    print(archive);
     await extractArchiveToDisk(archive, outPath);
     return outPath;
   }

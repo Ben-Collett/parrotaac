@@ -20,6 +20,12 @@ Future<List<String>> getFilesPaths(List<String> extensions) async {
   return [];
 }
 
+Future<String?> getUserSelectedDirectory() async {
+  String? result = await FilePicker.platform
+      .getDirectoryPath(dialogTitle: "select folder to export to");
+  return result;
+}
+
 Widget imageFromPath(String path, {BoxFit fit = BoxFit.contain}) {
   File file = File(path);
   if (path.endsWith('.svg')) {
