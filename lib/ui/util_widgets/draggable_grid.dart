@@ -107,56 +107,63 @@ class DraggableGrid extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return ListenableBuilder(
-      listenable: gridNotfier,
-      builder: (context, _) {
-        List<List<Widget?>> widgets = gridNotfier._widgets;
-        List<List<Widget>> toDisplay = [];
-        for (int i = 0; i < widgets.length; i++) {
-          toDisplay.add([]);
-          for (int j = 0; j < widgets[0].length; j++) {
-            Widget? val = widgets[i][j];
-            if (val != null) {
-              toDisplay.last.add(
-                Expanded(
-                  key: UniqueKey(),
-                  child: GridCell(
-                    row: i,
-                    column: j,
-                    dragHeight: dragHeight,
-                    dragWidth: dragWidth,
-                    child: IndexedWidget(row: i, column: j, widget: val),
-                    notfier: gridNotfier,
-                  ),
-                ),
-              );
-            } else {
-              toDisplay.last.add(
-                Expanded(
-                  key: UniqueKey(),
-                  child: GridCell(
+    //TODO:I should add a way for the user to make buttons bigger possible using a layoutbuider inside a container then allowng them to define widths and heights for each in the notfier. or thats a terrible idea
+    //WARNING: while being dragged size won't change with window size changes, this will in all likelihood effect no one except possible linux users using tiling window mangers, i.e. the only way I can think to actually do this
+    //if the grid adds a row or column mid drag the size won't change, again shouldn't happen and debatable if we should have it change when it does
+    return LayoutBuilder(builder: (context, constraints) {
+      final double width = constraints.maxWidth / gridNotfier.columns;
+      final double height = constraints.maxHeight / gridNotfier.rows;
+      return ListenableBuilder(
+        listenable: gridNotfier,
+        builder: (context, _) {
+          List<List<Widget?>> widgets = gridNotfier._widgets;
+          List<List<Widget>> toDisplay = [];
+          for (int i = 0; i < widgets.length; i++) {
+            toDisplay.add([]);
+            for (int j = 0; j < widgets[0].length; j++) {
+              Widget? val = widgets[i][j];
+              if (val != null) {
+                toDisplay.last.add(
+                  Expanded(
+                    key: UniqueKey(),
+                    child: GridCell(
                       row: i,
                       column: j,
-                      emptyWidget: IndexedWidget(
+                      dragHeight: height,
+                      dragWidth: width,
+                      child: IndexedWidget(row: i, column: j, widget: val),
+                      notfier: gridNotfier,
+                    ),
+                  ),
+                );
+              } else {
+                toDisplay.last.add(
+                  Expanded(
+                    key: UniqueKey(),
+                    child: GridCell(
                         row: i,
                         column: j,
-                        widget: gridNotfier.emptySpotWidget,
-                      ),
-                      dragWidth: dragWidth,
-                      dragHeight: dragHeight,
-                      notfier: gridNotfier),
-                ),
-              );
+                        emptyWidget: IndexedWidget(
+                          row: i,
+                          column: j,
+                          widget: gridNotfier.emptySpotWidget,
+                        ),
+                        dragWidth: width,
+                        dragHeight: height,
+                        notfier: gridNotfier),
+                  ),
+                );
+              }
             }
           }
-        }
-        List<Widget> rows = [];
-        for (List<Widget> row in toDisplay) {
-          rows.add(Expanded(child: Row(children: row)));
-        }
-        return SafeArea(child: Column(children: rows));
-      },
-    );
+          List<Widget> rows = [];
+          for (List<Widget> row in toDisplay) {
+            rows.add(Expanded(child: Row(children: row)));
+          }
+          return SafeArea(child: Column(children: rows));
+        },
+      );
+    });
   }
 }
 
@@ -221,7 +228,7 @@ class _GridCellState extends State<GridCell> {
           }
           return currentWidget!.widget;
         }
-        return InkWell(child: tempEmptyWidget) ?? Container();
+        return InkWell(child: tempEmptyWidget);
       },
       onAcceptWithDetails: (d) {
         setState(() {

@@ -173,7 +173,6 @@ class ParrotProject extends Obz with AACProject {
         outputPath: outputPath,
       );
     } else if (extension == '.obz') {
-      print('yes this is an obz');
       await importArchiveFromPath(
         path,
         projectName: projectName,
@@ -207,7 +206,6 @@ class ParrotProject extends Obz with AACProject {
     } else {
       outPath = outputPath;
     }
-    print(archive);
     await extractArchiveToDisk(archive, outPath);
     return outPath;
   }

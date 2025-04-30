@@ -393,7 +393,6 @@ class DisplayView extends ConsumerWidget {
     }
 
     final viewType = ref.watch(_viewTypeProvider);
-    //print(viewType);
     return switch (ref.watch(projectDirProvider)) {
       AsyncError(:final error) => Text('error $error'),
       AsyncData(:final value) =>
