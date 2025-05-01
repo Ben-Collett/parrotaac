@@ -66,52 +66,54 @@ class _BoardScreenState extends State<BoardScreen> {
           ),
         ));
 
-    builderMode.addListener(() {
-      gridNotfier.draggable = builderMode.value;
-      if (builderMode.value == true) {
-        gridNotfier.emptySpotWidget = emptySpotWidget;
-        gridNotfier.onEmptyPressed = (row, col) {
-          ParrotButtonNotifier notifier =
-              ParrotButtonNotifier(projectPath: widget.path);
-          showDialog(
-            context: context,
-            barrierDismissible: false,
-            builder: (context) {
-              return AlertDialog(
-                content: SizedBox(
-                  child: ButtonConfigPopup(buttonController: notifier),
-                ),
-                actions: [
-                  IconButton(
-                    color: Colors.red,
-                    icon: Icon(Icons.cancel),
-                    onPressed: () {
-                      notifier.dispose();
-                      Navigator.of(context).pop();
-                    },
+    builderMode.addListener(
+      () {
+        gridNotfier.draggable = builderMode.value;
+        if (builderMode.value == true) {
+          gridNotfier.emptySpotWidget = emptySpotWidget;
+          gridNotfier.onEmptyPressed = (row, col) {
+            ParrotButtonNotifier notifier =
+                ParrotButtonNotifier(projectPath: widget.path);
+            showDialog(
+              context: context,
+              barrierDismissible: false,
+              builder: (context) {
+                return AlertDialog(
+                  content: SizedBox(
+                    child: ButtonConfigPopup(buttonController: notifier),
                   ),
-                  IconButton(
-                    color: Colors.green,
-                    icon: Icon(Icons.check),
-                    onPressed: () {
-                      Navigator.of(context).pop();
-                      gridNotfier.setWidget(
-                        row: row,
-                        col: col,
-                        widget: ParrotButton(controller: notifier),
-                      );
-                    },
-                  ),
-                ],
-              );
-            },
-          );
-        };
-      } else {
-        gridNotfier.emptySpotWidget = null;
-        gridNotfier.onEmptyPressed = null;
-      }
-    });
+                  actions: [
+                    IconButton(
+                      color: Colors.red,
+                      icon: Icon(Icons.cancel),
+                      onPressed: () {
+                        notifier.dispose();
+                        Navigator.of(context).pop();
+                      },
+                    ),
+                    IconButton(
+                      color: Colors.green,
+                      icon: Icon(Icons.check),
+                      onPressed: () {
+                        Navigator.of(context).pop();
+                        gridNotfier.setWidget(
+                          row: row,
+                          col: col,
+                          widget: ParrotButton(controller: notifier),
+                        );
+                      },
+                    ),
+                  ],
+                );
+              },
+            );
+          };
+        } else {
+          gridNotfier.emptySpotWidget = null;
+          gridNotfier.onEmptyPressed = null;
+        }
+      },
+    );
 
     super.initState();
   }

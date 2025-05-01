@@ -1,3 +1,4 @@
+import 'dart:collection';
 import 'dart:io';
 
 import 'package:flutter/material.dart';
@@ -7,36 +8,48 @@ import 'package:parrotaac/parrot_project.dart';
 import 'package:parrotaac/setting_screen.dart';
 import 'package:parrotaac/utils.dart';
 
+import 'file_utils.dart';
 import 'shared_providers/future_providers.dart';
 import 'ui/popups/loading.dart';
 import 'ui/widgets/displey_entry.dart';
 
 final _viewTypeProvider = StateProvider((ref) => ViewType.list);
+final _selectModeProvider = StateProvider((ref) => false);
 final _searchTextProvider = StateProvider((ref) => "");
 
 List<DisplayEntry> _displayDataFromDirList(
   Iterable<Directory> dirs, {
   required ViewType viewType,
+  bool selectMode = false,
   double? imageWidth,
   double? imageHeight,
+  Function(Directory?)? onSelect,
+  Function(Directory?)? onDeselect,
   TextStyle? textStyle,
 }) =>
     dirs
         .map(
           (dir) => DisplayEntry.entryFromOpenboardDir(
             dir,
+            key: UniqueKey(),
             viewType: viewType,
             imageWidth: imageWidth,
+            selectMode: selectMode,
+            onSelect: onSelect,
+            onDeselect: onDeselect,
             imageHeight: imageHeight,
             textStyle: textStyle,
           ),
         )
         .toList();
-List<DisplayEntry> filteredEntries(
+List<Widget> filteredEntries(
   Iterable<Directory> dirs,
   String search, {
   double? imageWidth,
+  bool selectMode = false,
   required ViewType viewType,
+  Function(Directory?)? onSelect,
+  Function(Directory?)? onDeselect,
   double? imageHeight,
   TextStyle? textStyle,
 }) {
@@ -44,14 +57,48 @@ List<DisplayEntry> filteredEntries(
   return _displayDataFromDirList(dirs,
           imageWidth: imageWidth,
           imageHeight: imageHeight,
+          selectMode: selectMode,
+          onSelect: onSelect,
+          onDeselect: onDeselect,
           viewType: viewType,
           textStyle: textStyle)
       .where((entry) => match(entry.displayName))
       .toList();
 }
 
-class BoardSelector extends StatelessWidget {
+class BoardSelector extends StatefulWidget {
   const BoardSelector({super.key});
+
+  @override
+  State<BoardSelector> createState() => _BoardSelectorState();
+}
+
+class _BoardSelectorState extends State<BoardSelector> {
+  final selectedNotifier = SelectedNotifier();
+  @override
+  void dispose() {
+    selectedNotifier.dispose();
+    super.dispose();
+  }
+
+  Widget _iconButtonThatIsDisabledWhenSelectedNotfierIsEmpty(
+    Icon icon, {
+    required VoidCallback onPressed,
+  }) {
+    return ListenableBuilder(
+      listenable: selectedNotifier,
+      builder: (context, _) {
+        VoidCallback? outputOnPressed;
+        if (selectedNotifier.isNotEmpty) {
+          outputOnPressed = onPressed;
+        }
+        return IconButton(
+          onPressed: outputOnPressed,
+          icon: icon,
+        );
+      },
+    );
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -65,22 +112,142 @@ class BoardSelector extends StatelessWidget {
           mainAxisAlignment: MainAxisAlignment.spaceBetween,
           children: [
             SearchBar(),
-            Row(children: [
-              Container(
-                color: Colors.yellow,
-                child: TextButton(
-                  child: Text("select mode"),
-                  onPressed: () {},
-                ),
-              ),
-              Container(
-                color: Colors.orangeAccent,
-                child: TextButton(
-                  onPressed: () => _showBoardDialog(context),
-                  child: Text("create project"),
-                ),
-              ),
-            ])
+            Consumer(
+              builder: (context, ref, _) {
+                bool selectMode = ref.watch(_selectModeProvider);
+
+                String text = selectMode ? "done" : "select";
+                List<Widget> children = [];
+                void bulkDelete() {
+                  showLoadingDialog(
+                      context, "delete ${selectedNotifier.length}");
+                  for (Directory dir in selectedNotifier.values) {
+                    dir.deleteSync(recursive: true);
+                  }
+
+                  selectedNotifier.clear();
+                  ref.invalidate(projectDirProvider);
+                  Navigator.of(context).pop();
+                  Navigator.of(context).pop();
+                }
+
+                if (selectMode) {
+                  children.add(
+                    _iconButtonThatIsDisabledWhenSelectedNotfierIsEmpty(
+                      Icon(Icons.delete),
+                      onPressed: () {
+                        showDialog(
+                          context: context,
+                          builder: (context) {
+                            List<String> toRemoveNames = selectedNotifier.values
+                                .map(ParrotProjectDisplayData.fromDir)
+                                .map((d) => d.name)
+                                .toList();
+
+                            return AlertDialog(
+                              content: SingleChildScrollView(
+                                child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.center,
+                                  children: [
+                                    Text(
+                                        "are you sure you want to delete the following:"),
+                                    SingleChildScrollView(
+                                      child: Column(
+                                        children: toRemoveNames
+                                            .map(
+                                              (n) => Text(n,
+                                                  maxLines: 1,
+                                                  overflow:
+                                                      TextOverflow.ellipsis),
+                                            )
+                                            .map(
+                                              (n) => ConstrainedBox(
+                                                constraints: BoxConstraints(
+                                                  maxWidth: 220,
+                                                ),
+                                                child: n,
+                                              ),
+                                            )
+                                            .toList(),
+                                      ),
+                                    ),
+                                    Row(
+                                      children: [
+                                        TextButton(
+                                          onPressed: bulkDelete,
+                                          style: TextButton.styleFrom(
+                                            backgroundColor: Colors.red,
+                                          ),
+                                          child: Text("yes"),
+                                        ),
+                                        TextButton(
+                                          onPressed: Navigator.of(context).pop,
+                                          style: TextButton.styleFrom(
+                                              backgroundColor: Colors.green),
+                                          child: Text("no"),
+                                        ),
+                                      ],
+                                    )
+                                  ],
+                                ),
+                              ),
+                            );
+                          },
+                        );
+                      },
+                    ),
+                  );
+                  children.add(
+                    _iconButtonThatIsDisabledWhenSelectedNotfierIsEmpty(
+                        Icon(Icons.folder), onPressed: () async {
+                      final String? exportDirPath =
+                          await getUserSelectedDirectory();
+                      if (exportDirPath != null) {
+                        if (context.mounted) {
+                          showLoadingDialog(context, "exporting");
+                        }
+                        for (Directory dir in selectedNotifier.values) {
+                          await writeDirectoryAsObz(
+                            sourceDirPath: dir.path,
+                            outputDirPath: exportDirPath,
+                          );
+                        }
+                      }
+                      if (context.mounted) {
+                        Navigator.of(context).pop();
+                      }
+                    }),
+                  );
+                }
+
+                children.addAll(
+                  [
+                    Container(
+                      color: Colors.yellow,
+                      child: TextButton(
+                        child: Text(text),
+                        onPressed: () {
+                          selectedNotifier.clear();
+                          bool selectModeState = ref.read(_selectModeProvider);
+                          final notfier = _selectModeProvider.notifier;
+                          ref.read(notfier).state = !selectModeState;
+                        },
+                      ),
+                    ),
+                    Container(
+                      color: Colors.orangeAccent,
+                      child: TextButton(
+                        onPressed: () => _showBoardDialog(context),
+                        child: Text("create project"),
+                      ),
+                    ),
+                  ],
+                );
+                return Row(
+                  children: children,
+                );
+              },
+            )
           ],
         ),
       ),
@@ -143,10 +310,14 @@ class BoardSelector extends StatelessWidget {
       body: Column(
         //ensures that it looks normal when there is no data or a loading circle
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
-
         children: [
           top,
-          Flexible(child: DisplayView()),
+          Flexible(
+            child: DisplayView(
+              onSelect: selectedNotifier.addIfNotNull,
+              onDeselect: selectedNotifier.remove,
+            ),
+          ),
           bottom,
         ],
       ),
@@ -358,30 +529,49 @@ class ViewTypeSegmantedButton extends ConsumerWidget {
 }
 
 class DisplayView extends ConsumerWidget {
+  final void Function(Directory?)? onSelect;
+  final void Function(Directory?)? onDeselect;
   const DisplayView({
     super.key,
+    this.onSelect,
+    this.onDeselect,
   });
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     String search = ref.watch(_searchTextProvider);
+    bool selectMode = ref.watch(_selectModeProvider);
     Widget listView(Iterable<Directory> data) {
-      List<DisplayEntry> filtered = filteredEntries(data, search,
+      List<Widget> filtered = filteredEntries(data, search,
           viewType: ViewType.list,
-          imageWidth: 65,
-          imageHeight: 85,
-          textStyle: TextStyle(fontSize: 45));
+          imageWidth: 75,
+          imageHeight: 98,
+          selectMode: selectMode,
+          onSelect: onSelect,
+          onDeselect: onDeselect,
+          textStyle: TextStyle(fontSize: 50));
+      final Color borderColor = Colors.grey.withAlpha(127);
+      final double borderWidth = 1;
       return ListView.separated(
         key: ValueKey(0),
         itemCount: filtered.length,
-        separatorBuilder: (_, __) => Divider(),
-        itemBuilder: (_, index) => filtered[index],
+        separatorBuilder: (_, __) => Container(),
+        itemBuilder: (_, index) => Container(
+            decoration: BoxDecoration(
+              border: Border(
+                bottom: BorderSide(color: borderColor, width: borderWidth),
+              ),
+            ),
+            child: filtered[index]),
       );
     }
 
     Widget gridView(Iterable<Directory> data) {
-      List<DisplayEntry> filtered = filteredEntries(data, search,
+      List<Widget> filtered = filteredEntries(data, search,
           viewType: ViewType.grid,
+          selectMode: selectMode,
+          onSelect: onSelect,
+          onDeselect: onDeselect,
           textStyle: TextStyle(fontSize: 45),
           imageWidth: 170,
           imageHeight: 250);
@@ -399,5 +589,37 @@ class DisplayView extends ConsumerWidget {
         viewType == ViewType.list ? listView(value) : gridView(value),
       _ => const CircularProgressIndicator(),
     };
+  }
+}
+
+class SelectedNotifier extends ChangeNotifier {
+  final Set<Directory> _values = {};
+  UnmodifiableSetView<Directory> get values => UnmodifiableSetView(_values);
+  bool get isNotEmpty => _values.isNotEmpty;
+  int get length => _values.length;
+
+  ///if dir is null it won't be added
+  ///if [dir] is in the set or is null then listeners won't be notfied
+  void addIfNotNull(Directory? dir) {
+    if (dir != null) {
+      final bool setChanged = _values.add(dir);
+      if (setChanged) {
+        notifyListeners();
+      }
+    }
+  }
+
+  void clear() {
+    if (_values.isNotEmpty) {
+      _values.clear();
+      notifyListeners();
+    }
+  }
+
+  void remove(Directory? dir) {
+    final bool removedSomething = _values.remove(dir);
+    if (removedSomething) {
+      notifyListeners();
+    }
   }
 }
