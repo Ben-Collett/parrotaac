@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_svg/svg.dart';
 import 'package:openboard_wrapper/button_data.dart';
 import 'package:openboard_wrapper/obf.dart';
 import 'package:parrotaac/setting_screen.dart';
@@ -239,6 +240,28 @@ class _BoardScreenState extends State<BoardScreen> {
       icon: Icons.chat_outlined,
       onTap: sentenceController.speak,
     );
+    final addColButton = IconButton(
+      onPressed: gridNotfier.addColumn,
+      icon: FittedBox(
+        fit: BoxFit.contain,
+        child: SvgPicture.asset('assets/images/add_col.svg', height: 50),
+      ),
+    );
+    final addRowButton = IconButton(
+      onPressed: gridNotfier.addRow,
+      icon: FittedBox(
+        fit: BoxFit.contain,
+        child: SvgPicture.asset('assets/images/add_row.svg', width: 50),
+      ),
+    );
+
+    final settingsButton = IconButton(
+      icon: Icon(Icons.settings),
+      onPressed: () => Navigator.push(
+        context,
+        MaterialPageRoute(builder: (_) => SettingsScreen()),
+      ),
+    );
 
     return Scaffold(
       appBar: AppBar(
@@ -246,50 +269,56 @@ class _BoardScreenState extends State<BoardScreen> {
           mainAxisAlignment: MainAxisAlignment.spaceBetween,
           children: [
             const Text('ParrotAAC'),
-            Row(
-              children: [
-                IconButton(
-                  icon: ValueListenableBuilder(
-                      valueListenable: builderMode,
-                      builder: (_, val, __) {
-                        if (val) {
-                          return const Icon(Icons.close);
-                        }
-                        return const Icon(Icons.handyman);
-                      }),
-                  onPressed: () => builderMode.value = !builderMode.value,
-                ),
-                IconButton(
-                  icon: Icon(Icons.settings),
-                  onPressed: () => Navigator.push(
-                    context,
-                    MaterialPageRoute(builder: (_) => SettingsScreen()),
-                  ),
-                ),
-              ],
-            )
+            ValueListenableBuilder(
+                valueListenable: builderMode,
+                builder: (context, inBuilderMode, _) {
+                  IconData icon = inBuilderMode ? Icons.close : Icons.handyman;
+                  final builderModeButton = IconButton(
+                    icon: Icon(icon),
+                    onPressed: () => builderMode.value = !builderMode.value,
+                  );
+
+                  List<Widget> children = [];
+                  if (inBuilderMode) {
+                    children.addAll([addRowButton, addColButton]);
+                  }
+                  children.addAll([builderModeButton, settingsButton]);
+
+                  return Row(
+                    children: children,
+                  );
+                })
           ],
         ),
         backgroundColor: Color(0xFFAFABDF),
       ),
-      body: Column(
-        children: [
-          Flexible(
-            child: Row(
-              children: [
-                Flexible(
-                  flex: 10,
-                  child: SentenceBox(controller: sentenceController),
+      body: ValueListenableBuilder(
+          valueListenable: builderMode,
+          builder: (context, inBuilderMode, _) {
+            List<Flexible> children = [
+              Flexible(
+                flex: 2,
+                child: Row(
+                  children: [
+                    Flexible(
+                      flex: 10,
+                      child: SentenceBox(controller: sentenceController),
+                    ),
+                    speakButton,
+                    backSpaceButton,
+                    clearButton,
+                  ],
                 ),
-                speakButton,
-                backSpaceButton,
-                clearButton,
-              ],
-            ),
-          ),
-          Flexible(flex: 10, child: DraggableGrid(gridNotfier: gridNotfier)),
-        ],
-      ),
+              ),
+              Flexible(
+                flex: 25,
+                child: DraggableGrid(gridNotfier: gridNotfier),
+              ),
+            ];
+            return Column(
+              children: children,
+            );
+          }),
     );
   }
 }
