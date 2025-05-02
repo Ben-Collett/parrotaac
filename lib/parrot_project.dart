@@ -256,6 +256,9 @@ class ParrotProject extends Obz with AACProject {
     Map<String, String> out = {};
     String imagesPath = p.join(path, 'images');
     Directory images = Directory(imagesPath);
+    if (!images.existsSync()) {
+      return {};
+    }
 
     Iterable<String> imagesNames = images.listSync().map(
           (f) => p.basenameWithoutExtension(f.path),
@@ -288,6 +291,10 @@ class ParrotProject extends Obz with AACProject {
 
   ///[map] should map the old location to the new location
   void updateImagePaths(Map<String, String> paths) {
+    if (paths.isEmpty) {
+      return;
+    }
+
     bool pathIsNotNull(ImageData i) => i.path != null;
     for (ImageData image in images.where(pathIsNotNull)) {
       String imageDataPath = p.join(path, image.path);
