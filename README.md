@@ -26,7 +26,7 @@ flutter build <platform> --release
 The command you put in for \<platform\> will depend on your target platform, to know the instruction consult the official flutter documentation.
 
 
-Then after building, to install LibreAAC on your device, use:
+Then after building, to install ParrotAAC on your device, use:
 ```
 flutter install
 ```
