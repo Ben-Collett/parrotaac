@@ -152,11 +152,21 @@ class ParrotProject extends Obz with AACProject {
         manifest[nameKey] ?? p.basename(dir.path);
   }
 
+  static Future<String> _determineProjectDirectoryName(String path) async {
+    String name = p.basenameWithoutExtension(path);
+    List<Directory> dirs = await projectDirectories;
+    String toPath(Directory dir) => dir.path;
+    String toName(String path) => p.basenameWithoutExtension(path);
+
+    Iterable<String> usedNames = dirs.map(toPath).map(toName);
+    return determineNoncollidingName(name, usedNames);
+  }
+
   static Future<String> _determineProjectName(String path) async {
     String name = p.basenameWithoutExtension(path);
     List<Directory> dirs = await projectDirectories;
-    return determineNoncollidingName(
-        name, dirs.map((dir) => p.basename(dir.path)));
+    List<String> usedNames = await Future.wait(dirs.map(getProjectName));
+    return determineNoncollidingName(name, usedNames);
   }
 
   //TODO: write unit test for this function
@@ -182,13 +192,28 @@ class ParrotProject extends Obz with AACProject {
     return "";
   }
 
+  static void setProjectName(Directory projectDir, String name) {
+    File? manifest = projectDir
+        .listSync()
+        .whereType<File>()
+        .where((f) => p.basename(f.path) == "manifest.json")
+        .firstOrNull;
+    if (manifest == null) {
+      return;
+    }
+    String content = manifest.readAsStringSync();
+    Map<String, dynamic> json = jsonDecode(content);
+    json[nameKey] = name;
+    manifest.writeAsStringSync(jsonEncode(json));
+  }
+
   ///return the  path of the imported project
   ///[path] is the path to the .obz to import
   ///[outputPath] is the path to output the file
   static Future<String> importArchiveFromPath(
     String path, {
     String? outputPath,
-    String? projectName,
+    String? projectName, //TODO: refactor this
   }) async {
     final inputStream = InputFileStream(path);
     final Archive archive = ZipDecoder().decodeStream(inputStream);
@@ -197,9 +222,9 @@ class ParrotProject extends Obz with AACProject {
     if (outputPath == null) {
       String name;
       if (projectName != null) {
-        name = await _determineProjectName(projectName);
+        name = await _determineProjectDirectoryName(projectName);
       } else {
-        name = await _determineProjectName(path);
+        name = await _determineProjectDirectoryName(path);
       }
       outPath = await projectTargetPath;
       outPath = p.join(outPath, name);
@@ -207,6 +232,12 @@ class ParrotProject extends Obz with AACProject {
       outPath = outputPath;
     }
     await extractArchiveToDisk(archive, outPath);
+
+    if (outputPath == null) {
+      String name = await _determineProjectName(outPath);
+      setProjectName(Directory(outPath), name);
+    }
+
     return outPath;
   }
 
@@ -315,7 +346,8 @@ class ParrotProject extends Obz with AACProject {
     final String baseName = p.basenameWithoutExtension(toImport.path);
     String importedName;
     if (outputPath == null) {
-      importedName = await _determineProjectName(projectName ?? baseName);
+      importedName =
+          await _determineProjectDirectoryName(projectName ?? baseName);
     } else {
       importedName = p.basename(outputPath);
     }
