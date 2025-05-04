@@ -450,7 +450,6 @@ class _CreateProjectDialogState extends State<CreateProjectDialog> {
             onPressed: () async {
               // Trigger form validation
               if (widget.formKey.currentState!.validate()) {
-                ref.invalidate(projectDirProvider);
                 String? imagePath;
                 if (_image != null) {
                   XFile? image = await _image;
@@ -462,7 +461,10 @@ class _CreateProjectDialogState extends State<CreateProjectDialog> {
                       widget.controller.text),
                   projectImagePath: imagePath,
                 );
-                if (context.mounted) Navigator.of(context).pop();
+                if (context.mounted) {
+                  Navigator.of(context).pop();
+                }
+                ref.invalidate(projectDirProvider);
               }
             },
           );
