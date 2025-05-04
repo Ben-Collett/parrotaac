@@ -57,13 +57,21 @@ class GridNotfier<T extends Widget> extends ChangeNotifier {
         _draggable = draggable,
         _toWidget = toWidget;
   void addRow() {
-    _data.add(List.generate(columns, (_) => null));
+    if (rows == 0) {
+      _data.add([null]);
+    } else {
+      _data.add(List.generate(columns, (_) => null));
+    }
     notifyListeners();
   }
 
   void addColumn() {
-    for (List<Object?> row in _data) {
-      row.add(null);
+    if (rows == 0) {
+      _data.add([null]);
+    } else {
+      for (List<Object?> row in _data) {
+        row.add(null);
+      }
     }
     notifyListeners();
   }
