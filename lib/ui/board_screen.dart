@@ -25,7 +25,7 @@ class _BoardScreenState extends State<BoardScreen> {
   static const String defaultID = "board";
   late final GridNotfier<ParrotButton> gridNotfier;
   late final SentenceBoxController sentenceController;
-  Set<ParrotButton> buttonSet = {};
+  Set<ParrotButtonNotifier> buttonSet = {};
   final ValueNotifier<bool> builderMode = ValueNotifier(false);
   late Obf currentObf;
 
@@ -40,7 +40,13 @@ class _BoardScreenState extends State<BoardScreen> {
 
     sentenceController = SentenceBoxController(projectPath: widget.path);
     gridNotfier = GridNotfier(
-      widgets: _getButtonsFromObf(currentObf),
+      data: _getButtonsFromObf(currentObf),
+      toWidget: (obj) {
+        if (obj is ParrotButtonNotifier) {
+          return ParrotButton(controller: obj);
+        }
+        return null;
+      },
       draggable: false,
     );
     _updateButtonSet();
@@ -72,51 +78,64 @@ class _BoardScreenState extends State<BoardScreen> {
         gridNotfier.draggable = builderMode.value;
         if (builderMode.value == true) {
           gridNotfier.emptySpotWidget = emptySpotWidget;
-          gridNotfier.onEmptyPressed = (row, col) {
-            ParrotButtonNotifier notifier =
-                ParrotButtonNotifier(projectPath: widget.path);
-            showDialog(
-              context: context,
-              barrierDismissible: false,
-              builder: (context) {
-                return AlertDialog(
-                  content: SizedBox(
-                    child: ButtonConfigPopup(buttonController: notifier),
-                  ),
-                  actions: [
-                    IconButton(
-                      color: Colors.red,
-                      icon: Icon(Icons.cancel),
-                      onPressed: () {
-                        notifier.dispose();
-                        Navigator.of(context).pop();
-                      },
-                    ),
-                    IconButton(
-                      color: Colors.green,
-                      icon: Icon(Icons.check),
-                      onPressed: () {
-                        Navigator.of(context).pop();
-                        gridNotfier.setWidget(
-                          row: row,
-                          col: col,
-                          widget: ParrotButton(controller: notifier),
-                        );
-                      },
-                    ),
-                  ],
-                );
-              },
-            );
-          };
+          gridNotfier.onEmptyPressed = _showCreateNewButtonDialog;
+          gridNotfier.toWidget = toParrotButton;
         } else {
           gridNotfier.emptySpotWidget = null;
           gridNotfier.onEmptyPressed = null;
+          gridNotfier.toWidget = toParrotButton;
         }
       },
     );
 
     super.initState();
+  }
+
+  void _showCreateNewButtonDialog(int row, int col) {
+    {
+      ParrotButtonNotifier notifier =
+          ParrotButtonNotifier(projectPath: widget.path);
+      showDialog(
+        context: context,
+        barrierDismissible: false,
+        builder: (context) {
+          return AlertDialog(
+            content: SizedBox(
+              child: ButtonConfigPopup(buttonController: notifier),
+            ),
+            actions: [
+              IconButton(
+                color: Colors.red,
+                icon: Icon(Icons.cancel),
+                onPressed: () {
+                  notifier.dispose();
+                  Navigator.of(context).pop();
+                },
+              ),
+              IconButton(
+                color: Colors.green,
+                icon: Icon(Icons.check),
+                onPressed: () {
+                  Navigator.of(context).pop();
+                  gridNotfier.setWidget(
+                    row: row,
+                    col: col,
+                    data: notifier,
+                  );
+                },
+              ),
+            ],
+          );
+        },
+      );
+    }
+  }
+
+  ParrotButton? toParrotButton(Object? object) {
+    if (object is ParrotButtonNotifier) {
+      return ParrotButton(controller: object, holdToConfig: builderMode.value);
+    }
+    return null;
   }
 
   Future<void> finalizeTempImages() async {
@@ -136,11 +155,11 @@ class _BoardScreenState extends State<BoardScreen> {
   void changeObf(Obf obf) {
     updateButtonPositionsInObf();
     currentObf = obf;
-    gridNotfier.setWidgets(_getButtonsFromObf(obf));
+    gridNotfier.setData(_getButtonsFromObf(obf));
   }
 
-  List<List<ParrotButton?>> _getButtonsFromObf(Obf obf) {
-    List<List<ParrotButton?>> buttons = [];
+  List<List<Object?>> _getButtonsFromObf(Obf obf) {
+    List<List<Object?>> buttons = [];
     final int rowCount = obf.grid.numberOfRows;
     final int colCount = obf.grid.numberOfColumns;
     for (int i = 0; i < rowCount; i++) {
@@ -149,13 +168,11 @@ class _BoardScreenState extends State<BoardScreen> {
         ButtonData? button = obf.grid.getButtonData(i, j);
         if (button != null) {
           buttons.last.add(
-            ParrotButton(
-              controller: ParrotButtonNotifier(
-                data: button,
-                boxController: sentenceController,
-                goToLinkedBoard: changeObf,
-                projectPath: widget.path,
-              ),
+            ParrotButtonNotifier(
+              data: button,
+              boxController: sentenceController,
+              goToLinkedBoard: changeObf,
+              projectPath: widget.path,
             ),
           );
         } else {
@@ -170,26 +187,26 @@ class _BoardScreenState extends State<BoardScreen> {
   void dispose() {
     updateButtonPositionsInObf();
     _updateButtonSet();
-    buttonSet.forEach(_disposeButtonController);
+    void disposeNotfier(n) => n.dispose;
     gridNotfier.dispose();
+    buttonSet.forEach(disposeNotfier);
     builderMode.dispose();
     sentenceController.dispose();
     super.dispose();
   }
 
-  void _disposeButtonController(ParrotButton button) =>
-      button.controller.dispose();
   void _updateButtonSet() {
-    final buttonSetFromGrid = _buttonSetFromGrid(gridNotfier.widgets);
-    buttonSet.difference(buttonSetFromGrid).forEach(_disposeButtonController);
+    void disposeNotfier(n) => n.dispose;
+    final buttonSetFromGrid = _buttonSetFromGrid(gridNotfier.data);
+    buttonSet.difference(buttonSetFromGrid).forEach(disposeNotfier);
     buttonSet = buttonSetFromGrid;
   }
 
-  Set<ParrotButton> _buttonSetFromGrid(List<List<ParrotButton?>> buttons) {
-    Set<ParrotButton> out = {};
-    for (List<ParrotButton?> row in buttons) {
-      for (ParrotButton? button in row) {
-        if (button != null) {
+  Set<ParrotButtonNotifier> _buttonSetFromGrid(List<List<Object?>> buttons) {
+    Set<ParrotButtonNotifier> out = {};
+    for (List<Object?> row in buttons) {
+      for (Object? button in row) {
+        if (button is ParrotButtonNotifier) {
           out.add(button);
         }
       }

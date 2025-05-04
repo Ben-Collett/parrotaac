@@ -33,9 +33,13 @@ class _ButtonConfigPopupState extends State<ButtonConfigPopup> {
   @override
   void initState() {
     buttonController = widget.buttonController;
-    _labelController.addListener(() {
-      buttonController.setLabel(_labelController.text);
-    });
+    _labelController.text = buttonController.data.label ?? "";
+    _voclizationController.text = buttonController.data.voclization ?? "";
+    _labelController.addListener(
+      () {
+        buttonController.setLabel(_labelController.text);
+      },
+    );
     _voclizationController.addListener(() {
       if (_voclizationController.text.trim() == "") {
         buttonController.data.voclization = null;

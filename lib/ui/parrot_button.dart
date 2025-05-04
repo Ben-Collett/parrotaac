@@ -8,22 +8,30 @@ import 'package:parrotaac/audio_player.dart';
 import 'package:parrotaac/extensions/button_data_extensions.dart';
 import 'package:parrotaac/extensions/color_extensions.dart';
 import 'package:parrotaac/extensions/image_extensions.dart';
+import 'package:parrotaac/ui/popups/button_config.dart';
 import 'package:parrotaac/ui/widgets/sentence_box.dart';
 
 void Function(Obf) _defaultGoToLinkedBoard = (_) {};
 
 class ParrotButtonNotifier extends ChangeNotifier {
-  ButtonData data;
+  ButtonData _data;
+  ButtonData get data => _data;
+  set data(ButtonData data) {
+    _data = data;
+    notifyListeners();
+  }
+
   void Function(Obf) goToLinkedBoard;
   String? projectPath;
   SentenceBoxController? boxController;
 
   ParrotButtonNotifier({
     ButtonData? data,
+    bool holdToConfig = false,
     void Function(Obf)? goToLinkedBoard,
     this.boxController,
     this.projectPath,
-  })  : data = data ?? ButtonData(),
+  })  : _data = data ?? ButtonData(),
         goToLinkedBoard = goToLinkedBoard ?? _defaultGoToLinkedBoard;
 
   void setLabel(String label) {
@@ -53,8 +61,13 @@ class ParrotButtonNotifier extends ChangeNotifier {
 
 class ParrotButton extends StatelessWidget {
   final ParrotButtonNotifier controller;
+  final bool holdToConfig;
   ButtonData get buttonData => controller.data;
-  const ParrotButton({super.key, required this.controller});
+  const ParrotButton({
+    super.key,
+    required this.controller,
+    this.holdToConfig = false,
+  });
   void onTap() {
     PreemptiveAudioPlayer()
         .play(buttonData.getSource(projectPath: controller.projectPath));
@@ -71,13 +84,56 @@ class ParrotButton extends StatelessWidget {
     }
   }
 
+  void onLongPress(context) {
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (context) {
+        ButtonData data = controller.data;
+        //The sentence box controller has to be null in the config screen to avoid taps in the preview being added to the sentence box
+        final sentenceBoxController = controller.boxController;
+        controller.boxController = null;
+        return AlertDialog(
+          content: ButtonConfigPopup(buttonController: controller),
+          actions: [
+            IconButton(
+              color: Colors.red,
+              icon: Icon(Icons.cancel),
+              onPressed: () {
+                controller.data = data;
+                controller.boxController = sentenceBoxController;
+                Navigator.of(context).pop();
+              },
+            ),
+            IconButton(
+              color: Colors.green,
+              icon: Icon(Icons.check),
+              onPressed: () {
+                controller.boxController = sentenceBoxController;
+                Navigator.of(context).pop();
+              },
+            ),
+          ],
+        );
+      },
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
+    void Function(BuildContext)? onLongPress;
+
+    bool holdToConfigIsEnabled = holdToConfig;
+    if (holdToConfigIsEnabled) {
+      onLongPress = this.onLongPress;
+    }
+
     return ListenableBuilder(
         listenable: controller,
         builder: (context, _) {
           return StatelessParrotButton(
             onTap: onTap,
+            onLongPress: onLongPress,
             projectPath: controller.projectPath,
             buttonData: controller.data,
           );
@@ -89,10 +145,12 @@ class StatelessParrotButton extends StatelessWidget {
   final ButtonData buttonData;
   final String? projectPath;
   final VoidCallback? onTap;
+  final void Function(BuildContext)? onLongPress;
   const StatelessParrotButton({
     super.key,
     required this.buttonData,
     this.onTap,
+    this.onLongPress,
     this.projectPath,
   });
 
@@ -100,18 +158,29 @@ class StatelessParrotButton extends StatelessWidget {
   Widget build(BuildContext context) {
     List<Widget> column = [];
     if (buttonData.image != null) {
-      column.add(Expanded(
-        child: buttonData.image!.toImage(projectPath: projectPath),
-      ));
+      column.add(
+        Expanded(
+          child: buttonData.image!.toImage(projectPath: projectPath),
+        ),
+      );
     }
     if (buttonData.label != null) {
       column.add(Text(buttonData.label!));
     }
+
+    VoidCallback? onLongPress;
+    if (this.onLongPress != null) {
+      onLongPress = () {
+        this.onLongPress!(context);
+      };
+    }
+
     return Material(
       key: UniqueKey(),
       color: buttonData.backgroundColor?.toColor() ?? Colors.white,
       child: InkWell(
         onTap: onTap,
+        onLongPress: onLongPress,
         child: Container(
           decoration: BoxDecoration(
             border: Border.all(

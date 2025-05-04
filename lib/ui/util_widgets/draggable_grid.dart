@@ -4,6 +4,13 @@ import 'package:flutter/material.dart';
 class GridNotfier<T extends Widget> extends ChangeNotifier {
   bool _draggable;
   bool get draggable => _draggable;
+  T? Function(Object?)? _toWidget;
+  T? Function(Object?)? get toWidget => _toWidget;
+  set toWidget(T? Function(Object?)? toWid) {
+    _toWidget = toWid;
+    notifyListeners();
+  }
+
   set draggable(bool draggable) {
     if (_draggable != draggable) {
       _draggable = draggable;
@@ -11,56 +18,66 @@ class GridNotfier<T extends Widget> extends ChangeNotifier {
     notifyListeners();
   }
 
-  List<List<T?>> _widgets;
+  List<List<Object?>> _data;
   Widget? emptySpotWidget;
 
   int get rows {
-    return _widgets.length;
+    return _data.length;
   }
 
   int get columns {
-    return _widgets.isEmpty ? 0 : _widgets[0].length;
+    return _data.isEmpty ? 0 : _data[0].length;
   }
 
   UnmodifiableListView<UnmodifiableListView<T?>> get widgets {
     return UnmodifiableListView(
-      _widgets.map(
+      _data.map(
+        (list) => UnmodifiableListView(list.map(toWidget!)),
+      ),
+    );
+  }
+
+  UnmodifiableListView<UnmodifiableListView<Object?>> get data {
+    return UnmodifiableListView(
+      _data.map(
         (list) => UnmodifiableListView(list),
       ),
     );
   }
 
-  void setWidgets(List<List<T?>> widgets) {
-    _widgets = widgets;
-    notifyListeners();
-  }
-
   void Function(int, int)? onEmptyPressed;
   GridNotfier(
-      {required List<List<T?>> widgets,
+      {required List<List<Object?>> data,
       bool draggable = true,
+      T? Function(Object?)? toWidget,
       this.onEmptyPressed})
-      : _widgets = widgets,
-        _draggable = draggable;
+      : _data = data,
+        _draggable = draggable,
+        _toWidget = toWidget;
   void addRow() {
-    _widgets.add(List.generate(columns, (_) => null));
+    _data.add(List.generate(columns, (_) => null));
     notifyListeners();
   }
 
   void addColumn() {
-    for (List<T?> row in _widgets) {
+    for (List<Object?> row in _data) {
       row.add(null);
     }
     notifyListeners();
   }
 
-  void setWidget({required int row, required int col, T? widget}) {
-    _widgets[row][col] = widget;
+  void setWidget({required int row, required int col, Object? data}) {
+    _data[row][col] = data;
     notifyListeners();
   }
 
   T? getWidget(int row, int column) {
-    return _widgets[row][column];
+    return widgets[row][column];
+  }
+
+  void setData(List<List<Object?>> data) {
+    _data = data;
+    notifyListeners();
   }
 
   void move({
@@ -69,8 +86,8 @@ class GridNotfier<T extends Widget> extends ChangeNotifier {
     required int newRow,
     required int newCol,
   }) {
-    _widgets[newRow][newCol] = _widgets[oldRow][oldCol];
-    _widgets[oldRow][oldCol] = null;
+    _data[newRow][newCol] = _data[oldRow][oldCol];
+    _data[oldRow][oldCol] = null;
     notifyListeners();
   }
 
@@ -87,12 +104,9 @@ class GridNotfier<T extends Widget> extends ChangeNotifier {
 
 class DraggableGrid extends StatelessWidget {
   final GridNotfier gridNotfier;
-  final double dragWidth, dragHeight;
   const DraggableGrid({
     super.key,
     required this.gridNotfier,
-    this.dragWidth = 250,
-    this.dragHeight = 250,
   });
 
   List<List<IndexedWidget?>> indexedWidgetsToGrid(Set<IndexedWidget> widgets) {
@@ -117,7 +131,7 @@ class DraggableGrid extends StatelessWidget {
             builder: (context, constraints) {
               final double height = constraints.maxHeight / gridNotfier.rows;
               final double width = constraints.maxWidth / gridNotfier.columns;
-              List<List<Widget?>> widgets = gridNotfier._widgets;
+              List<List<Widget?>> widgets = gridNotfier.widgets;
               List<List<Widget>> toDisplay = [];
               for (int i = 0; i < widgets.length; i++) {
                 toDisplay.add([]);
