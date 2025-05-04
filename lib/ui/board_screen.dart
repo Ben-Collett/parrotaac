@@ -48,6 +48,7 @@ class _BoardScreenState extends State<BoardScreen> {
         return null;
       },
       draggable: false,
+      onMove: _updateButtonNotfierOnDelete,
     );
     _updateButtonSet();
     builderMode.addListener(
@@ -62,16 +63,18 @@ class _BoardScreenState extends State<BoardScreen> {
         }
       },
     );
+
     final Widget emptySpotWidget = Padding(
-        padding: const EdgeInsets.all(4.0),
-        child: Container(
-          decoration: BoxDecoration(
-              borderRadius: BorderRadius.circular(3),
-              border: Border.all(color: Colors.lightBlue, width: 5)),
-          child: Center(
-            child: Icon(Icons.add, color: Colors.lightBlue),
-          ),
-        ));
+      padding: const EdgeInsets.all(4.0),
+      child: Container(
+        decoration: BoxDecoration(
+            borderRadius: BorderRadius.circular(3),
+            border: Border.all(color: Colors.lightBlue, width: 5)),
+        child: Center(
+          child: Icon(Icons.add, color: Colors.lightBlue),
+        ),
+      ),
+    );
 
     builderMode.addListener(
       () {
@@ -89,6 +92,14 @@ class _BoardScreenState extends State<BoardScreen> {
     );
 
     super.initState();
+  }
+
+  void _updateButtonNotfierOnDelete(Object data, int row, int col) {
+    if (data is ParrotButtonNotifier) {
+      data.onDelete = () {
+        gridNotfier.removeAt(row, col);
+      };
+    }
   }
 
   void _showCreateNewButtonDialog(int row, int col) {
@@ -172,6 +183,9 @@ class _BoardScreenState extends State<BoardScreen> {
               data: button,
               boxController: sentenceController,
               goToLinkedBoard: changeObf,
+              onDelete: () {
+                gridNotfier.removeAt(i, j);
+              },
               projectPath: widget.path,
             ),
           );

@@ -6,6 +6,7 @@ class GridNotfier<T extends Widget> extends ChangeNotifier {
   bool get draggable => _draggable;
   T? Function(Object?)? _toWidget;
   T? Function(Object?)? get toWidget => _toWidget;
+  void Function(Object data, int row, int col)? onMove;
   set toWidget(T? Function(Object?)? toWid) {
     _toWidget = toWid;
     notifyListeners();
@@ -46,12 +47,13 @@ class GridNotfier<T extends Widget> extends ChangeNotifier {
   }
 
   void Function(int, int)? onEmptyPressed;
-  GridNotfier(
-      {required List<List<Object?>> data,
-      bool draggable = true,
-      T? Function(Object?)? toWidget,
-      this.onEmptyPressed})
-      : _data = data,
+  GridNotfier({
+    required List<List<Object?>> data,
+    bool draggable = true,
+    T? Function(Object?)? toWidget,
+    this.onEmptyPressed,
+    this.onMove,
+  })  : _data = data,
         _draggable = draggable,
         _toWidget = toWidget;
   void addRow() {
@@ -63,6 +65,11 @@ class GridNotfier<T extends Widget> extends ChangeNotifier {
     for (List<Object?> row in _data) {
       row.add(null);
     }
+    notifyListeners();
+  }
+
+  void removeAt(int row, int col) {
+    _data[row][col] = null;
     notifyListeners();
   }
 
@@ -88,6 +95,11 @@ class GridNotfier<T extends Widget> extends ChangeNotifier {
   }) {
     _data[newRow][newCol] = _data[oldRow][oldCol];
     _data[oldRow][oldCol] = null;
+
+    if (onMove != null && _data[newRow][newCol] != null) {
+      onMove!(_data[newRow][newCol]!, newRow, newCol);
+    }
+
     notifyListeners();
   }
 

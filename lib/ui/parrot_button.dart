@@ -16,6 +16,7 @@ void Function(Obf) _defaultGoToLinkedBoard = (_) {};
 class ParrotButtonNotifier extends ChangeNotifier {
   ButtonData _data;
   ButtonData get data => _data;
+  VoidCallback? onDelete;
   set data(ButtonData data) {
     _data = data;
     notifyListeners();
@@ -25,13 +26,14 @@ class ParrotButtonNotifier extends ChangeNotifier {
   String? projectPath;
   SentenceBoxController? boxController;
 
-  ParrotButtonNotifier({
-    ButtonData? data,
-    bool holdToConfig = false,
-    void Function(Obf)? goToLinkedBoard,
-    this.boxController,
-    this.projectPath,
-  })  : _data = data ?? ButtonData(),
+  ParrotButtonNotifier(
+      {ButtonData? data,
+      bool holdToConfig = false,
+      void Function(Obf)? goToLinkedBoard,
+      this.boxController,
+      this.projectPath,
+      this.onDelete})
+      : _data = data ?? ButtonData(),
         goToLinkedBoard = goToLinkedBoard ?? _defaultGoToLinkedBoard;
 
   void setLabel(String label) {
@@ -93,27 +95,88 @@ class ParrotButton extends StatelessWidget {
         //The sentence box controller has to be null in the config screen to avoid taps in the preview being added to the sentence box
         final sentenceBoxController = controller.boxController;
         controller.boxController = null;
+
+        IconButton cancelButton = IconButton(
+          color: Colors.red,
+          icon: Icon(Icons.cancel_rounded),
+          onPressed: () {
+            controller.data = data;
+            controller.boxController = sentenceBoxController;
+            Navigator.of(context).pop();
+          },
+        );
+
+        IconButton acceptButton = IconButton(
+          color: Colors.green,
+          icon: Icon(Icons.check),
+          onPressed: () {
+            controller.boxController = sentenceBoxController;
+            Navigator.of(context).pop();
+          },
+        );
+
+        IconButton deleteButton = IconButton(
+          color: Colors.red,
+          icon: Icon(Icons.delete),
+          onPressed: () {
+            _showConfirmDeleteDialog(context, controller.onDelete);
+          },
+        );
+
+        List<Widget> actions = [];
+        //if (controller.onDelete != null) {
+        // actions.add(deleteButton);
+        // }
+        Row row = Row(
+          children: [
+            cancelButton,
+            acceptButton,
+          ],
+        );
+
+        if (controller.onDelete != null) {
+          row = Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [deleteButton, row],
+          );
+        }
+        actions.add(cancelButton);
+        actions.add(acceptButton);
+
         return AlertDialog(
           content: ButtonConfigPopup(buttonController: controller),
-          actions: [
-            IconButton(
-              color: Colors.red,
-              icon: Icon(Icons.cancel),
-              onPressed: () {
-                controller.data = data;
-                controller.boxController = sentenceBoxController;
-                Navigator.of(context).pop();
-              },
-            ),
-            IconButton(
-              color: Colors.green,
-              icon: Icon(Icons.check),
-              onPressed: () {
-                controller.boxController = sentenceBoxController;
-                Navigator.of(context).pop();
-              },
-            ),
-          ],
+          actions: [row],
+        );
+      },
+    );
+  }
+
+  void _showConfirmDeleteDialog(BuildContext context, VoidCallback? onDelete) {
+    IconButton cancelButton = IconButton(
+      color: Colors.red,
+      icon: Icon(Icons.cancel_rounded),
+      onPressed: () {
+        Navigator.of(context).pop();
+      },
+    );
+
+    IconButton acceptButton = IconButton(
+      color: Colors.green,
+      icon: Icon(Icons.check),
+      onPressed: () {
+        if (onDelete != null) {
+          onDelete();
+        }
+        Navigator.of(context).pop();
+        Navigator.of(context).pop();
+      },
+    );
+    showDialog(
+      context: context,
+      builder: (context) {
+        return AlertDialog(
+          title: Text("confirm button delete"),
+          actions: [cancelButton, acceptButton],
         );
       },
     );
