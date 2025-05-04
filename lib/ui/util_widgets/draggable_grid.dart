@@ -250,6 +250,7 @@ class _GridCellState extends State<GridCell> {
                 child: currentWidget!.widget,
               ),
               data: currentWidget,
+              childWhenDragging: Container(color: Colors.grey),
               child: currentWidget!.widget,
             );
           }
