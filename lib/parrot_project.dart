@@ -231,10 +231,13 @@ class ParrotProject extends Obz with AACProject {
     } else {
       outPath = outputPath;
     }
+    String? name;
+    if (outputPath == null) {
+      name = await _determineProjectName(outPath);
+    }
     await extractArchiveToDisk(archive, outPath);
 
-    if (outputPath == null) {
-      String name = await _determineProjectName(outPath);
+    if (name != null) {
       setProjectName(Directory(outPath), name);
     }
 
