@@ -17,6 +17,7 @@ class ParrotButtonNotifier extends ChangeNotifier {
   ButtonData _data;
   ButtonData get data => _data;
   VoidCallback? onDelete;
+  VoidCallback? onPressOverride;
   set data(ButtonData data) {
     _data = data;
     notifyListeners();
@@ -71,18 +72,22 @@ class ParrotButton extends StatelessWidget {
     this.holdToConfig = false,
   });
   void onTap() {
-    PreemptiveAudioPlayer()
-        .play(buttonData.getSource(projectPath: controller.projectPath));
-    if (buttonData.linkedBoard != null) {
-      Obf linkedBoard = buttonData.linkedBoard!;
-      controller.goToLinkedBoard(linkedBoard);
-    }
+    if (controller.onPressOverride != null) {
+      controller.onPressOverride!();
+    } else {
+      PreemptiveAudioPlayer()
+          .play(buttonData.getSource(projectPath: controller.projectPath));
+      if (buttonData.linkedBoard != null) {
+        Obf linkedBoard = buttonData.linkedBoard!;
+        controller.goToLinkedBoard(linkedBoard);
+      }
 
-    controller.boxController?.add(controller.data);
-    final String clearString = PredefinedSpecialtyAction.clear.asString;
-    if (buttonData.actions.contains(clearString) ||
-        buttonData.action == clearString) {
-      controller.boxController?.clear();
+      controller.boxController?.add(controller.data);
+      final String clearString = PredefinedSpecialtyAction.clear.asString;
+      if (buttonData.actions.contains(clearString) ||
+          buttonData.action == clearString) {
+        controller.boxController?.clear();
+      }
     }
   }
 
@@ -192,15 +197,16 @@ class ParrotButton extends StatelessWidget {
     }
 
     return ListenableBuilder(
-        listenable: controller,
-        builder: (context, _) {
-          return StatelessParrotButton(
-            onTap: onTap,
-            onLongPress: onLongPress,
-            projectPath: controller.projectPath,
-            buttonData: controller.data,
-          );
-        });
+      listenable: controller,
+      builder: (context, _) {
+        return StatelessParrotButton(
+          onTap: onTap,
+          onLongPress: onLongPress,
+          projectPath: controller.projectPath,
+          buttonData: controller.data,
+        );
+      },
+    );
   }
 }
 

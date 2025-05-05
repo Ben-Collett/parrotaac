@@ -65,6 +65,34 @@ class GridNotfier<T extends Widget> extends ChangeNotifier {
     notifyListeners();
   }
 
+  void forEach(
+    void Function(Object?) callback, {
+    bool notify = false,
+  }) {
+    for (List<Object?> row in _data) {
+      for (Object? obj in row) {
+        callback(obj);
+      }
+    }
+    if (notify) {
+      notifyListeners();
+    }
+  }
+
+  void forEachIndexed(
+    void Function(Object?, int, int) callback, {
+    bool notify = false,
+  }) {
+    for (int i = 0; i < rows; i++) {
+      for (int j = 0; j < columns; j++) {
+        callback(_data[i][j], i, j);
+      }
+    }
+    if (notify) {
+      notifyListeners();
+    }
+  }
+
   void addColumn() {
     if (rows == 0) {
       _data.add([null]);
@@ -78,6 +106,18 @@ class GridNotfier<T extends Widget> extends ChangeNotifier {
 
   void removeAt(int row, int col) {
     _data[row][col] = null;
+    notifyListeners();
+  }
+
+  void removeRow(int row) {
+    _data.removeAt(row);
+    notifyListeners();
+  }
+
+  void removeCol(int col) {
+    for (List<Object?> row in _data) {
+      row.removeAt(col);
+    }
     notifyListeners();
   }
 

@@ -26,7 +26,8 @@ class _BoardScreenState extends State<BoardScreen> {
   late final GridNotfier<ParrotButton> gridNotfier;
   late final SentenceBoxController sentenceController;
   Set<ParrotButtonNotifier> buttonSet = {};
-  final ValueNotifier<bool> builderMode = ValueNotifier(false);
+  final ValueNotifier<BoardMode> boardMode =
+      ValueNotifier(BoardMode.normalMode);
   late Obf currentObf;
 
   @override
@@ -39,6 +40,7 @@ class _BoardScreenState extends State<BoardScreen> {
         );
 
     sentenceController = SentenceBoxController(projectPath: widget.path);
+
     gridNotfier = GridNotfier(
       data: _getButtonsFromObf(currentObf),
       toWidget: (obj) {
@@ -51,9 +53,9 @@ class _BoardScreenState extends State<BoardScreen> {
       onMove: _updateButtonNotfierOnDelete,
     );
     _updateButtonSet();
-    builderMode.addListener(
+    boardMode.addListener(
       () async {
-        if (!builderMode.value) {
+        if (boardMode.value == BoardMode.normalMode) {
           updateButtonPositionsInObf();
           await finalizeTempImages();
           widget.obz.autoResolveAllIdCollisionsInFile();
@@ -76,17 +78,40 @@ class _BoardScreenState extends State<BoardScreen> {
       ),
     );
 
-    builderMode.addListener(
+    boardMode.addListener(
       () {
-        gridNotfier.draggable = builderMode.value;
-        if (builderMode.value == true) {
+        gridNotfier.draggable = boardMode.value != BoardMode.normalMode;
+        if (boardMode.value == BoardMode.builderMode) {
           gridNotfier.emptySpotWidget = emptySpotWidget;
           gridNotfier.onEmptyPressed = _showCreateNewButtonDialog;
           gridNotfier.toWidget = toParrotButton;
+          gridNotfier.forEach(_setButtonToDefaultPressMode);
+        } else if (boardMode.value == BoardMode.deleteRowMode) {
+          gridNotfier.emptySpotWidget = emptySpotWidget;
+          gridNotfier.onEmptyPressed = (row, _) {
+            gridNotfier.removeRow(row);
+          };
+
+          gridNotfier.forEachIndexed((Object? obj, int row, int _) {
+            if (obj is ParrotButtonNotifier) {
+              _setButtonToDeleteRowMode(obj, row);
+            }
+          });
+        } else if (boardMode.value == BoardMode.deleteColMode) {
+          gridNotfier.emptySpotWidget = emptySpotWidget;
+          gridNotfier.onEmptyPressed = (_, col) {
+            gridNotfier.removeCol(col);
+          };
+          gridNotfier.forEachIndexed((Object? obj, int _, int col) {
+            if (obj is ParrotButtonNotifier) {
+              _setButtonToDeleteColMode(obj, col);
+            }
+          });
         } else {
           gridNotfier.emptySpotWidget = null;
           gridNotfier.onEmptyPressed = null;
           gridNotfier.toWidget = toParrotButton;
+          gridNotfier.forEach(_setButtonToDefaultPressMode);
         }
       },
     );
@@ -144,7 +169,9 @@ class _BoardScreenState extends State<BoardScreen> {
 
   ParrotButton? toParrotButton(Object? object) {
     if (object is ParrotButtonNotifier) {
-      return ParrotButton(controller: object, holdToConfig: builderMode.value);
+      return ParrotButton(
+          controller: object,
+          holdToConfig: boardMode.value != BoardMode.normalMode);
     }
     return null;
   }
@@ -197,6 +224,42 @@ class _BoardScreenState extends State<BoardScreen> {
     return buttons;
   }
 
+  void _setButtonToDefaultPressMode(Object? object) {
+    if (object is ParrotButtonNotifier) {
+      object.onPressOverride = null;
+    }
+  }
+
+  void _setButtonToDeleteRowMode(
+    Object? object,
+    int row,
+  ) {
+    if (object is ParrotButtonNotifier) {
+      object.onPressOverride = () {
+        gridNotfier.removeRow(row);
+        //the line below updates the buttons indexes when the row is deleted, has to be used to allow deleting when pressing a button, doesn't when dealing with empty spaces though.
+        gridNotfier.forEachIndexed((object, row, _) {
+          _setButtonToDeleteRowMode(object, row);
+        });
+      };
+    }
+  }
+
+  void _setButtonToDeleteColMode(
+    Object? object,
+    int col,
+  ) {
+    if (object is ParrotButtonNotifier) {
+      object.onPressOverride = () {
+        gridNotfier.removeCol(col);
+        //the line below updates the buttons indexes when the col is deleted, has to be used to allow deleting when pressing a button, doesn't when dealing with empty spaces though.
+        gridNotfier.forEachIndexed((object, row, _) {
+          _setButtonToDeleteRowMode(object, row);
+        });
+      };
+    }
+  }
+
   @override
   void dispose() {
     updateButtonPositionsInObf();
@@ -204,7 +267,7 @@ class _BoardScreenState extends State<BoardScreen> {
     void disposeNotfier(n) => n.dispose;
     gridNotfier.dispose();
     buttonSet.forEach(disposeNotfier);
-    builderMode.dispose();
+    boardMode.dispose();
     sentenceController.dispose();
     super.dispose();
   }
@@ -277,6 +340,9 @@ class _BoardScreenState extends State<BoardScreen> {
         fit: BoxFit.contain,
         child: SvgPicture.asset('assets/images/add_col.svg', height: 50),
       ),
+      color: boardMode.value == BoardMode.deleteRowMode
+          ? Colors.grey
+          : Colors.white,
     );
     final addRowButton = IconButton(
       onPressed: gridNotfier.addRow,
@@ -301,22 +367,67 @@ class _BoardScreenState extends State<BoardScreen> {
           children: [
             const Text('ParrotAAC'),
             ValueListenableBuilder(
-                valueListenable: builderMode,
-                builder: (context, inBuilderMode, _) {
-                  IconData icon = inBuilderMode ? Icons.close : Icons.handyman;
-                  final builderModeButton = IconButton(
-                    icon: Icon(icon),
-                    onPressed: () => builderMode.value = !builderMode.value,
+                valueListenable: boardMode,
+                builder: (context, mode, _) {
+                  bool inNormalMode = mode == BoardMode.normalMode;
+                  final removeRowButton = Container(
+                    color: boardMode.value == BoardMode.deleteRowMode
+                        ? Colors.grey
+                        : Colors.transparent,
+                    child: IconButton(
+                      onPressed: () {
+                        boardMode.value = mode == BoardMode.deleteRowMode
+                            ? BoardMode.builderMode
+                            : BoardMode.deleteRowMode;
+                      },
+                      icon: FittedBox(
+                        fit: BoxFit.contain,
+                        child: SvgPicture.asset('assets/images/remove_row.svg',
+                            width: 50),
+                      ),
+                    ),
                   );
+                  final removeColButton = Container(
+                    color: boardMode.value == BoardMode.deleteColMode
+                        ? Colors.grey
+                        : Colors.transparent,
+                    child: IconButton(
+                      onPressed: () {
+                        boardMode.value = mode == BoardMode.deleteColMode
+                            ? BoardMode.builderMode
+                            : BoardMode.deleteColMode;
+                      },
+                      icon: FittedBox(
+                        fit: BoxFit.contain,
+                        child: SvgPicture.asset('assets/images/remove_col.svg',
+                            height: 50),
+                      ),
+                    ),
+                  );
+                  IconData icon = inNormalMode ? Icons.handyman : Icons.close;
+                  final builderModeButton = IconButton(
+                      icon: Icon(icon),
+                      onPressed: () => boardMode.value = inNormalMode
+                          ? BoardMode.builderMode
+                          : BoardMode.normalMode);
 
-                  List<Widget> children = [];
-                  if (inBuilderMode) {
-                    children.addAll([addRowButton, addColButton]);
+                  final List<Widget> notInNormalModeWidgets;
+                  if (!inNormalMode) {
+                    notInNormalModeWidgets = [
+                      removeColButton,
+                      removeRowButton,
+                      addRowButton,
+                      addColButton
+                    ];
+                  } else {
+                    notInNormalModeWidgets = [];
                   }
-                  children.addAll([builderModeButton, settingsButton]);
-
                   return Row(
-                    children: children,
+                    children: [
+                      ...notInNormalModeWidgets,
+                      builderModeButton,
+                      settingsButton,
+                    ],
                   );
                 })
           ],
@@ -324,7 +435,7 @@ class _BoardScreenState extends State<BoardScreen> {
         backgroundColor: Color(0xFFAFABDF),
       ),
       body: ValueListenableBuilder(
-          valueListenable: builderMode,
+          valueListenable: boardMode,
           builder: (context, inBuilderMode, _) {
             List<Flexible> children = [
               Flexible(
@@ -353,3 +464,5 @@ class _BoardScreenState extends State<BoardScreen> {
     );
   }
 }
+
+enum BoardMode { builderMode, deleteRowMode, deleteColMode, normalMode }

@@ -90,6 +90,8 @@ flutter:
     - assets/images/logo/white_bg.svg
     - assets/images/add_row.svg
     - assets/images/add_col.svg
+    - assets/images/remove_row.svg
+    - assets/images/remove_col.svg
      #   - images/a_dot_ham.jpeg
   # An image asset can refer to one or more resolution-specific "variants", see
   # https://flutter.dev/to/resolution-aware-images
