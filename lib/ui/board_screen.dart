@@ -253,8 +253,8 @@ class _BoardScreenState extends State<BoardScreen> {
       object.onPressOverride = () {
         gridNotfier.removeCol(col);
         //the line below updates the buttons indexes when the col is deleted, has to be used to allow deleting when pressing a button, doesn't when dealing with empty spaces though.
-        gridNotfier.forEachIndexed((object, row, _) {
-          _setButtonToDeleteRowMode(object, row);
+        gridNotfier.forEachIndexed((object, _, col) {
+          _setButtonToDeleteColMode(object, col);
         });
       };
     }
