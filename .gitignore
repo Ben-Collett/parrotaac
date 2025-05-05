@@ -36,6 +36,8 @@ migrate_working_dir/
 .pub/
 /build/
 
+**/*symlink*/
+
 # Symbolication related
 app.*.symbols
 
