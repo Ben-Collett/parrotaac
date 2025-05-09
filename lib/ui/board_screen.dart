@@ -7,6 +7,7 @@ import 'package:parrotaac/ui/util_widgets/draggable_grid.dart';
 import 'package:parrotaac/ui/widgets/sentence_box.dart';
 
 import '../parrot_project.dart';
+import 'board_modes.dart';
 import 'parrot_button.dart';
 import 'popups/button_config.dart';
 
@@ -66,52 +67,28 @@ class _BoardScreenState extends State<BoardScreen> {
       },
     );
 
-    final Widget emptySpotWidget = Padding(
-      padding: const EdgeInsets.all(4.0),
-      child: Container(
-        decoration: BoxDecoration(
-            borderRadius: BorderRadius.circular(3),
-            border: Border.all(color: Colors.lightBlue, width: 5)),
-        child: Center(
-          child: Icon(Icons.add, color: Colors.lightBlue),
-        ),
-      ),
-    );
-
     boardMode.addListener(
       () {
-        gridNotfier.draggable = boardMode.value != BoardMode.normalMode;
-        if (boardMode.value == BoardMode.builderMode) {
-          gridNotfier.emptySpotWidget = emptySpotWidget;
+        BoardMode mode = boardMode.value;
+        gridNotfier.draggable = mode.draggableButtons;
+        gridNotfier.emptySpotWidget = mode.emptySpotWidget;
+        gridNotfier.toWidget = toParrotButton;
+        mode.onPressedOverride(gridNotfier);
+
+        if (mode == BoardMode.builderMode) {
           gridNotfier.onEmptyPressed = _showCreateNewButtonDialog;
-          gridNotfier.toWidget = toParrotButton;
-          gridNotfier.forEach(_setButtonToDefaultPressMode);
-        } else if (boardMode.value == BoardMode.deleteRowMode) {
-          gridNotfier.emptySpotWidget = emptySpotWidget;
+        } else if (mode == BoardMode.deleteRowMode) {
           gridNotfier.onEmptyPressed = (row, _) {
             gridNotfier.removeRow(row);
+            mode.onPressedOverride(
+                gridNotfier); //updates the grid notifier to tell the buttons inside of it to delete the new row
           };
-
-          gridNotfier.forEachIndexed((Object? obj, int row, int _) {
-            if (obj is ParrotButtonNotifier) {
-              _setButtonToDeleteRowMode(obj, row);
-            }
-          });
-        } else if (boardMode.value == BoardMode.deleteColMode) {
-          gridNotfier.emptySpotWidget = emptySpotWidget;
+        } else if (mode == BoardMode.deleteColMode) {
           gridNotfier.onEmptyPressed = (_, col) {
             gridNotfier.removeCol(col);
+            mode.onPressedOverride(
+                gridNotfier); //updates the grid notifier to tell the buttons inside of it to delete the new col.
           };
-          gridNotfier.forEachIndexed((Object? obj, int _, int col) {
-            if (obj is ParrotButtonNotifier) {
-              _setButtonToDeleteColMode(obj, col);
-            }
-          });
-        } else {
-          gridNotfier.emptySpotWidget = null;
-          gridNotfier.onEmptyPressed = null;
-          gridNotfier.toWidget = toParrotButton;
-          gridNotfier.forEach(_setButtonToDefaultPressMode);
         }
       },
     );
@@ -170,8 +147,9 @@ class _BoardScreenState extends State<BoardScreen> {
   ParrotButton? toParrotButton(Object? object) {
     if (object is ParrotButtonNotifier) {
       return ParrotButton(
-          controller: object,
-          holdToConfig: boardMode.value != BoardMode.normalMode);
+        controller: object,
+        holdToConfig: boardMode.value.configOnButtonHold,
+      );
     }
     return null;
   }
@@ -222,42 +200,6 @@ class _BoardScreenState extends State<BoardScreen> {
       }
     }
     return buttons;
-  }
-
-  void _setButtonToDefaultPressMode(Object? object) {
-    if (object is ParrotButtonNotifier) {
-      object.onPressOverride = null;
-    }
-  }
-
-  void _setButtonToDeleteRowMode(
-    Object? object,
-    int row,
-  ) {
-    if (object is ParrotButtonNotifier) {
-      object.onPressOverride = () {
-        gridNotfier.removeRow(row);
-        //the line below updates the buttons indexes when the row is deleted, has to be used to allow deleting when pressing a button, doesn't when dealing with empty spaces though.
-        gridNotfier.forEachIndexed((object, row, _) {
-          _setButtonToDeleteRowMode(object, row);
-        });
-      };
-    }
-  }
-
-  void _setButtonToDeleteColMode(
-    Object? object,
-    int col,
-  ) {
-    if (object is ParrotButtonNotifier) {
-      object.onPressOverride = () {
-        gridNotfier.removeCol(col);
-        //the line below updates the buttons indexes when the col is deleted, has to be used to allow deleting when pressing a button, doesn't when dealing with empty spaces though.
-        gridNotfier.forEachIndexed((object, _, col) {
-          _setButtonToDeleteColMode(object, col);
-        });
-      };
-    }
   }
 
   @override
@@ -464,5 +406,3 @@ class _BoardScreenState extends State<BoardScreen> {
     );
   }
 }
-
-enum BoardMode { builderMode, deleteRowMode, deleteColMode, normalMode }
