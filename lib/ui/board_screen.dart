@@ -106,8 +106,9 @@ class _BoardScreenState extends State<BoardScreen> {
 
   void _showCreateNewButtonDialog(int row, int col) {
     {
-      ParrotButtonNotifier notifier =
-          ParrotButtonNotifier(projectPath: widget.path);
+      ParrotButtonNotifier notifier = ParrotButtonNotifier(
+        projectPath: widget.path,
+      );
       showDialog(
         context: context,
         barrierDismissible: false,
@@ -129,12 +130,14 @@ class _BoardScreenState extends State<BoardScreen> {
                 color: Colors.green,
                 icon: Icon(Icons.check),
                 onPressed: () {
-                  Navigator.of(context).pop();
+                  notifier.onDelete = () => gridNotfier.removeAt(row, col);
                   gridNotfier.setWidget(
                     row: row,
                     col: col,
                     data: notifier,
                   );
+
+                  Navigator.of(context).pop();
                 },
               ),
             ],

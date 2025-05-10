@@ -138,7 +138,6 @@ class ParrotButton extends StatelessWidget {
             acceptButton,
           ],
         );
-
         if (controller.onDelete != null) {
           row = Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
