@@ -3,14 +3,15 @@ import 'dart:convert';
 import 'dart:io';
 import 'package:openboard_wrapper/obf.dart';
 import 'package:openboard_wrapper/obz.dart';
+import 'package:parrotaac/backend/project/board/parrot_board.dart';
+import 'package:parrotaac/backend/project/import_utils.dart';
+import 'package:parrotaac/backend/project/parrot_project.dart';
 
 import 'package:path/path.dart' as p;
 import './boards/board_strings.dart';
 import './boards/manifest_stings.dart';
 import 'package:archive/archive_io.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:parrotaac/parrot_project.dart';
-import 'package:parrotaac/parrot_board.dart';
 
 Future<void> equalProjectes(Obz b1, Obz b2) async {
   Map<String, dynamic> toJson(Obf board) => board.toJson();
@@ -48,8 +49,7 @@ void main() {
       File simpleFile = File(targetPath);
       String importTargetPath =
           p.join(targetDir.path, "import_dir", "simple2.obf");
-      await ParrotProject.importFromObfFile(simpleFile,
-          outputPath: importTargetPath);
+      await importFromObfFile(simpleFile, outputPath: importTargetPath);
 
       Directory dir = Directory(importTargetPath);
       Obz fromDir = Obz.fromDirectory(dir);
@@ -77,8 +77,7 @@ void main() {
 
       File(archivePath).writeAsBytesSync(ZipEncoder().encode(archive));
 
-      await ParrotProject.importArchiveFromPath(archivePath,
-          outputPath: projectTargetPath);
+      await importArchiveFromPath(archivePath, outputPath: projectTargetPath);
 
       Obf simpleObf = Obf.fromJsonString(simpleBoard);
       ParrotProject expected = ParrotProject(
@@ -119,7 +118,7 @@ void main() {
   test('get display data', () async {
     String name = 'somp';
     String path = p.join(targetDir.path, name);
-    ParrotProject simpleProject = await writeSimpleProject(path);
+    ParrotProject _ = await writeSimpleProject(path);
     Directory dir = Directory(path);
 
     var expected = ParrotProjectDisplayData(name);

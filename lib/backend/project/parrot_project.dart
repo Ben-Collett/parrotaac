@@ -1,0 +1,279 @@
+import 'dart:io';
+import 'package:flutter/widgets.dart';
+
+import 'package:flutter_svg/flutter_svg.dart';
+import 'package:openboard_wrapper/image_data.dart';
+import 'package:openboard_wrapper/obz.dart';
+import 'package:openboard_wrapper/obf.dart';
+import 'package:parrotaac/backend/project/board/parrot_board.dart';
+import 'package:parrotaac/backend/project/manifest_utils.dart';
+import 'package:parrotaac/backend/project/temp_files.dart';
+import 'package:parrotaac/file_utils.dart';
+import 'package:parrotaac/utils.dart';
+import 'package:path/path.dart' as p;
+
+import 'project_interface.dart';
+import 'project_utils.dart';
+
+final SvgPicture logo = SvgPicture.asset("assets/images/logo/white_bg.svg");
+
+class ParrotProject extends Obz with AACProject {
+  static const String nameKey = "ext_name";
+  static const String imagePathKey = 'ext_display_image_path';
+  static const String tempImageDirName = 'parrot_tmp_images';
+  String path;
+  Future<List<File>> get tempImagesList async {
+    final String tmpPath = tmpImagePath(path);
+    Directory imageDir = Directory(tmpPath);
+
+    if (!imageDir.existsSync()) {
+      return [];
+    }
+
+    return imageDir.listSync().whereType<File>().toList();
+  }
+
+  String? get displayImagePath {
+    return manifestExtendedProperties[imagePathKey];
+  }
+
+  set displayImagePath(String? path) {
+    if (path == null) {
+      manifestExtendedProperties.remove(imagePathKey);
+    } else {
+      manifestExtendedProperties[imagePathKey] = path;
+    }
+  }
+
+  @override
+  Widget get displayImage =>
+      displayImagePath != null ? imageFromPath(displayImagePath!) : logo;
+  @override
+  String get name {
+    return manifestExtendedProperties[nameKey] ??
+        p.basenameWithoutExtension(path);
+  }
+
+  ParrotProject({super.boards, required String name, required this.path})
+      : super() {
+    manifestExtendedProperties[nameKey] = name;
+  }
+
+  ParrotProject.fromDirectory(Directory dir)
+      : path = dir.path,
+        super.fromDirectory(dir) {
+    Map<String, dynamic> manifest = manifestJson;
+    manifestExtendedProperties[nameKey] =
+        manifest[nameKey] ?? p.basename(dir.path);
+  }
+
+  static Future<ParrotProject?> getProject(String projectName) async {
+    Directory? dir = await getProjectDir(projectName);
+    if (dir == null) {
+      return null;
+    }
+    return ParrotProject.fromDirectory(dir);
+  }
+
+  void deleteTempFiles() {
+    Directory dir = Directory(tmpImagePath(path));
+    if (dir.existsSync()) {
+      dir.deleteSync();
+    }
+  }
+
+  ///maps all the temporary images in projectPath/image/tmp to locations in projectPath/image. Doesn't actually move the files
+  Future<Map<String, String>> mapTempImageToPermantSpot() async {
+    Map<String, String> out = {};
+    String imagesPath = p.join(path, 'images');
+    Directory images = Directory(imagesPath);
+    if (!images.existsSync()) {
+      return {};
+    }
+
+    Iterable<String> imagesNames = images.listSync().map(
+          (f) => p.basenameWithoutExtension(f.path),
+        );
+    List<File> tempImages = await tempImagesList;
+    if (tempImages.isNotEmpty) images.createSync(recursive: true);
+
+    for (File imageFile in tempImages) {
+      String newPath = determineNoncollidingName(imageFile.path, imagesNames);
+      String basename = p.basename(newPath);
+      newPath = p.join(imagesPath, basename);
+      out[imageFile.path] = newPath;
+    }
+    return out;
+  }
+
+  ///[map] tells the function where to move the old file from to it's new path
+  Future<void> moveFiles(
+    Map<String, String> map,
+  ) async {
+    for (MapEntry entry in map.entries) {
+      File file = File(entry.key);
+      if (file.existsSync()) {
+        Directory(p.dirname(entry.value)).createSync(recursive: true);
+        file.copySync(entry.value);
+        file.deleteSync(recursive: true);
+      }
+    }
+  }
+
+  ///[map] should map the old location to the new location
+  void updateImagePaths(Map<String, String> paths) {
+    if (paths.isEmpty) {
+      return;
+    }
+
+    bool pathIsNotNull(ImageData i) => i.path != null;
+    for (ImageData image in images.where(pathIsNotNull)) {
+      String imageDataPath = p.join(path, image.path);
+      if (paths.containsKey(imageDataPath)) {
+        image.path = p.relative(paths[imageDataPath]!, from: path);
+      }
+    }
+  }
+
+  ///returns whether or not the rename was successful.
+  ///renames the project directory to the new basename, if a  project directory exist
+  @override
+  Future<bool> rename(String name, {Directory? projectDirectory}) async {
+    String originalName = name;
+    manifestExtendedProperties[nameKey] = name;
+    Directory? projectDirOptional =
+        projectDirectory ?? await getProjectDir(name);
+    if (projectDirectory?.existsSync() ?? false) {
+      Directory projectDir =
+          projectDirOptional!; //?? false provides null safety
+      try {
+        String parentPath = p.dirname(projectDir.path);
+        projectDir.renameSync(p.join(parentPath, baseName));
+      } catch (e) {
+        manifestExtendedProperties[nameKey] = originalName;
+        return false;
+      }
+    }
+
+    return true;
+  }
+
+  ///writes to targetDirectoryPath by default. This behavior is overridden by the optional [path] parameter.
+  ///this will override any matching files in the directory and leave the other files be
+  @override
+  Future<String> write({String? path}) async {
+    Directory dir;
+    if (path == null) {
+      Directory? temp = await getProjectDir(baseName);
+      dir = temp ?? await _asDirectory;
+    } else {
+      dir = Directory(path);
+    }
+    File manifest = File(p.join(dir.path, 'manifest.json'));
+    manifest.createSync(
+        recursive: true); // should create dir as well as the manifest
+    _setBoardPaths();
+    await _writeBoards(dir);
+    manifest.writeAsStringSync(manifestString);
+    return dir.path;
+  }
+
+  void _setBoardPaths() {
+    Set<String> usedFilePaths = {};
+    for (Obf board in boards) {
+      String path =
+          board.path ?? p.join("boards/", sanitzeFileName(board.name));
+      path = determineNoncollidingName(path, usedFilePaths);
+      usedFilePaths.add(path);
+      path = p.setExtension(path, '.obf');
+
+      board.path = path;
+    }
+  }
+
+  Future<void> _writeBoards(Directory projectDir) async {
+    String fullPath(Obf obf) => p.join(projectDir.path, obf.path);
+    for (Obf board in boards) {
+      String pathToWrite = fullPath(board);
+      await board.writeTo(pathToWrite);
+    }
+  }
+
+  ///returns a Future with a directory object set to the the path of the project, this method does not create that directory, nor does it write a any data to it.
+  Future<Directory> get _asDirectory {
+    Directory maptToDir(String path) => Directory(path);
+    return projectTargetDirectory
+        .then((target) => p.join(target, baseName))
+        .then(maptToDir);
+  }
+
+  factory ParrotProject.fromObz(Obz obz, String name, String path) {
+    return ParrotProject(boards: obz.boards, name: name, path: path)
+        .parseManifestJson(obz.manifestJson);
+  }
+
+  @override
+  ParrotProject parseManifestString(String json,
+      {bool fullOverride = false, bool updateLinkedBoards = true}) {
+    super.parseManifestString(json,
+        fullOverride: fullOverride, updateLinkedBoards: updateLinkedBoards);
+    return this;
+  }
+
+  @override
+  ParrotProject parseManifestJson(Map<String, dynamic> manifestJson,
+      {bool fullOverride = true, bool updateLinkedBoards = true}) {
+    if (manifestJson[nameKey] == null) {
+      manifestJson[nameKey] = name;
+    }
+    super.parseManifestJson(manifestJson,
+        fullOverride: fullOverride, updateLinkedBoards: updateLinkedBoards);
+    return this;
+  }
+}
+
+class ParrotProjectDisplayData extends DisplayData {
+  @override
+  String name;
+  Widget? _image;
+  @override
+  Widget get image {
+    return _image ?? logo;
+  }
+
+  @override
+  set image(Widget? image) {
+    _image = image;
+  }
+
+  ParrotProjectDisplayData(this.name, {Widget? image}) : _image = image;
+  ParrotProjectDisplayData.fromDir(Directory dir)
+      : name = p.basename(dir.path) {
+    Map<String, dynamic>? manifest = getManifestJson(dir);
+    if (manifest == null) {
+      return;
+    }
+    if (manifest.containsKey(ParrotProject.nameKey)) {
+      name = manifest[ParrotProject.nameKey];
+    }
+
+    if (manifest.containsKey(ParrotProject.imagePathKey)) {
+      String path = dir.path;
+      path = p.join(dir.path, manifest[ParrotProject.imagePathKey]);
+      image = imageFromPath(path);
+    }
+  }
+
+  @override
+  bool operator ==(Object other) {
+    if (other is! ParrotProjectDisplayData) return false;
+    return name == other.name;
+  }
+
+  @override
+  int get hashCode => name.hashCode;
+  @override
+  String toString() {
+    return name;
+  }
+}

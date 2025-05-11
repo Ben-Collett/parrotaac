@@ -39,14 +39,20 @@ class MainScreen extends StatelessWidget {
         label: "hi",
         backgroundColor: green,
         image: ImageData(url: "https://picsum.photos/400/300"));
-    ParrotButton fromData(ButtonData data) =>
-        ParrotButton(controller: ParrotButtonNotifier(data: data));
-    List<List<ParrotButton?>> buttons = [
-      [fromData(bd), fromData(bd2)],
-      [null, fromData(bd3)],
+
+    List<List<Object?>> data = [
+      [ParrotButtonNotifier(data: bd), ParrotButtonNotifier(data: bd2)],
+      [null, ParrotButtonNotifier(data: bd3)],
     ];
-    GridNotfier<ParrotButton> grid =
-        GridNotfier<ParrotButton>(widgets: buttons, draggable: true);
+    GridNotfier<ParrotButton> grid = GridNotfier<ParrotButton>(
+        data: data,
+        toWidget: (d) {
+          if (d is ParrotButtonNotifier) {
+            return ParrotButton(controller: d);
+          }
+          return null;
+        },
+        draggable: true);
     return Scaffold(
         appBar: AppBar(
             title: Row(
@@ -75,9 +81,10 @@ class MainScreen extends StatelessWidget {
                         green: random.nextInt(256));
                     ButtonData buttonData = ButtonData(
                         backgroundColor: randomColor, label: "hello");
-
-                    grid.setWidget(
-                        row: 0, col: 0, widget: fromData(buttonData));
+                    Object? obj = grid.data[0][0];
+                    if (obj is ParrotButtonNotifier) {
+                      obj.data = buttonData;
+                    }
                   },
                 ),
               ],

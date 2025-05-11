@@ -6,9 +6,9 @@ import 'package:image_picker/image_picker.dart';
 import 'package:openboard_wrapper/button_data.dart';
 import 'package:openboard_wrapper/color_data.dart';
 import 'package:openboard_wrapper/image_data.dart';
+import 'package:parrotaac/backend/project/temp_files.dart';
 import 'package:parrotaac/extensions/color_extensions.dart';
 import 'package:parrotaac/extensions/image_extensions.dart';
-import 'package:parrotaac/parrot_project.dart';
 import 'package:parrotaac/ui/parrot_button.dart';
 import 'package:parrotaac/utils.dart';
 import 'package:path/path.dart' as p;
@@ -114,7 +114,7 @@ class _ButtonConfigPopupState extends State<ButtonConfigPopup> {
                   return;
                 }
                 lastSetTempImage?.deleteSync();
-                String path = await ParrotProject.writeTempImage(
+                String path = await writeTempImage(
                   Directory(buttonController.projectPath!),
                   file,
                 );

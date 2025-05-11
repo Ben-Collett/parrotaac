@@ -48,7 +48,8 @@ class GridNotfier<T extends Widget> extends ChangeNotifier {
 
   void Function(int, int)? onEmptyPressed;
   GridNotfier({
-    required List<List<Object?>> data,
+    required List<List<Object?>>
+        data, //TODO: I need to make sure the list is of list<list<object?>> if they pass a list<list<child?>> then add row crashes
     bool draggable = true,
     T? Function(Object?)? toWidget,
     this.onEmptyPressed,

@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
-import 'package:parrotaac/board_selector.dart';
-import 'package:parrotaac/parrot_project.dart';
+import 'package:parrotaac/backend/project/parrot_project.dart';
+import 'package:parrotaac/ui/widgets/displey_entry.dart';
 
 void main() {
   runApp(const MyApp());
@@ -34,18 +34,21 @@ class MainScreen extends StatelessWidget {
           DisplayEntry.fromDisplayData(
               data: ParrotProjectDisplayData("test1"),
               imageWidth: 40,
-              imageHeight: 60),
+              imageHeight: 60,
+              viewType: ViewType.list),
           Divider(),
           DisplayEntry.fromDisplayData(
             imageWidth: 40,
             imageHeight: 60,
             data: ParrotProjectDisplayData("test2"),
+            viewType: ViewType.list,
           ),
           Divider(),
           DisplayEntry.fromDisplayData(
             imageWidth: 40,
             imageHeight: 60,
             data: ParrotProjectDisplayData("test3"),
+            viewType: ViewType.list,
           ),
         ],
       ),

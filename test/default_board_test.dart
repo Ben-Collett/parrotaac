@@ -1,8 +1,8 @@
 import 'dart:convert';
 
 import 'package:flutter_test/flutter_test.dart';
+import 'package:parrotaac/backend/project/parrot_project.dart';
 import 'package:parrotaac/default_board_strings.dart';
-import 'package:parrotaac/parrot_project.dart';
 
 void main() {
   const Map<String, dynamic> defaultManifestJson = {

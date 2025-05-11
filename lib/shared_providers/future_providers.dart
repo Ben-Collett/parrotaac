@@ -1,6 +1,4 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:parrotaac/backend/project/project_utils.dart';
 
-import '../parrot_project.dart';
-
-final projectDirProvider =
-    FutureProvider((ref) async => ParrotProject.projectDirs());
+final projectDirProvider = FutureProvider((ref) async => projectDirs());

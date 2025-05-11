@@ -1,4 +1,4 @@
-import 'package:parrotaac/parrot_project.dart';
+import 'package:parrotaac/backend/project/parrot_project.dart';
 
 const defaultRootObf =
     '{"id":"root","format":"open-board-0.1","locale":"en","name":"root","buttons":[],"grid":{"rows":0,"columns":0,"order":[]},"images":[],"sounds":[]}';

@@ -4,10 +4,13 @@ import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:image_picker/image_picker.dart';
-import 'package:parrotaac/parrot_project.dart';
+import 'package:parrotaac/backend/project/parrot_project.dart';
 import 'package:parrotaac/setting_screen.dart';
 import 'package:parrotaac/utils.dart';
 
+import 'backend/project/default_project.dart.dart';
+import 'backend/project/import_utils.dart';
+import 'backend/project/project_utils.dart';
 import 'file_utils.dart';
 import 'shared_providers/future_providers.dart';
 import 'ui/popups/loading.dart';
@@ -283,7 +286,7 @@ class _BoardSelectorState extends State<BoardSelector> {
                           showLoadingDialog(context, 'importing');
                         }
                         for (String path in toImport) {
-                          await ParrotProject.import(path);
+                          await import(path);
                         }
                         if (context.mounted) {
                           Navigator.of(context).pop();
@@ -455,10 +458,9 @@ class _CreateProjectDialogState extends State<CreateProjectDialog> {
                   XFile? image = await _image;
                   imagePath = image?.path;
                 }
-                await ParrotProject.writeDefaultProject(
+                await writeDefaultProject(
                   widget.controller.text,
-                  path: await ParrotProject.determineValidProjectPath(
-                      widget.controller.text),
+                  path: await determineValidProjectPath(widget.controller.text),
                   projectImagePath: imagePath,
                 );
                 if (context.mounted) {

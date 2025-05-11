@@ -2,20 +2,20 @@ import 'package:flutter/material.dart';
 import 'package:flutter_svg/svg.dart';
 import 'package:openboard_wrapper/button_data.dart';
 import 'package:openboard_wrapper/obf.dart';
+import 'package:parrotaac/backend/project/parrot_project.dart';
 import 'package:parrotaac/setting_screen.dart';
 import 'package:parrotaac/ui/util_widgets/draggable_grid.dart';
 import 'package:parrotaac/ui/widgets/sentence_box.dart';
 
-import '../parrot_project.dart';
 import 'board_modes.dart';
 import 'parrot_button.dart';
 import 'popups/button_config.dart';
 
 class BoardScreen extends StatefulWidget {
-  final ParrotProject obz;
+  final ParrotProject project;
   //WARNING: storing the path will only work if I wait to rename a project somehow
   final String? path;
-  const BoardScreen({super.key, required this.obz, this.path});
+  const BoardScreen({super.key, required this.project, this.path});
 
   @override
   State<BoardScreen> createState() => _BoardScreenState();
@@ -33,7 +33,7 @@ class _BoardScreenState extends State<BoardScreen> {
 
   @override
   void initState() {
-    currentObf = widget.obz.root ??
+    currentObf = widget.project.root ??
         Obf(
           locale: "en",
           name: defaultBoardName,
@@ -59,8 +59,8 @@ class _BoardScreenState extends State<BoardScreen> {
         if (boardMode.value == BoardMode.normalMode) {
           updateButtonPositionsInObf();
           await finalizeTempImages();
-          widget.obz.autoResolveAllIdCollisionsInFile();
-          widget.obz.deleteTempFiles();
+          widget.project.autoResolveAllIdCollisionsInFile();
+          widget.project.deleteTempFiles();
           await writeToDisk();
           _updateButtonSet();
         }
@@ -158,13 +158,14 @@ class _BoardScreenState extends State<BoardScreen> {
   }
 
   Future<void> finalizeTempImages() async {
-    Map<String, String> paths = await widget.obz.mapTempImageToPermantSpot();
-    await widget.obz.moveFiles(paths);
-    widget.obz.updateImagePaths(paths);
+    Map<String, String> paths =
+        await widget.project.mapTempImageToPermantSpot();
+    await widget.project.moveFiles(paths);
+    widget.project.updateImagePaths(paths);
   }
 
   Future<void> writeToDisk() async {
-    await widget.obz.write(path: widget.path);
+    await widget.project.write(path: widget.path);
   }
 
   void addButtonToSentenceBox(ButtonData buttonData) {

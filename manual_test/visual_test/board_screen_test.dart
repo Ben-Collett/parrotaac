@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:openboard_wrapper/color_data.dart';
 import 'package:openboard_wrapper/obf.dart';
-import 'package:parrotaac/parrot_project.dart';
+import 'package:parrotaac/backend/project/parrot_project.dart';
 import 'package:parrotaac/ui/board_screen.dart';
 import 'dart:io';
 import 'package:path/path.dart' as p;
@@ -41,7 +41,7 @@ class MainScreen extends StatelessWidget {
     project.root = simpleObf;
     project.addBoard(voclization).addBoard(simpleObf);
 
-    BoardScreen screen = BoardScreen(obz: project);
+    BoardScreen screen = BoardScreen(project: project);
     //screen.parseObf(currentObf);
     return Scaffold(
       appBar: AppBar(

@@ -3,13 +3,13 @@ import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_slidable/flutter_slidable.dart';
+import 'package:parrotaac/backend/project/parrot_project.dart';
+import 'package:parrotaac/backend/project/project_interface.dart';
 import 'package:parrotaac/file_utils.dart';
 import 'package:parrotaac/shared_providers/future_providers.dart';
 import 'package:parrotaac/ui/popups/loading.dart';
 import 'package:parrotaac/utils.dart';
 
-import '../../parrot_project.dart';
-import '../../project_interface.dart';
 import '../board_screen.dart';
 
 enum ViewType { grid, list }
@@ -153,7 +153,7 @@ class _DisplayEntryState extends State<DisplayEntry> {
         Navigator.of(context).push(
           MaterialPageRoute(
             builder: (_) => BoardScreen(
-              obz: ParrotProject.fromDirectory(widget.dir!),
+              project: ParrotProject.fromDirectory(widget.dir!),
               path: widget.dir!.path,
             ),
           ),
