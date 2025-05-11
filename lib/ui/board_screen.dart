@@ -82,12 +82,22 @@ class _BoardScreenState extends State<BoardScreen> {
             gridNotfier.removeRow(row);
             mode.onPressedOverride(
                 gridNotfier); //updates the grid notifier to tell the buttons inside of it to delete the new row
+            gridNotfier.forEachIndexed((obj, int row, int col) {
+              if (obj is ParrotButtonNotifier) {
+                _updateButtonNotfierOnDelete(obj, row, col);
+              }
+            });
           };
         } else if (mode == BoardMode.deleteColMode) {
           gridNotfier.onEmptyPressed = (_, col) {
             gridNotfier.removeCol(col);
             mode.onPressedOverride(
                 gridNotfier); //updates the grid notifier to tell the buttons inside of it to delete the new col.
+            gridNotfier.forEachIndexed((obj, int row, int col) {
+              if (obj is ParrotButtonNotifier) {
+                _updateButtonNotfierOnDelete(obj, row, col);
+              }
+            });
           };
         }
       },
