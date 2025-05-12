@@ -2,6 +2,7 @@ import 'dart:collection';
 
 import 'package:flutter/material.dart';
 import 'package:openboard_wrapper/button_data.dart';
+import 'package:parrotaac/audio/audio_source.dart';
 import 'package:parrotaac/audio_player.dart';
 import 'package:parrotaac/ui/parrot_button.dart';
 import 'package:parrotaac/extensions/button_data_extensions.dart';
@@ -65,11 +66,15 @@ class SentenceBoxController extends ChangeNotifier {
     return UnmodifiableListView(_dataToDisplay);
   }
 
+  Iterable<AudioSource> get audioSourcesCopy {
+    return _dataToDisplay.map(
+      (b) => b.getSource(projectPath: projectPath),
+    );
+  }
+
   void speak() async {
     PreemptiveAudioPlayer().playIterable(
-      _dataToDisplay.map(
-        (b) => b.getSource(projectPath: projectPath),
-      ),
+      audioSourcesCopy,
     );
   }
 }

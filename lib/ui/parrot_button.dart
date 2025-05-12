@@ -4,6 +4,7 @@ import 'package:openboard_wrapper/color_data.dart';
 import 'package:openboard_wrapper/image_data.dart';
 import 'package:openboard_wrapper/obf.dart';
 import 'package:openboard_wrapper/sound_data.dart';
+import 'package:parrotaac/audio/audio_source.dart';
 import 'package:parrotaac/audio_player.dart';
 import 'package:parrotaac/extensions/button_data_extensions.dart';
 import 'package:parrotaac/extensions/color_extensions.dart';
@@ -49,12 +50,22 @@ class ParrotButtonNotifier extends ChangeNotifier {
     final String speak = PredefinedSpecialtyAction.speak.asString;
     onAction[clear] = () => boxController?.clear();
     onAction[backspace] = () => boxController?.backSpace();
-    onAction[speak] = () => boxController?.speak();
+    onAction[speak] = () {
+      List<AudioSource> toSpeak = [audioSource];
+      if (boxController != null) {
+        toSpeak.addAll(boxController!.audioSourcesCopy);
+      }
+      PreemptiveAudioPlayer().playIterable(toSpeak);
+    };
     onAction[home] = () {
       if (goHome != null) {
         goHome!();
       }
     };
+  }
+
+  AudioSource get audioSource {
+    return _data.getSource(projectPath: projectPath);
   }
 
   void playActions() {
@@ -105,8 +116,8 @@ class ParrotButton extends StatelessWidget {
     if (controller.onPressOverride != null) {
       controller.onPressOverride!();
     } else {
-      PreemptiveAudioPlayer()
-          .play(buttonData.getSource(projectPath: controller.projectPath));
+      PreemptiveAudioPlayer().play(controller.audioSource);
+
       if (buttonData.linkedBoard != null) {
         Obf linkedBoard = buttonData.linkedBoard!;
         controller.goToLinkedBoard(linkedBoard);
