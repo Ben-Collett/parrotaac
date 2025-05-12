@@ -188,6 +188,13 @@ class _BoardScreenState extends State<BoardScreen> {
     gridNotfier.setData(_getButtonsFromObf(obf));
   }
 
+  void goToRootBoard() {
+    Obf? root = widget.project.root;
+    if (root != null) {
+      changeObf(root);
+    }
+  }
+
   List<List<Object?>> _getButtonsFromObf(Obf obf) {
     List<List<Object?>> buttons = [];
     final int rowCount = obf.grid.numberOfRows;
@@ -202,6 +209,7 @@ class _BoardScreenState extends State<BoardScreen> {
               data: button,
               boxController: sentenceController,
               goToLinkedBoard: changeObf,
+              goHome: goToRootBoard,
               onDelete: () {
                 gridNotfier.removeAt(i, j);
               },

@@ -18,24 +18,54 @@ class ParrotButtonNotifier extends ChangeNotifier {
   ButtonData get data => _data;
   VoidCallback? onDelete;
   VoidCallback? onPressOverride;
+
   set data(ButtonData data) {
     _data = data;
     notifyListeners();
   }
 
   void Function(Obf) goToLinkedBoard;
+  VoidCallback? goHome;
   String? projectPath;
   SentenceBoxController? boxController;
 
+  final Map<String, VoidCallback> onAction = {};
   ParrotButtonNotifier(
       {ButtonData? data,
       bool holdToConfig = false,
       void Function(Obf)? goToLinkedBoard,
       this.boxController,
+      this.goHome,
       this.projectPath,
       this.onDelete})
       : _data = data ?? ButtonData(),
-        goToLinkedBoard = goToLinkedBoard ?? _defaultGoToLinkedBoard;
+        goToLinkedBoard = goToLinkedBoard ?? _defaultGoToLinkedBoard {
+    _setDefaultOnActions();
+  }
+  void _setDefaultOnActions() {
+    final String clear = PredefinedSpecialtyAction.clear.asString;
+    final String backspace = PredefinedSpecialtyAction.backSpace.asString;
+    final String home = PredefinedSpecialtyAction.home.asString; //TODO
+    final String speak = PredefinedSpecialtyAction.speak.asString;
+    onAction[clear] = () => boxController?.clear();
+    onAction[backspace] = () => boxController?.backSpace();
+    onAction[speak] = () => boxController?.speak();
+    onAction[home] = () {
+      if (goHome != null) {
+        goHome!();
+      }
+    };
+  }
+
+  void playActions() {
+    List<String> actions = _data.actions;
+    if (actions.isEmpty && _data.action != null) {
+      actions.add(_data.action!);
+    }
+    for (String action in actions) {
+      onAction[action]!(); //TODO log if something goes wrong
+    }
+  }
 
   void setLabel(String label) {
     data.label = label;
@@ -82,12 +112,16 @@ class ParrotButton extends StatelessWidget {
         controller.goToLinkedBoard(linkedBoard);
       }
 
-      controller.boxController?.add(controller.data);
-      final String clearString = PredefinedSpecialtyAction.clear.asString;
-      if (buttonData.actions.contains(clearString) ||
-          buttonData.action == clearString) {
-        controller.boxController?.clear();
+      String backspace = PredefinedSpecialtyAction.backSpace.asString;
+      List<String> actions = List.from(controller.data.actions);
+      if (controller.data.action != null) {
+        actions.add(controller.data.action!);
       }
+
+      if (!actions.contains(backspace)) {
+        controller.boxController?.add(controller.data);
+      }
+      controller.playActions();
     }
   }
 
