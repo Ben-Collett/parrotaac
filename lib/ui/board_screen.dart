@@ -99,6 +99,8 @@ class _BoardScreenState extends State<BoardScreen> {
               }
             });
           };
+        } else {
+          gridNotfier.onEmptyPressed = null;
         }
       },
     );
