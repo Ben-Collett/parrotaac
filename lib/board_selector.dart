@@ -230,9 +230,9 @@ class _BoardSelectorState extends State<BoardSelector> {
                             outputDirPath: exportDirPath,
                           );
                         }
-                      }
-                      if (context.mounted) {
-                        Navigator.of(context).pop();
+                        if (context.mounted) {
+                          Navigator.of(context).pop();
+                        }
                       }
                     }),
                   );

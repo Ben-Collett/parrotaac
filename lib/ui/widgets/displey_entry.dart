@@ -179,9 +179,9 @@ class _DisplayEntryState extends State<DisplayEntry> {
                   sourceDirPath: widget.dir!.path,
                   outputDirPath: exportDirPath,
                 );
-              }
-              if (context.mounted) {
-                Navigator.of(context).pop();
+                if (context.mounted) {
+                  Navigator.of(context).pop();
+                }
               }
             },
             icon: Icons.folder,
