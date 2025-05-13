@@ -4,8 +4,8 @@ import 'dart:io';
 import 'package:parrotaac/file_utils.dart';
 import 'package:path/path.dart' as p;
 import 'package:path_provider/path_provider.dart';
+import 'custom_manifest_keys.dart';
 import 'manifest_utils.dart';
-import 'parrot_project.dart';
 
 ///if name is defined in manifest.json using ext_name return it else return dir base name
 Future<String> getProjectName(Directory dir) {
@@ -18,7 +18,7 @@ Future<String> getProjectName(Directory dir) {
 
   Map<String, dynamic> decodeTheManifest(String json) => jsonDecode(json);
   String getTheName(Map<String, dynamic> json) =>
-      json[ParrotProject.nameKey]?.toString() ?? dirName;
+      json[nameKey]?.toString() ?? dirName;
 
   return file.readAsString().then(decodeTheManifest).then(getTheName);
 }

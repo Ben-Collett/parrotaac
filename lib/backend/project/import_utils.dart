@@ -14,23 +14,30 @@ import 'parrot_project.dart';
 Future<String> import(
   String path, {
   String? outputPath,
+  DateTime? lastAccessedTime,
   String? projectName,
 }) async {
   String extension = p.extension(path);
+  DateTime currentTime = lastAccessedTime ?? DateTime.now();
+  String? pathWroteTo;
   if (extension == '.obf') {
-    await importFromObfFile(
+    pathWroteTo = await importFromObfFile(
       File(path),
       projectName: projectName,
       outputPath: outputPath,
     );
   } else if (extension == '.obz') {
-    await importArchiveFromPath(
+    pathWroteTo = await importArchiveFromPath(
       path,
       projectName: projectName,
       outputPath: outputPath,
     );
   }
-  return "";
+
+  if (pathWroteTo != null) {
+    updateAccessedTimeInManifest(Directory(pathWroteTo), time: currentTime);
+  }
+  return pathWroteTo ?? "";
 }
 
 ///returns the path to the imported project
@@ -58,7 +65,7 @@ Future<String> importFromObfFile(
   final Obz simpleObz = board.toSimpleObz();
   final simpleProject = ParrotProject.fromObz(
       simpleObz, p.basenameWithoutExtension(importedName), outputPath ?? "");
-  return simpleProject.write(path: outputPath);
+  return await simpleProject.write(path: outputPath);
 }
 
 ///return the  path of the imported project
@@ -66,6 +73,7 @@ Future<String> importFromObfFile(
 ///[outputPath] is the path to output the file
 Future<String> importArchiveFromPath(
   String path, {
+  DateTime? lastAccessedTime,
   String? outputPath,
   String? projectName, //TODO: refactor this
 }) async {
@@ -91,6 +99,9 @@ Future<String> importArchiveFromPath(
   }
   await extractArchiveToDisk(archive, outPath);
 
+  if (lastAccessedTime != null) {
+    updateAccessedTimeInManifest(Directory(outPath), time: lastAccessedTime);
+  }
   if (name != null) {
     setProjectNameInManifest(Directory(outPath), name);
   }

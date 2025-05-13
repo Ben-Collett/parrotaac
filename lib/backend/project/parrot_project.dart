@@ -12,14 +12,13 @@ import 'package:parrotaac/file_utils.dart';
 import 'package:parrotaac/utils.dart';
 import 'package:path/path.dart' as p;
 
+import 'custom_manifest_keys.dart';
 import 'project_interface.dart';
 import 'project_utils.dart';
 
 final SvgPicture logo = SvgPicture.asset("assets/images/logo/white_bg.svg");
 
 class ParrotProject extends Obz with AACProject {
-  static const String nameKey = "ext_name";
-  static const String imagePathKey = 'ext_display_image_path';
   static const String tempImageDirName = 'parrot_tmp_images';
   String path;
   Future<List<File>> get tempImagesList async {
@@ -233,8 +232,13 @@ class ParrotProject extends Obz with AACProject {
 }
 
 class ParrotProjectDisplayData extends DisplayData {
+  static const String lastAccessedKey = "ext_last_accessed";
   @override
   String name;
+  @override
+  DateTime? lastAccessed;
+  @override
+  String? path;
   Widget? _image;
   @override
   Widget get image {
@@ -246,21 +250,31 @@ class ParrotProjectDisplayData extends DisplayData {
     _image = image;
   }
 
-  ParrotProjectDisplayData(this.name, {Widget? image}) : _image = image;
+  ParrotProjectDisplayData(
+    this.name, {
+    Widget? image,
+    this.path,
+    this.lastAccessed,
+  }) : _image = image;
+
   ParrotProjectDisplayData.fromDir(Directory dir)
       : name = p.basename(dir.path) {
+    path = dir.path;
     Map<String, dynamic>? manifest = getManifestJson(dir);
     if (manifest == null) {
       return;
     }
-    if (manifest.containsKey(ParrotProject.nameKey)) {
-      name = manifest[ParrotProject.nameKey];
+    if (manifest.containsKey(nameKey)) {
+      name = manifest[nameKey];
     }
 
-    if (manifest.containsKey(ParrotProject.imagePathKey)) {
-      String path = dir.path;
-      path = p.join(dir.path, manifest[ParrotProject.imagePathKey]);
-      image = imageFromPath(path);
+    if (manifest.containsKey(lastAccessedKey)) {
+      lastAccessed = DateTime.tryParse(manifest[lastAccessedKey]);
+    }
+
+    if (manifest.containsKey(imagePathKey)) {
+      String imagepath = p.join(dir.path, manifest[imagePathKey]);
+      image = imageFromPath(imagepath);
     }
   }
 

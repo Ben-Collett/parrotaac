@@ -22,6 +22,7 @@ Future<ParrotProject> writeDefaultProject(
         defaultManifest(
           name: projectName,
           imagePath: projectImagePath,
+          lastAccessed: DateTime.now(),
         ),
       )
       .write();

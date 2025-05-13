@@ -31,20 +31,20 @@ class MainScreen extends StatelessWidget {
         mainAxisAlignment: MainAxisAlignment.start,
         children: [
           Text("ehhlo", textAlign: TextAlign.left),
-          DisplayEntry.fromDisplayData(
+          DisplayEntry(
               data: ParrotProjectDisplayData("test1"),
               imageWidth: 40,
               imageHeight: 60,
               viewType: ViewType.list),
           Divider(),
-          DisplayEntry.fromDisplayData(
+          DisplayEntry(
             imageWidth: 40,
             imageHeight: 60,
             data: ParrotProjectDisplayData("test2"),
             viewType: ViewType.list,
           ),
           Divider(),
-          DisplayEntry.fromDisplayData(
+          DisplayEntry(
             imageWidth: 40,
             imageHeight: 60,
             data: ParrotProjectDisplayData("test3"),

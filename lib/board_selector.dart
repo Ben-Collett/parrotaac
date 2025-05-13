@@ -5,6 +5,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:parrotaac/backend/project/parrot_project.dart';
+import 'package:parrotaac/backend/project/project_interface.dart';
 import 'package:parrotaac/setting_screen.dart';
 import 'package:parrotaac/utils.dart';
 
@@ -20,21 +21,33 @@ final _viewTypeProvider = StateProvider((ref) => ViewType.list);
 final _selectModeProvider = StateProvider((ref) => false);
 final _searchTextProvider = StateProvider((ref) => "");
 
+List<DisplayData> _displayData(
+  Iterable<Directory> dirs, {
+  int Function(DisplayData, DisplayData)? sort,
+}) {
+  List<DisplayData> out = dirs.map(ParrotProjectDisplayData.fromDir).toList();
+  if (sort != null) {
+    out.sort(sort);
+  }
+  return out;
+}
+
 List<DisplayEntry> _displayDataFromDirList(
   Iterable<Directory> dirs, {
   required ViewType viewType,
   bool selectMode = false,
   double? imageWidth,
   double? imageHeight,
+  int Function(DisplayData, DisplayData)? sort,
   Function(Directory?)? onSelect,
   Function(Directory?)? onDeselect,
   TextStyle? textStyle,
 }) =>
-    dirs
+    _displayData(dirs, sort: sort)
         .map(
-          (dir) => DisplayEntry.entryFromOpenboardDir(
-            dir,
+          (d) => DisplayEntry(
             key: UniqueKey(),
+            data: d,
             viewType: viewType,
             imageWidth: imageWidth,
             selectMode: selectMode,
@@ -53,6 +66,7 @@ List<Widget> filteredEntries(
   required ViewType viewType,
   Function(Directory?)? onSelect,
   Function(Directory?)? onDeselect,
+  int Function(DisplayData, DisplayData)? sort,
   double? imageHeight,
   TextStyle? textStyle,
 }) {
@@ -61,6 +75,7 @@ List<Widget> filteredEntries(
           imageWidth: imageWidth,
           imageHeight: imageHeight,
           selectMode: selectMode,
+          sort: sort,
           onSelect: onSelect,
           onDeselect: onDeselect,
           viewType: viewType,
@@ -281,12 +296,13 @@ class _BoardSelectorState extends State<BoardSelector> {
                     return IconButton(
                       icon: Icon(Icons.file_download_outlined),
                       onPressed: () async {
+                        final time = DateTime.now();
                         final toImport = await getFilesPaths(["obf", "obz"]);
                         if (context.mounted) {
                           showLoadingDialog(context, 'importing');
                         }
                         for (String path in toImport) {
-                          await import(path);
+                          await import(path, lastAccessedTime: time);
                         }
                         if (context.mounted) {
                           Navigator.of(context).pop();
@@ -506,8 +522,11 @@ class BoardCountText extends ConsumerWidget {
     String search = ref.watch(_searchTextProvider);
     return switch (ref.watch(projectDirProvider)) {
       AsyncError(:final error) => Text('error $error'),
-      AsyncData(:final value) => Text(
-          '${filteredEntries(value, search, viewType: ViewType.list).length} boards'),
+      AsyncData(:final value) => Text('${filteredEntries(
+          value,
+          search,
+          viewType: ViewType.list,
+        ).length} boards'),
       _ => const Text('calculating #of boards'),
     };
   }
@@ -535,6 +554,23 @@ class ViewTypeSegmantedButton extends ConsumerWidget {
 class DisplayView extends ConsumerWidget {
   final void Function(Directory?)? onSelect;
   final void Function(Directory?)? onDeselect;
+  int _byLastAccessedThenAlphabeticalOrder(DisplayData d1, DisplayData d2) {
+    DateTime? t1 = d1.lastAccessed;
+    DateTime? t2 = d2.lastAccessed;
+    if (d1.lastAccessed == null && d2.lastAccessed == null) {
+      return d1.name.compareTo(d2.name);
+    } else if (t1 == null) {
+      return 1;
+    } else if (t2 == null) {
+      return -1;
+    } else if (t1.isBefore(t2)) {
+      return 1;
+    } else if (t1.isAfter(t2)) {
+      return -1;
+    }
+    return d1.name.compareTo(d2.name);
+  }
+
   const DisplayView({
     super.key,
     this.onSelect,
@@ -548,6 +584,7 @@ class DisplayView extends ConsumerWidget {
     Widget listView(Iterable<Directory> data) {
       List<Widget> filtered = filteredEntries(data, search,
           viewType: ViewType.list,
+          sort: _byLastAccessedThenAlphabeticalOrder,
           imageWidth: 75,
           imageHeight: 98,
           selectMode: selectMode,

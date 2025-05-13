@@ -2,7 +2,7 @@ import 'dart:convert';
 import 'dart:io';
 import 'package:path/path.dart' as p;
 
-import 'parrot_project.dart';
+import 'custom_manifest_keys.dart';
 
 File? getManifestFile(Directory dir) {
   return dir
@@ -21,16 +21,26 @@ Map<String, dynamic>? getManifestJson(Directory dir) {
 }
 
 void setProjectNameInManifest(Directory projectDir, String name) {
-  File? manifest = projectDir
-      .listSync()
-      .whereType<File>()
-      .where((f) => p.basename(f.path) == "manifest.json")
-      .firstOrNull;
+  updateManifestProperty(project: projectDir, key: nameKey, value: name);
+}
+
+void updateAccessedTimeInManifest(Directory dir, {DateTime? time}) {
+  DateTime newTime = time ?? DateTime.now();
+  updateManifestProperty(
+      project: dir, key: lastAccessedKey, value: newTime.toString());
+}
+
+void updateManifestProperty({
+  required Directory project,
+  required String key,
+  required dynamic value,
+}) {
+  File? manifest = getManifestFile(project);
   if (manifest == null) {
     return;
   }
   String content = manifest.readAsStringSync();
   Map<String, dynamic> json = jsonDecode(content);
-  json[ParrotProject.nameKey] = name;
+  json[key] = value;
   manifest.writeAsStringSync(jsonEncode(json));
 }

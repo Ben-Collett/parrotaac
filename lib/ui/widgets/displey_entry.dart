@@ -3,6 +3,7 @@ import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_slidable/flutter_slidable.dart';
+import 'package:parrotaac/backend/project/manifest_utils.dart';
 import 'package:parrotaac/backend/project/parrot_project.dart';
 import 'package:parrotaac/backend/project/project_interface.dart';
 import 'package:parrotaac/file_utils.dart';
@@ -15,73 +16,56 @@ import '../board_screen.dart';
 enum ViewType { grid, list }
 
 class DisplayEntry extends StatefulWidget {
-  final Text displayName;
-  final Directory? dir;
+  final TextStyle? textStyle;
+  Text get displayName {
+    return Text(
+      data.name,
+      style: textStyle,
+      maxLines: 1,
+      overflow: TextOverflow.ellipsis,
+    );
+  }
+
+  Directory? get dir {
+    if (data.path == null) {
+      return null;
+    }
+    return Directory(data.path!);
+  }
+
+  final DisplayData data;
   final ViewType viewType;
   final bool selectMode;
   final void Function(Directory?)? onSelect;
   final void Function(Directory?)? onDeselect;
 
+  final double? imageWidth;
+  final double? imageHeight;
+
   ///A sized box containing the image
-  final Widget image;
+  Widget get image => ConstrainedBox(
+        constraints: BoxConstraints(
+          maxWidth: imageWidth ?? double.infinity,
+          maxHeight: imageHeight ?? double.infinity,
+        ),
+        child: SizedBox(
+          width: imageWidth,
+          height: imageHeight,
+          child: data.image,
+        ),
+      );
+
   const DisplayEntry({
     super.key,
-    required this.displayName,
-    required this.image,
+    required this.data,
     required this.viewType,
+    required this.imageWidth,
+    required this.imageHeight,
+    this.textStyle,
+    this.selectMode = false,
     this.onSelect,
     this.onDeselect,
-    this.selectMode = true,
-    this.dir,
   });
-  factory DisplayEntry.entryFromOpenboardDir(
-    Directory dir, {
-    required ViewType viewType,
-    Function(Directory?)? onSelect,
-    Function(Directory?)? onDeselect,
-    double? imageWidth,
-    bool selectMode = false,
-    double? imageHeight,
-    TextStyle? textStyle,
-    Key? key,
-  }) {
-    DisplayData data = ParrotProjectDisplayData.fromDir(dir);
-    return DisplayEntry.fromDisplayData(
-      key: key,
-      dir: dir,
-      data: data,
-      viewType: viewType,
-      selectMode: selectMode,
-      onSelect: onSelect,
-      onDeselect: onDeselect,
-      imageHeight: imageHeight,
-      imageWidth: imageWidth,
-      textStyle: textStyle,
-    );
-  }
-  DisplayEntry.fromDisplayData(
-      {super.key,
-      required DisplayData data,
-      required this.viewType,
-      this.selectMode = false,
-      this.onDeselect,
-      this.onSelect,
-      this.dir,
-      double? imageWidth,
-      double? imageHeight,
-      TextStyle? textStyle})
-      : displayName = Text(data.name,
-            style: textStyle, maxLines: 1, overflow: TextOverflow.ellipsis),
-        image = ConstrainedBox(
-          constraints: BoxConstraints(
-              maxWidth: imageWidth ?? double.infinity,
-              maxHeight: imageHeight ?? double.infinity),
-          child: SizedBox(
-            width: imageWidth,
-            height: imageHeight,
-            child: data.image,
-          ),
-        );
 
   @override
   State<DisplayEntry> createState() => _DisplayEntryState();
@@ -125,6 +109,19 @@ class _DisplayEntryState extends State<DisplayEntry> {
     }
   }
 
+  void _openBoard(WidgetRef ref) {
+    updateAccessedTimeInManifest(widget.dir!);
+    Navigator.of(context).push(
+      MaterialPageRoute(
+        builder: (_) => BoardScreen(
+          project: ParrotProject.fromDirectory(widget.dir!),
+          path: widget.dir!.path,
+        ),
+      ),
+    );
+    ref.invalidate(projectDirProvider);
+  }
+
   @override
   Widget build(BuildContext context) {
     //removes selections when exiting selectedMode
@@ -138,7 +135,7 @@ class _DisplayEntryState extends State<DisplayEntry> {
       backgroundColor = Colors.white;
     }
     List<Widget> children = [widget.image, Expanded(child: widget.displayName)];
-    void onTap() {
+    void onTap(WidgetRef ref) {
       if (widget.selectMode) {
         setState(() {
           selected = !selected;
@@ -150,14 +147,7 @@ class _DisplayEntryState extends State<DisplayEntry> {
           widget.onDeselect!(widget.dir);
         }
       } else {
-        Navigator.of(context).push(
-          MaterialPageRoute(
-            builder: (_) => BoardScreen(
-              project: ParrotProject.fromDirectory(widget.dir!),
-              path: widget.dir!.path,
-            ),
-          ),
-        );
+        _openBoard(ref);
       }
     }
 
@@ -252,7 +242,11 @@ class _DisplayEntryState extends State<DisplayEntry> {
           )
         ],
       ),
-      child: _button(backgroundColor, onTap, entry),
+      child: Consumer(builder: (context, ref, _) {
+        return _button(backgroundColor, () {
+          onTap(ref);
+        }, entry);
+      }),
     );
   }
 

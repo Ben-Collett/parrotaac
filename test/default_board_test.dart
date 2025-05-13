@@ -1,7 +1,7 @@
 import 'dart:convert';
 
 import 'package:flutter_test/flutter_test.dart';
-import 'package:parrotaac/backend/project/parrot_project.dart';
+import 'package:parrotaac/backend/project/custom_manifest_keys.dart';
 import 'package:parrotaac/default_board_strings.dart';
 
 void main() {
@@ -19,22 +19,36 @@ void main() {
   });
   test('project name manifest ', () {
     Map<String, dynamic> clone = Map.of(defaultManifestJson);
-    clone[ParrotProject.nameKey] = 'cool name';
+    clone[nameKey] = 'cool name';
     expect(clone, jsonDecode(defaultManifest(name: 'cool name')));
   });
   test('image path manifest', () {
     Map<String, dynamic> clone = Map.of(defaultManifestJson);
-    clone[ParrotProject.imagePathKey] = 'path';
+    clone[imagePathKey] = 'path';
     expect(clone, jsonDecode(defaultManifest(imagePath: 'path')));
   });
+  test('last accessed manifest', () {
+    Map<String, dynamic> clone = Map.of(defaultManifestJson);
+    DateTime now = DateTime.now();
+    clone[lastAccessedKey] = now.toString();
+    expect(clone, jsonDecode(defaultManifest(lastAccessed: now)));
+  });
+
   test('full default manifest', () {
     Map<String, dynamic> clone = Map.of(defaultManifestJson);
-    clone[ParrotProject.nameKey] = 'cool name';
-    clone[ParrotProject.imagePathKey] = 'path';
+    DateTime now = DateTime.now();
+
+    clone[nameKey] = 'cool name';
+    clone[imagePathKey] = 'path';
+    clone[lastAccessedKey] = now.toString();
     expect(
       clone,
       jsonDecode(
-        defaultManifest(name: 'cool name', imagePath: 'path'),
+        defaultManifest(
+          name: 'cool name',
+          imagePath: 'path',
+          lastAccessed: now,
+        ),
       ),
     );
   });

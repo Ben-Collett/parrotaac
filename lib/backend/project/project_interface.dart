@@ -25,5 +25,7 @@ mixin AACProject {
 abstract class DisplayData {
   String get name;
   Widget get image;
+  String? get path;
+  DateTime? get lastAccessed;
   set image(Widget toDisplay);
 }
