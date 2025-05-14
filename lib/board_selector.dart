@@ -255,7 +255,7 @@ class _BoardSelectorState extends State<BoardSelector> {
                     Container(
                       color: Colors.orangeAccent,
                       child: TextButton(
-                        onPressed: () => _showBoardDialog(context),
+                        onPressed: () => _showCreateProjectDialog(context),
                         child: Text("create project"),
                       ),
                     ),
@@ -344,7 +344,7 @@ class _BoardSelectorState extends State<BoardSelector> {
   }
 }
 
-void _showBoardDialog(BuildContext context) {
+void _showCreateProjectDialog(BuildContext context) {
   final TextEditingController controller = TextEditingController();
   final formKey = GlobalKey<FormState>();
 
