@@ -143,6 +143,7 @@ class _BoardScreenState extends State<BoardScreen> {
                 icon: Icon(Icons.check),
                 onPressed: () {
                   notifier.onDelete = () => gridNotfier.removeAt(row, col);
+                  notifier.boxController = sentenceController;
                   gridNotfier.setWidget(
                     row: row,
                     col: col,
