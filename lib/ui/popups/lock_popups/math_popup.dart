@@ -76,6 +76,7 @@ class _MathProblemDialogState extends State<MathProblemDialog> {
   @override
   void dispose() {
     onWrongAnswerCoolDown.dispose();
+    textController.dispose();
     super.dispose();
   }
 
