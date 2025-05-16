@@ -4,6 +4,7 @@ import 'package:openboard_wrapper/button_data.dart';
 import 'package:openboard_wrapper/obf.dart';
 import 'package:parrotaac/backend/project/parrot_project.dart';
 import 'package:parrotaac/setting_screen.dart';
+import 'package:parrotaac/ui/popups/lock_popups/admin_lock.dart';
 import 'package:parrotaac/ui/util_widgets/draggable_grid.dart';
 import 'package:parrotaac/ui/widgets/sentence_box.dart';
 
@@ -321,9 +322,12 @@ class _BoardScreenState extends State<BoardScreen> {
 
     final settingsButton = IconButton(
       icon: Icon(Icons.settings),
-      onPressed: () => Navigator.push(
-        context,
-        MaterialPageRoute(builder: (_) => SettingsScreen()),
+      onPressed: () => showAdminLockPopup(
+        context: context,
+        onAccept: () => Navigator.push(
+          context,
+          MaterialPageRoute(builder: (_) => SettingsScreen()),
+        ),
       ),
     );
 
@@ -374,9 +378,17 @@ class _BoardScreenState extends State<BoardScreen> {
                   IconData icon = inNormalMode ? Icons.handyman : Icons.close;
                   final builderModeButton = IconButton(
                       icon: Icon(icon),
-                      onPressed: () => boardMode.value = inNormalMode
-                          ? BoardMode.builderMode
-                          : BoardMode.normalMode);
+                      onPressed: () {
+                        if (inNormalMode) {
+                          showAdminLockPopup(
+                              context: context,
+                              onAccept: () {
+                                boardMode.value = BoardMode.builderMode;
+                              });
+                        } else {
+                          boardMode.value = BoardMode.normalMode;
+                        }
+                      });
 
                   final List<Widget> notInNormalModeWidgets;
                   if (!inNormalMode) {
