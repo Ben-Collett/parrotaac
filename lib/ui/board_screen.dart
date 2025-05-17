@@ -4,6 +4,8 @@ import 'package:openboard_wrapper/button_data.dart';
 import 'package:openboard_wrapper/obf.dart';
 import 'package:parrotaac/backend/project/parrot_project.dart';
 import 'package:parrotaac/setting_screen.dart';
+import 'package:parrotaac/ui/board_screen_constants.dart';
+import 'package:parrotaac/ui/popups/board_screen_popups/rename_title.dart';
 import 'package:parrotaac/ui/popups/lock_popups/admin_lock.dart';
 import 'package:parrotaac/ui/util_widgets/draggable_grid.dart';
 import 'package:parrotaac/ui/widgets/sentence_box.dart';
@@ -30,19 +32,23 @@ class _BoardScreenState extends State<BoardScreen> {
   Set<ParrotButtonNotifier> buttonSet = {};
   final ValueNotifier<BoardMode> boardMode =
       ValueNotifier(BoardMode.normalMode);
-  late Obf currentObf;
-
+  late final TextEditingController titleController;
+  late final ValueNotifier<Obf> currentObfNotfier;
+  Obf get currentObf => currentObfNotfier.value;
+  set currentObf(Obf obf) => currentObfNotfier.value = obf;
   @override
   void initState() {
-    currentObf = widget.project.root ??
-        Obf(
-          locale: "en",
-          name: defaultBoardName,
-          id: defaultID,
-        );
+    currentObfNotfier = ValueNotifier(
+      widget.project.root ??
+          Obf(
+            locale: "en",
+            name: defaultBoardName,
+            id: defaultID,
+          ),
+    );
 
     sentenceController = SentenceBoxController(projectPath: widget.path);
-
+    titleController = TextEditingController(text: currentObf.name);
     gridNotfier = GridNotfier(
       data: _getButtonsFromObf(currentObf),
       toWidget: (obj) {
@@ -59,6 +65,7 @@ class _BoardScreenState extends State<BoardScreen> {
       () async {
         if (boardMode.value == BoardMode.normalMode) {
           updateButtonPositionsInObf();
+          _updateObfName();
           await finalizeTempImages();
           widget.project.autoResolveAllIdCollisionsInFile();
           widget.project.deleteTempFiles();
@@ -105,6 +112,10 @@ class _BoardScreenState extends State<BoardScreen> {
         }
       },
     );
+
+    currentObfNotfier.addListener(() {
+      titleController.text = currentObf.name;
+    });
 
     super.initState();
   }
@@ -186,8 +197,13 @@ class _BoardScreenState extends State<BoardScreen> {
     sentenceController.add(buttonData);
   }
 
+  void _updateObfName() {
+    currentObf.name = titleController.text.trim();
+  }
+
   void changeObf(Obf obf) {
     updateButtonPositionsInObf();
+    _updateObfName();
     currentObf = obf;
     gridNotfier.setData(_getButtonsFromObf(obf));
   }
@@ -228,6 +244,40 @@ class _BoardScreenState extends State<BoardScreen> {
     return buttons;
   }
 
+  Widget getTitle() {
+    return ValueListenableBuilder(
+      valueListenable: titleController,
+      builder: (context, val, _) {
+        String title = titleController.text.trim();
+        //so that it updates in the background while editing the title in the popup
+        if (title == "") {
+          title = untitledBoard;
+        }
+        Widget editButton() {
+          return Flexible(
+            child: IconButton(
+              onPressed: () => showRenameTitlePopup(
+                  context: context, controller: titleController),
+              icon: Icon(Icons.edit_outlined),
+            ),
+          );
+        }
+
+        return ValueListenableBuilder(
+            valueListenable: boardMode,
+            builder: (context, mode, _) {
+              bool editButtonShouldBeShown = mode != BoardMode.normalMode;
+              return Row(
+                children: [
+                  Flexible(child: Text(title)),
+                  if (editButtonShouldBeShown) editButton()
+                ],
+              );
+            });
+      },
+    );
+  }
+
   @override
   void dispose() {
     updateButtonPositionsInObf();
@@ -237,6 +287,8 @@ class _BoardScreenState extends State<BoardScreen> {
     buttonSet.forEach(disposeNotfier);
     boardMode.dispose();
     sentenceController.dispose();
+    titleController.dispose();
+    currentObfNotfier.dispose();
     super.dispose();
   }
 
@@ -336,7 +388,7 @@ class _BoardScreenState extends State<BoardScreen> {
         title: Row(
           mainAxisAlignment: MainAxisAlignment.spaceBetween,
           children: [
-            const Text('ParrotAAC'),
+            Flexible(child: getTitle()),
             ValueListenableBuilder(
                 valueListenable: boardMode,
                 builder: (context, mode, _) {
