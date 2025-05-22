@@ -5,20 +5,56 @@ import 'package:openboard_wrapper/image_data.dart';
 import 'package:openboard_wrapper/obf.dart';
 import 'package:openboard_wrapper/sound_data.dart';
 import 'package:parrotaac/audio/audio_source.dart';
-import 'package:parrotaac/audio_player.dart';
 import 'package:parrotaac/extensions/button_data_extensions.dart';
 import 'package:parrotaac/extensions/color_extensions.dart';
 import 'package:parrotaac/extensions/image_extensions.dart';
 import 'package:parrotaac/ui/popups/button_config.dart';
 import 'package:parrotaac/ui/widgets/sentence_box.dart';
 
+import 'actions/button_actions.dart';
+
 void Function(Obf) _defaultGoToLinkedBoard = (_) {};
+const String parrotActionMode = "ext_parrot_action_mode";
 
 class ParrotButtonNotifier extends ChangeNotifier {
   ButtonData _data;
   ButtonData get data => _data;
   VoidCallback? onDelete;
   VoidCallback? onPressOverride;
+  bool get parrottActionModeEnabled {
+    if (!_data.extendedProperties.containsKey(parrotActionMode)) {
+      return false;
+    }
+    return _data.extendedProperties[parrotActionMode];
+  }
+
+  void prependAction(ParrotAction action) {
+    _data.actions.insert(0, action.toString());
+  }
+
+  Iterable<ParrotAction?> get actions {
+    List<String> actionStrings = _data.actions;
+    if (actionStrings.isEmpty && _data.action != null) {
+      actionStrings.add(_data.action!);
+    }
+    return actionStrings.map(ParrotAction.fromString);
+  }
+
+  void enableParrotActionModeIfDisabled() {
+    if (parrottActionModeEnabled) return;
+
+    final bool noActionsInList = _data.actions.isEmpty;
+    final bool actionIsNotNull = _data.action != null;
+    final bool needToAppendActionToActions = actionIsNotNull && noActionsInList;
+
+    prependAction(ParrotAction.playButton);
+    prependAction(ParrotAction.addToSentenceBox);
+
+    if (needToAppendActionToActions) {
+      _data.actions.add(_data.action!);
+    }
+    _data.extendedProperties[parrotActionMode] = true;
+  }
 
   set data(ButtonData data) {
     _data = data;
@@ -30,7 +66,6 @@ class ParrotButtonNotifier extends ChangeNotifier {
   String? projectPath;
   SentenceBoxController? boxController;
 
-  final Map<String, VoidCallback> onAction = {};
   ParrotButtonNotifier(
       {ButtonData? data,
       bool holdToConfig = false,
@@ -40,42 +75,9 @@ class ParrotButtonNotifier extends ChangeNotifier {
       this.projectPath,
       this.onDelete})
       : _data = data ?? ButtonData(),
-        goToLinkedBoard = goToLinkedBoard ?? _defaultGoToLinkedBoard {
-    _setDefaultOnActions();
-  }
-  void _setDefaultOnActions() {
-    final String clear = PredefinedSpecialtyAction.clear.asString;
-    final String backspace = PredefinedSpecialtyAction.backSpace.asString;
-    final String home = PredefinedSpecialtyAction.home.asString; //TODO
-    final String speak = PredefinedSpecialtyAction.speak.asString;
-    onAction[clear] = () => boxController?.clear();
-    onAction[backspace] = () => boxController?.backSpace();
-    onAction[speak] = () {
-      List<AudioSource> toSpeak = [audioSource];
-      if (boxController != null) {
-        toSpeak.addAll(boxController!.audioSourcesCopy);
-      }
-      PreemptiveAudioPlayer().playIterable(toSpeak);
-    };
-    onAction[home] = () {
-      if (goHome != null) {
-        goHome!();
-      }
-    };
-  }
-
+        goToLinkedBoard = goToLinkedBoard ?? _defaultGoToLinkedBoard;
   AudioSource get audioSource {
     return _data.getSource(projectPath: projectPath);
-  }
-
-  void playActions() {
-    List<String> actions = _data.actions;
-    if (actions.isEmpty && _data.action != null) {
-      actions.add(_data.action!);
-    }
-    for (String action in actions) {
-      onAction[action]!(); //TODO log if something goes wrong
-    }
   }
 
   void setLabel(String label) {
@@ -116,23 +118,14 @@ class ParrotButton extends StatelessWidget {
     if (controller.onPressOverride != null) {
       controller.onPressOverride!();
     } else {
-      PreemptiveAudioPlayer().play(controller.audioSource);
+      controller.enableParrotActionModeIfDisabled();
 
       if (buttonData.linkedBoard != null) {
         Obf linkedBoard = buttonData.linkedBoard!;
         controller.goToLinkedBoard(linkedBoard);
       }
 
-      String backspace = PredefinedSpecialtyAction.backSpace.asString;
-      List<String> actions = List.from(controller.data.actions);
-      if (controller.data.action != null) {
-        actions.add(controller.data.action!);
-      }
-
-      if (!actions.contains(backspace)) {
-        controller.boxController?.add(controller.data);
-      }
-      controller.playActions();
+      executeActions(controller);
     }
   }
 
