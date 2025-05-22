@@ -21,6 +21,10 @@ final SvgPicture logo = SvgPicture.asset("assets/images/logo/white_bg.svg");
 class ParrotProject extends Obz with AACProject {
   static const String tempImageDirName = 'parrot_tmp_images';
   String path;
+  @override
+  String Function(String)? get sanatizeFilePathForManifest =>
+      (path) => Platform.isWindows ? windowsPathToPosix(path) : path;
+
   Future<List<File>> get tempImagesList async {
     final String tmpPath = tmpImagePath(path);
     Directory imageDir = Directory(tmpPath);

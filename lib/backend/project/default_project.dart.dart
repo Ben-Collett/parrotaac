@@ -2,6 +2,7 @@ import 'dart:io';
 
 import 'package:openboard_wrapper/obf.dart';
 import 'package:parrotaac/default_board_strings.dart';
+import 'package:parrotaac/file_utils.dart';
 import 'package:path/path.dart' as p;
 
 import 'parrot_project.dart';
@@ -29,11 +30,15 @@ Future<ParrotProject> writeDefaultProject(
     imgPath = imgFile.path;
     imgPath = p.relative(imgPath, from: path);
   }
+  String? safeImagePath = imgPath;
+  if (imgPath != null && Platform.isWindows) {
+    safeImagePath = windowsPathToPosix(imgPath);
+  }
   await project
       .parseManifestString(
         defaultManifest(
           name: projectName,
-          imagePath: imgPath,
+          imagePath: safeImagePath,
           lastAccessed: DateTime.now(),
         ),
       )

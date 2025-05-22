@@ -9,6 +9,11 @@ String sanitzeFileName(String name) {
   return name.replaceAll(RegExp(invalidChars), "");
 }
 
+String windowsPathToPosix(String path) {
+  List<String> split = p.windows.split(path);
+  return p.posix.joinAll(split);
+}
+
 String determineNoncollidingName(String inputPath, Iterable<String> dirNames) {
   final String extension = p.extension(inputPath);
   final String dirName = p.dirname(inputPath);
