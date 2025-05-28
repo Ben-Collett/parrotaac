@@ -40,6 +40,11 @@ class ParrotButtonNotifier extends ChangeNotifier {
     return actionStrings.map(ParrotAction.fromString);
   }
 
+  void updateActions(List<ParrotAction> actions) {
+    print(actions.length);
+    _data.actions = actions.map((p) => p.toString()).toList();
+  }
+
   void enableParrotActionModeIfDisabled() {
     if (parrottActionModeEnabled) return;
 
@@ -135,6 +140,7 @@ class ParrotButton extends StatelessWidget {
       barrierDismissible: false,
       builder: (context) {
         ButtonData data = controller.data;
+        List<String> originalActions = List.of(data.actions);
         //The sentence box controller has to be null in the config screen to avoid taps in the preview being added to the sentence box
         final sentenceBoxController = controller.boxController;
         controller.boxController = null;
@@ -143,6 +149,7 @@ class ParrotButton extends StatelessWidget {
           color: Colors.red,
           icon: Icon(Icons.cancel_rounded),
           onPressed: () {
+            data.actions = originalActions;
             controller.data = data;
             controller.boxController = sentenceBoxController;
             Navigator.of(context).pop();

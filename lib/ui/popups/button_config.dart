@@ -1,5 +1,4 @@
 import 'dart:io';
-
 import 'package:flutter/material.dart';
 import 'package:flutter_colorpicker/flutter_colorpicker.dart';
 import 'package:image_picker/image_picker.dart';
@@ -9,7 +8,9 @@ import 'package:openboard_wrapper/image_data.dart';
 import 'package:parrotaac/backend/project/temp_files.dart';
 import 'package:parrotaac/extensions/color_extensions.dart';
 import 'package:parrotaac/extensions/image_extensions.dart';
+import 'package:parrotaac/ui/actions/button_actions.dart';
 import 'package:parrotaac/ui/parrot_button.dart';
+import 'package:parrotaac/ui/util_widgets/action_modifier.dart';
 import 'package:parrotaac/utils.dart';
 import 'package:path/path.dart' as p;
 
@@ -27,12 +28,14 @@ class _ButtonConfigPopupState extends State<ButtonConfigPopup> {
   final TextEditingController _voclizationController = TextEditingController();
 
   late final ParrotButtonNotifier buttonController;
+  ParrotAction selectedAction = ParrotAction.playButton;
 
   ///the last image set after opening the create screen, this will be null until the user sets an image, even if the board being edited already had an image
   File? lastSetTempImage;
   @override
   void initState() {
     buttonController = widget.buttonController;
+    buttonController.enableParrotActionModeIfDisabled();
     _labelController.text = buttonController.data.label ?? "";
     _voclizationController.text = buttonController.data.voclization ?? "";
     _labelController.addListener(
@@ -80,6 +83,21 @@ class _ButtonConfigPopupState extends State<ButtonConfigPopup> {
     );
   }
 
+  Widget _actionConfig(ParrotButtonNotifier controller, double width) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        _boldText("acions:"),
+        ActionConfig(
+          controller: controller,
+          width: width,
+          totalHeight: 300,
+          topBarHeight: 50,
+        ),
+      ],
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     ButtonData buttonData = buttonController.data;
@@ -87,12 +105,14 @@ class _ButtonConfigPopupState extends State<ButtonConfigPopup> {
     Color backgroundColor = backGroundColorData?.toColor() ?? Colors.white;
     Color borderColor = buttonData.borderColor?.toColor() ?? Colors.white;
     Widget image = Container();
+    const double maxWidth = 400;
     if (buttonData.image != null) {
       image = ConstrainedBox(
         constraints: BoxConstraints(maxWidth: 100, maxHeight: 100),
         child: SizedBox.expand(
-            child: buttonData.image!
-                .toImage(projectPath: buttonController.projectPath)),
+          child: buttonData.image!
+              .toImage(projectPath: buttonController.projectPath),
+        ),
       );
     }
     return SingleChildScrollView(
@@ -139,6 +159,7 @@ class _ButtonConfigPopupState extends State<ButtonConfigPopup> {
             () => _showColorChangeDialog(changeBorderColor),
           ),
           _space(),
+          _actionConfig(widget.buttonController, maxWidth),
           _previewButton("preview", buttonController),
         ],
       ),
@@ -159,9 +180,9 @@ Widget _textInput(String label, TextEditingController controller) {
     children: [
       _boldText("$label:"),
       ConstrainedBox(
-        constraints: BoxConstraints(maxWidth: 300),
+        constraints: BoxConstraints(maxWidth: 400),
         child: SizedBox(
-          width: 300,
+          width: 400,
           child: TextField(
             controller: controller,
             decoration: InputDecoration(
@@ -208,9 +229,9 @@ Widget _previewButton(String label, ParrotButtonNotifier controller) {
     children: [
       _boldText("$label:"),
       ConstrainedBox(
-        constraints: BoxConstraints(maxWidth: 300, maxHeight: 300),
+        constraints: BoxConstraints(maxWidth: 400, maxHeight: 300),
         child: SizedBox(
-          width: 300,
+          width: 400,
           height: 300,
           child: ParrotButton(controller: controller),
         ),
