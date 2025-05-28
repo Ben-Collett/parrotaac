@@ -41,7 +41,6 @@ class ParrotButtonNotifier extends ChangeNotifier {
   }
 
   void updateActions(List<ParrotAction> actions) {
-    print(actions.length);
     _data.actions = actions.map((p) => p.toString()).toList();
   }
 
