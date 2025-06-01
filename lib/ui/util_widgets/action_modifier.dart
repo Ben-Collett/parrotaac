@@ -36,7 +36,15 @@ class _ActionConfigState extends State<ActionConfig> {
   Widget build(BuildContext context) {
     List<ParrotAction> actions = controller.actions.nonNulls.toList();
     List<Widget> widgets = [];
-    for (int i = 0; i < actions.length; i++) {
+    bool hasGoHome = actions.contains(ParrotAction.home);
+
+    int offsetGoHomeAction = 0;
+    if (hasGoHome) {
+      actions.removeWhere((act) => act == ParrotAction.home);
+      actions.add(ParrotAction.home);
+      offsetGoHomeAction = 1;
+    }
+    for (int i = 0; i < actions.length - offsetGoHomeAction; i++) {
       widgets.add(
         ReorderableDragStartListener(
           index: i,

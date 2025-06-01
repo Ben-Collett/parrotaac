@@ -23,6 +23,6 @@ class MainScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return BoardSelector();
+    return ProjectSelector();
   }
 }

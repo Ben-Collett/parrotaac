@@ -5,6 +5,7 @@ import 'package:openboard_wrapper/image_data.dart';
 import 'package:openboard_wrapper/obf.dart';
 import 'package:openboard_wrapper/sound_data.dart';
 import 'package:parrotaac/audio/audio_source.dart';
+import 'package:parrotaac/backend/project/parrot_project.dart';
 import 'package:parrotaac/extensions/button_data_extensions.dart';
 import 'package:parrotaac/extensions/color_extensions.dart';
 import 'package:parrotaac/extensions/image_extensions.dart';
@@ -40,6 +41,36 @@ class ParrotButtonNotifier extends ChangeNotifier {
     return actionStrings.map(ParrotAction.fromString);
   }
 
+  void setLinkActionToGoHome() {
+    _data.linkedBoard = null;
+    List<ParrotAction> actions = this.actions.nonNulls.toList();
+
+    if (actions.contains(ParrotAction.home)) {
+      return;
+    }
+
+    actions.add(ParrotAction.home);
+
+    updateActions(actions);
+  }
+
+  void clearAllLinkActions() {
+    _data.linkedBoard = null;
+  }
+
+  void setLinkActionGoToBoard(Obf board) {
+    _data.linkedBoard = null;
+    List<ParrotAction> actions = this.actions.nonNulls.toList();
+
+    if (!actions.contains(ParrotAction.home)) {
+      return;
+    }
+
+    actions.removeWhere((action) => action == ParrotAction.home);
+
+    updateActions(actions);
+  }
+
   void updateActions(List<ParrotAction> actions) {
     _data.actions = actions.map((p) => p.toString()).toList();
   }
@@ -67,7 +98,8 @@ class ParrotButtonNotifier extends ChangeNotifier {
 
   void Function(Obf) goToLinkedBoard;
   VoidCallback? goHome;
-  String? projectPath;
+  ParrotProject? project;
+  String? get projectPath => project?.path;
   SentenceBoxController? boxController;
 
   ParrotButtonNotifier(
@@ -76,7 +108,7 @@ class ParrotButtonNotifier extends ChangeNotifier {
       void Function(Obf)? goToLinkedBoard,
       this.boxController,
       this.goHome,
-      this.projectPath,
+      this.project,
       this.onDelete})
       : _data = data ?? ButtonData(),
         goToLinkedBoard = goToLinkedBoard ?? _defaultGoToLinkedBoard;
@@ -143,12 +175,15 @@ class ParrotButton extends StatelessWidget {
         //The sentence box controller has to be null in the config screen to avoid taps in the preview being added to the sentence box
         final sentenceBoxController = controller.boxController;
         controller.boxController = null;
+        final goToLinkedBoard = controller.goToLinkedBoard;
+        controller.goToLinkedBoard = (_) {};
 
         IconButton cancelButton = IconButton(
           color: Colors.red,
           icon: Icon(Icons.cancel_rounded),
           onPressed: () {
             data.actions = originalActions;
+            controller.goToLinkedBoard = goToLinkedBoard;
             controller.data = data;
             controller.boxController = sentenceBoxController;
             Navigator.of(context).pop();
@@ -160,6 +195,7 @@ class ParrotButton extends StatelessWidget {
           icon: Icon(Icons.check),
           onPressed: () {
             controller.boxController = sentenceBoxController;
+            controller.goToLinkedBoard = goToLinkedBoard;
             Navigator.of(context).pop();
           },
         );

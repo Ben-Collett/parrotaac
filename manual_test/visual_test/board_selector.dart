@@ -27,7 +27,7 @@ class MainScreen extends StatelessWidget {
       appBar: AppBar(
           title: const Text('board selector'),
           backgroundColor: Color(0xFFAFABDF)),
-      body: BoardSelector(),
+      body: ProjectSelector(),
     );
   }
 }

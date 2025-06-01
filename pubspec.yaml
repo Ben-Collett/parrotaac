@@ -32,6 +32,7 @@ dependencies:
   async: ^2.12.0
   audioplayers: ^6.2.0
   cupertino_icons: ^1.0.8
+  dropdown_search: ^6.0.2
   file: ^7.0.1
   file_picker: ^10.0.0
   flutter:

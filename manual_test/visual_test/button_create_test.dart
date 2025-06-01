@@ -2,6 +2,7 @@ import 'dart:io';
 
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:parrotaac/backend/project/parrot_project.dart';
 import 'package:parrotaac/default_board_strings.dart';
 import 'package:parrotaac/ui/parrot_button.dart';
 import 'package:parrotaac/ui/popups/button_config.dart';
@@ -35,7 +36,8 @@ class MainScreen extends StatelessWidget {
     if (projectDir.existsSync()) projectDir.deleteSync(recursive: true);
     createProjectSync(projectDir);
 
-    final controller = ParrotButtonNotifier(projectPath: projectPath);
+    final controller =
+        ParrotButtonNotifier(project: ParrotProject.fromDirectory(projectDir));
 
     return Scaffold(
       appBar: AppBar(

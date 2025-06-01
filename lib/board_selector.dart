@@ -84,14 +84,14 @@ List<Widget> filteredEntries(
       .toList();
 }
 
-class BoardSelector extends StatefulWidget {
-  const BoardSelector({super.key});
+class ProjectSelector extends StatefulWidget {
+  const ProjectSelector({super.key});
 
   @override
-  State<BoardSelector> createState() => _BoardSelectorState();
+  State<ProjectSelector> createState() => _ProjectSelectorState();
 }
 
-class _BoardSelectorState extends State<BoardSelector> {
+class _ProjectSelectorState extends State<ProjectSelector> {
   final selectedNotifier = SelectedNotifier();
   @override
   void dispose() {
