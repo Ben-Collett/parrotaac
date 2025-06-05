@@ -59,7 +59,7 @@ class _BoardScreenState extends State<BoardScreen> {
         if (_boardMode.value == BoardMode.normalMode) {
           _updateButtonPositionsInObf();
           _updateObfName();
-          await finalizeTempImages();
+          await _finalizeTempFiles();
           widget.project.autoResolveAllIdCollisionsInFile();
           widget.project.deleteTempFiles();
           await writeToDisk();
@@ -82,11 +82,23 @@ class _BoardScreenState extends State<BoardScreen> {
     }
   }
 
-  Future<void> finalizeTempImages() async {
+  Future<void> _finalizeTempFiles() async {
+    await _finalizeTempImages();
+    await _finalizeTempAudioFiles();
+  }
+
+  Future<void> _finalizeTempImages() async {
     Map<String, String> paths =
         await widget.project.mapTempImageToPermantSpot();
     await widget.project.moveFiles(paths);
-    widget.project.updateImagePaths(paths);
+    widget.project.updateImagePathReferencesInProject(paths);
+  }
+
+  Future<void> _finalizeTempAudioFiles() async {
+    Map<String, String> paths =
+        await widget.project.mapTempAudioToPermantSpot();
+    await widget.project.moveFiles(paths);
+    widget.project.updateAudioPathReferencesInProject(paths);
   }
 
   Future<void> writeToDisk() async {

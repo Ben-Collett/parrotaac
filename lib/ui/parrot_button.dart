@@ -5,6 +5,7 @@ import 'package:openboard_wrapper/image_data.dart';
 import 'package:openboard_wrapper/obf.dart';
 import 'package:openboard_wrapper/sound_data.dart';
 import 'package:parrotaac/audio/audio_source.dart';
+import 'package:parrotaac/audio/prefered_audio_source.dart';
 import 'package:parrotaac/backend/project/parrot_project.dart';
 import 'package:parrotaac/extensions/button_data_extensions.dart';
 import 'package:parrotaac/extensions/color_extensions.dart';
@@ -22,6 +23,12 @@ class ParrotButtonNotifier extends ChangeNotifier {
   ButtonData get data => _data;
   VoidCallback? onDelete;
   VoidCallback? onPressOverride;
+
+  set preferredAudioSource(PreferredAudioSourceType preferredAudioSource) {
+    _data.extendedProperties[preferredAudioSourceKey] =
+        preferredAudioSource.toString();
+  }
+
   bool get parrottActionModeEnabled {
     if (!_data.extendedProperties.containsKey(parrotActionMode)) {
       return false;
@@ -171,7 +178,9 @@ class ParrotButton extends StatelessWidget {
       barrierDismissible: false,
       builder: (context) {
         ButtonData data = controller.data;
-        List<String> originalActions = List.of(data.actions);
+        final List<String> originalActions = List.of(data.actions);
+        final SoundData? originalSound = data.sound;
+        final preferredSoundType = data.preferredAudioSourceType;
         //The sentence box controller has to be null in the config screen to avoid taps in the preview being added to the sentence box
         final sentenceBoxController = controller.boxController;
         controller.boxController = null;
@@ -186,6 +195,8 @@ class ParrotButton extends StatelessWidget {
             controller.goToLinkedBoard = goToLinkedBoard;
             controller.data = data;
             controller.boxController = sentenceBoxController;
+            data.sound = originalSound;
+            data.preferredAudioSourceType = preferredSoundType;
             Navigator.of(context).pop();
           },
         );

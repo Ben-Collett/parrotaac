@@ -5,6 +5,7 @@ import 'package:flutter_svg/flutter_svg.dart';
 import 'package:openboard_wrapper/image_data.dart';
 import 'package:openboard_wrapper/obz.dart';
 import 'package:openboard_wrapper/obf.dart';
+import 'package:openboard_wrapper/sound_data.dart';
 import 'package:parrotaac/backend/project/board/parrot_board.dart';
 import 'package:parrotaac/backend/project/manifest_utils.dart';
 import 'package:parrotaac/backend/project/temp_files.dart';
@@ -19,22 +20,10 @@ import 'project_utils.dart';
 final SvgPicture logo = SvgPicture.asset("assets/images/logo/white_bg.svg");
 
 class ParrotProject extends Obz with AACProject {
-  static const String tempImageDirName = 'parrot_tmp_images';
   String path;
   @override
   String Function(String)? get sanatizeFilePathForManifest =>
       (path) => Platform.isWindows ? windowsPathToPosix(path) : path;
-
-  Future<List<File>> get tempImagesList async {
-    final String tmpPath = tmpImagePath(path);
-    Directory imageDir = Directory(tmpPath);
-
-    if (!imageDir.existsSync()) {
-      return [];
-    }
-
-    return imageDir.listSync().whereType<File>().toList();
-  }
 
   String? get displayImagePath {
     return manifestExtendedProperties[imagePathKey];
@@ -83,6 +72,10 @@ class ParrotProject extends Obz with AACProject {
     if (dir.existsSync()) {
       dir.deleteSync();
     }
+    Directory audio = Directory(tmpAudioPath(path));
+    if (audio.existsSync()) {
+      audio.deleteSync();
+    }
   }
 
   ///maps all the temporary images in projectPath/image/tmp to locations in projectPath/image. Doesn't actually move the files
@@ -93,19 +86,29 @@ class ParrotProject extends Obz with AACProject {
     if (!images.existsSync()) {
       return {};
     }
+    out = mapDirectoryContentToOtherDir(
+      inputDir: Directory(
+        tmpImagePath(path),
+      ),
+      outputDir: images,
+    );
+    return out;
+  }
 
-    Iterable<String> imagesNames = images.listSync().map(
-          (f) => p.basenameWithoutExtension(f.path),
-        );
-    List<File> tempImages = await tempImagesList;
-    if (tempImages.isNotEmpty) images.createSync(recursive: true);
-
-    for (File imageFile in tempImages) {
-      String newPath = determineNoncollidingName(imageFile.path, imagesNames);
-      String basename = p.basename(newPath);
-      newPath = p.join(imagesPath, basename);
-      out[imageFile.path] = newPath;
+  ///maps all the temporary images in projectPath/audio/tmp to locations in projectPath/image. Doesn't actually move the files
+  Future<Map<String, String>> mapTempAudioToPermantSpot() async {
+    Map<String, String> out = {};
+    String audioPath = p.join(path, 'audio');
+    Directory audio = Directory(audioPath);
+    if (!audio.existsSync()) {
+      return {};
     }
+    out = mapDirectoryContentToOtherDir(
+      inputDir: Directory(
+        tmpAudioPath(path),
+      ),
+      outputDir: audio,
+    );
     return out;
   }
 
@@ -124,7 +127,7 @@ class ParrotProject extends Obz with AACProject {
   }
 
   ///[map] should map the old location to the new location
-  void updateImagePaths(Map<String, String> paths) {
+  void updateImagePathReferencesInProject(Map<String, String> paths) {
     if (paths.isEmpty) {
       return;
     }
@@ -134,6 +137,20 @@ class ParrotProject extends Obz with AACProject {
       String imageDataPath = p.join(path, image.path);
       if (paths.containsKey(imageDataPath)) {
         image.path = p.relative(paths[imageDataPath]!, from: path);
+      }
+    }
+  }
+
+  void updateAudioPathReferencesInProject(Map<String, String> paths) {
+    if (paths.isEmpty) {
+      return;
+    }
+
+    bool pathIsNotNull(SoundData i) => i.path != null;
+    for (SoundData sound in sounds.where(pathIsNotNull)) {
+      String imageDataPath = p.join(path, sound.path);
+      if (paths.containsKey(imageDataPath)) {
+        sound.path = p.relative(paths[imageDataPath]!, from: path);
       }
     }
   }

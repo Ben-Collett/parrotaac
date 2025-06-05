@@ -71,3 +71,9 @@ Future<void> writeDirectoryAsObz({
   }
   await encoder.close();
 }
+
+String removeTrailingIncrement(String fileName) {
+  final RegExp regex = RegExp(r'_(\d+)$');
+
+  return fileName.replaceAll(regex, '');
+}

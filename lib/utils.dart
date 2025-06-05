@@ -9,6 +9,15 @@ Future<XFile?> getImage() {
   return ImagePicker().pickImage(source: ImageSource.gallery);
 }
 
+Future<XFile?> getAudioFile() async {
+  FilePickerResult? result = await FilePicker.platform.pickFiles(
+    allowMultiple: false,
+    allowedExtensions: ['mp3', 'wav'],
+  );
+
+  return result?.xFiles.firstOrNull;
+}
+
 Future<List<String>> getFilesPaths(List<String> extensions) async {
   FilePickerResult? result = await FilePicker.platform.pickFiles(
     allowedExtensions: extensions,
