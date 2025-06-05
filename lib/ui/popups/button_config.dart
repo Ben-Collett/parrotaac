@@ -45,6 +45,16 @@ class _ButtonConfigPopupState extends State<ButtonConfigPopup> {
 
   late final BoardLinkingActionMode startingMode;
   late final PreferredAudioSourceType startingAudioSource;
+  @override
+  void dispose() {
+    _voclizationController.dispose();
+    _labelController.dispose();
+    recording.dispose();
+    _selectedAudioPath.dispose();
+    _lastLinkedBoard.dispose();
+    buttonController.dispose();
+    super.dispose();
+  }
 
   ///the last image set after opening the create screen, this will be null until the user sets an image, even if the board being edited already had an image
   File? lastSetTempImage;
