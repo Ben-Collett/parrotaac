@@ -2,6 +2,7 @@ import 'package:dropdown_search/dropdown_search.dart';
 import 'package:flutter/material.dart';
 import 'package:openboard_wrapper/obf.dart';
 import 'package:parrotaac/backend/project/parrot_project.dart';
+import 'package:parrotaac/ui/popups/create_board.dart';
 import 'package:parrotaac/ui/util_widgets/board.dart';
 
 class BoardSelectScreen extends StatefulWidget {
@@ -53,7 +54,9 @@ class _BoardSelectScreenState extends State<BoardSelectScreen> {
       appBar: AppBar(
         actions: [
           TextButton(
-            onPressed: null, //TODO: board createtion process
+            onPressed: () {
+              showCreateBoardDialog(context, _currentObfNotfier);
+            }, //TODO: board createtion process
             child: Text("add board"),
           ),
           TextButton(
@@ -65,30 +68,37 @@ class _BoardSelectScreenState extends State<BoardSelectScreen> {
         ],
         centerTitle: true,
         title: ValueListenableBuilder(
-            valueListenable: _currentObfNotfier,
-            builder: (context, value, child) {
-              return DropdownSearch<Obf>(
-                compareFn: (item1, item2) => item1.hashCode == item2.hashCode,
-                popupProps: PopupProps.menu(
-                  showSearchBox: true, // Enable search
-                  searchFieldProps: TextFieldProps(
-                    decoration: InputDecoration(
-                      icon: Icon(Icons.search),
-                      hintText: 'Search boards...',
-                      contentPadding: EdgeInsets.symmetric(horizontal: 12),
-                    ),
+          valueListenable: _currentObfNotfier,
+          builder: (context, value, child) {
+            //add's the board if it didn't exist to use when creating a new board
+            final Set<Obf> boards = widget.project.boards;
+            if (!boards.contains(value)) {
+              widget.project.addBoard(value);
+            }
+
+            return DropdownSearch<Obf>(
+              compareFn: (item1, item2) => item1.hashCode == item2.hashCode,
+              popupProps: PopupProps.menu(
+                showSearchBox: true, // Enable search
+                searchFieldProps: TextFieldProps(
+                  decoration: InputDecoration(
+                    icon: Icon(Icons.search),
+                    hintText: 'Search boards...',
+                    contentPadding: EdgeInsets.symmetric(horizontal: 12),
                   ),
                 ),
-                selectedItem: _currentObfNotfier.value,
-                items: (f, cs) => widget.project.boards.toList(),
-                itemAsString: (obf) => obf.name,
-                onChanged: (obf) {
-                  if (obf != null) {
-                    _changeObf(obf);
-                  }
-                },
-              );
-            }),
+              ),
+              selectedItem: _currentObfNotfier.value,
+              items: (f, cs) => widget.project.boards.toList(),
+              itemAsString: (obf) => obf.name,
+              onChanged: (obf) {
+                if (obf != null) {
+                  _changeObf(obf);
+                }
+              },
+            );
+          },
+        ),
       ),
       body: BoardWidget(
         project: widget.project,

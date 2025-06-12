@@ -9,6 +9,7 @@ import 'package:openboard_wrapper/obf.dart';
 import 'package:openboard_wrapper/sound_data.dart';
 import 'package:parrotaac/audio/prefered_audio_source.dart';
 import 'package:parrotaac/audio_recorder.dart';
+import 'package:parrotaac/backend/project/parrot_project.dart';
 import 'package:parrotaac/backend/project/temp_files.dart';
 import 'package:parrotaac/extensions/color_extensions.dart';
 import 'package:parrotaac/extensions/image_extensions.dart';
@@ -22,6 +23,9 @@ import 'package:parrotaac/utils.dart';
 import 'package:parrotaac/extensions/button_data_extensions.dart';
 import 'package:path/path.dart' as p;
 
+import 'create_board.dart';
+import 'popup_utils.dart';
+
 class ButtonConfigPopup extends StatefulWidget {
   final ParrotButtonNotifier buttonController;
   const ButtonConfigPopup({super.key, required this.buttonController});
@@ -31,7 +35,6 @@ class ButtonConfigPopup extends StatefulWidget {
 }
 
 class _ButtonConfigPopupState extends State<ButtonConfigPopup> {
-  //WARNING: still need to dsipose these
   final TextEditingController _labelController = TextEditingController();
   final TextEditingController _voclizationController = TextEditingController();
   late final ValueNotifier<Obf?> _lastLinkedBoard;
@@ -52,7 +55,6 @@ class _ButtonConfigPopupState extends State<ButtonConfigPopup> {
     recording.dispose();
     _selectedAudioPath.dispose();
     _lastLinkedBoard.dispose();
-    buttonController.dispose();
     super.dispose();
   }
 
@@ -62,6 +64,19 @@ class _ButtonConfigPopupState extends State<ButtonConfigPopup> {
   void initState() {
     buttonController = widget.buttonController;
     _lastLinkedBoard = ValueNotifier(buttonController.data.linkedBoard);
+    _lastLinkedBoard.addListener(() {
+      ParrotProject? project = buttonController.project;
+
+      //adds the board if it is not in the project
+      if (!(project?.boards.contains(_lastLinkedBoard.value) ?? true)) {
+        if (_lastLinkedBoard.value != null) {
+          project?.addBoard(_lastLinkedBoard.value!);
+        }
+      }
+
+      buttonController.data.linkedBoard = _lastLinkedBoard.value;
+    });
+
     buttonController.enableParrotActionModeIfDisabled();
     _selectedAudioPath = ValueNotifier(buttonController.data.sound?.path);
     _labelController.text = buttonController.data.label ?? "";
@@ -122,7 +137,7 @@ class _ButtonConfigPopupState extends State<ButtonConfigPopup> {
   }
 
   Widget _actionConfig(ParrotButtonNotifier controller, double width) {
-    return _subsection(
+    return subsection(
       "acions:",
       ActionConfig(
         controller: controller,
@@ -134,42 +149,71 @@ class _ButtonConfigPopupState extends State<ButtonConfigPopup> {
   }
 
   Widget _linkedBoard(double width) {
-    Widget customSelectionContent = Row(
-      children: [
-        ValueListenableBuilder(
-            valueListenable: _lastLinkedBoard,
-            builder: (context, value, child) {
-              return Text("${value?.name ?? "none"}: ");
-            }),
-        TextButton(
-            onPressed: () async {
-              if (widget.buttonController.project == null) {
-                throw Exception("A project is needed to select a board");
-              }
-
-              Obf? newLinkedBoard = await Navigator.of(context).push<Obf?>(
-                MaterialPageRoute(
-                  builder: (_) => BoardSelectScreen(
-                    project: buttonController.project!,
-                    startingBoard: _lastLinkedBoard.value ??
-                        buttonController.project!.root!,
+    Widget customSelectionContent = ConstrainedBox(
+      constraints: BoxConstraints(maxWidth: width),
+      child: Row(
+        children: [
+          ValueListenableBuilder(
+              valueListenable: _lastLinkedBoard,
+              builder: (context, value, child) {
+                return Flexible(
+                  child: Text(
+                    "${value?.name ?? "none"}: ",
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
                   ),
-                ),
-              );
+                );
+              }),
+          Flexible(
+            child: TextButton(
+              onPressed: () async {
+                if (widget.buttonController.project == null) {
+                  throw Exception("A project is needed to select a board");
+                }
 
-              if (newLinkedBoard != null) {
-                _lastLinkedBoard.value = newLinkedBoard;
-                buttonController.data.linkedBoard = newLinkedBoard;
-              }
-            },
-            style: TextButton.styleFrom(backgroundColor: Colors.orange),
-            child: Text("select board"))
-      ],
+                Obf? newLinkedBoard = await Navigator.of(context).push<Obf?>(
+                  MaterialPageRoute(
+                    builder: (_) => BoardSelectScreen(
+                      project: buttonController.project!,
+                      startingBoard: _lastLinkedBoard.value ??
+                          buttonController.project!.root!,
+                    ),
+                  ),
+                );
+
+                if (newLinkedBoard != null) {
+                  _lastLinkedBoard.value = newLinkedBoard;
+                }
+              },
+              style: TextButton.styleFrom(backgroundColor: Colors.orange),
+              child: Text("select board"),
+            ),
+          ),
+          Flexible(
+            child: TextButton(
+              onPressed: () async {
+                if (widget.buttonController.project == null) {
+                  throw Exception("A project is needed to create a board");
+                }
+                showCreateBoardDialog(
+                  context,
+                  _lastLinkedBoard,
+                );
+              },
+              style: TextButton.styleFrom(backgroundColor: Colors.blue),
+              child: Text(
+                "create board",
+                style: TextStyle(color: Colors.yellow),
+              ),
+            ),
+          ),
+        ],
+      ),
     );
 
-    Widget customSelectionSpace = _space(maxHeight: 8);
+    Widget customSelectionSpace = space(maxHeight: 8);
 
-    return _subsection(
+    return subsection(
       "linked board:",
       SegmentedButtonMenu<BoardLinkingActionMode>(
         values: BoardLinkingActionMode.values,
@@ -309,7 +353,7 @@ class _ButtonConfigPopupState extends State<ButtonConfigPopup> {
       ],
     );
 
-    return _subsection(
+    return subsection(
       "audio",
       SegmentedButtonMenu<PreferredAudioSourceType>(
         values: values,
@@ -346,7 +390,7 @@ class _ButtonConfigPopupState extends State<ButtonConfigPopup> {
     return ValueListenableBuilder(
         valueListenable: _labelController,
         builder: (context, value, child) {
-          return _textInput(
+          return textInput(
             "tts says",
             _voclizationController,
             width,
@@ -376,8 +420,8 @@ class _ButtonConfigPopupState extends State<ButtonConfigPopup> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          _textInput("label", _labelController, maxWidth),
-          _space(),
+          textInput("label", _labelController, maxWidth),
+          space(),
           image,
           TextButton(
               onPressed: () async {
@@ -406,24 +450,24 @@ class _ButtonConfigPopupState extends State<ButtonConfigPopup> {
                 });
               },
               child: Text("select image")),
-          _colorPicker(
+          colorPicker(
             "background color",
             backgroundColor,
             () => _showColorChangeDialog(changeBackgroundColor),
           ),
-          _space(),
-          _colorPicker(
+          space(),
+          colorPicker(
             "border color",
             borderColor,
             () => _showColorChangeDialog(changeBorderColor),
           ),
-          _space(),
+          space(),
           _actionConfig(widget.buttonController, maxWidth),
-          _space(),
+          space(),
           _linkedBoard(maxWidth),
-          _space(),
+          space(),
           _audioTypeMenu(maxWidth),
-          _space(),
+          space(),
           _previewButton("preview", buttonController, maxWidth),
         ],
       ),
@@ -445,59 +489,6 @@ enum BoardLinkingActionMode {
   const BoardLinkingActionMode(this.label);
 }
 
-Widget _space({double maxHeight = 20}) {
-  return ConstrainedBox(
-    constraints: BoxConstraints(minHeight: 0, maxHeight: maxHeight),
-    child: Container(),
-  );
-}
-
-Widget _textInput(
-  String label,
-  TextEditingController controller,
-  double maxWidth, {
-  String? hintOverride,
-}) {
-  return _subsection(
-    "$label:",
-    ConstrainedBox(
-      constraints: BoxConstraints(maxWidth: maxWidth),
-      child: SizedBox(
-        width: maxWidth,
-        child: TextField(
-          controller: controller,
-          decoration: InputDecoration(
-            hintText: hintOverride ?? "enter $label here",
-            hintStyle: TextStyle(color: Colors.grey),
-          ),
-        ),
-      ),
-    ),
-  );
-}
-
-Widget _colorPicker(
-  String label,
-  Color color,
-  VoidCallback showColorChangeDialog,
-) {
-  return _subsection(
-      "$label:",
-      Container(
-        width: double.infinity,
-        decoration: BoxDecoration(
-          border: Border.all(width: 1),
-        ),
-        child: Padding(
-          padding: const EdgeInsets.all(2.0),
-          child: MaterialButton(
-            onPressed: showColorChangeDialog,
-            color: color,
-          ),
-        ),
-      ));
-}
-
 Widget _previewButton(
   String label,
   ParrotButtonNotifier controller,
@@ -507,7 +498,7 @@ Widget _previewButton(
   return Column(
     crossAxisAlignment: CrossAxisAlignment.start,
     children: [
-      _boldText("$label:"),
+      boldText("$label:"),
       ConstrainedBox(
         constraints: BoxConstraints(maxWidth: width, maxHeight: width),
         child: SizedBox(
@@ -516,26 +507,6 @@ Widget _previewButton(
           child: ParrotButton(controller: controller),
         ),
       ),
-    ],
-  );
-}
-
-Widget _boldText(String text) {
-  return Text(
-    text,
-    textAlign: TextAlign.left,
-    style: TextStyle(
-      fontWeight: FontWeight.bold,
-    ),
-  );
-}
-
-Widget _subsection(String text, Widget child) {
-  return Column(
-    crossAxisAlignment: CrossAxisAlignment.start,
-    children: [
-      _boldText(text),
-      child,
     ],
   );
 }

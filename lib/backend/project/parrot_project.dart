@@ -203,8 +203,11 @@ class ParrotProject extends Obz with AACProject {
     for (Obf board in boards) {
       String path =
           board.path ?? p.join("boards/", sanitzeFileName(board.name));
+
+      //technically this also disallows files with the same name in different directories
       path = determineNoncollidingName(path, usedFilePaths);
-      usedFilePaths.add(path);
+      usedFilePaths.add(p.basenameWithoutExtension(path));
+
       path = p.setExtension(path, '.obf');
 
       board.path = path;
