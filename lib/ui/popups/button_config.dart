@@ -15,6 +15,7 @@ import 'package:parrotaac/extensions/color_extensions.dart';
 import 'package:parrotaac/extensions/image_extensions.dart';
 import 'package:parrotaac/file_utils.dart';
 import 'package:parrotaac/ui/actions/button_actions.dart';
+import 'package:parrotaac/ui/event_handler.dart';
 import 'package:parrotaac/ui/parrot_button.dart';
 import 'package:parrotaac/ui/screens/board_select.dart';
 import 'package:parrotaac/ui/util_widgets/action_modifier.dart';
@@ -28,7 +29,12 @@ import 'popup_utils.dart';
 
 class ButtonConfigPopup extends StatefulWidget {
   final ParrotButtonNotifier buttonController;
-  const ButtonConfigPopup({super.key, required this.buttonController});
+  final ProjectEventHandler eventHandler;
+  const ButtonConfigPopup({
+    super.key,
+    required this.buttonController,
+    required this.eventHandler,
+  });
 
   @override
   State<ButtonConfigPopup> createState() => _ButtonConfigPopupState();
@@ -65,15 +71,6 @@ class _ButtonConfigPopupState extends State<ButtonConfigPopup> {
     buttonController = widget.buttonController;
     _lastLinkedBoard = ValueNotifier(buttonController.data.linkedBoard);
     _lastLinkedBoard.addListener(() {
-      ParrotProject? project = buttonController.project;
-
-      //adds the board if it is not in the project
-      if (!(project?.boards.contains(_lastLinkedBoard.value) ?? true)) {
-        if (_lastLinkedBoard.value != null) {
-          project?.addBoard(_lastLinkedBoard.value!);
-        }
-      }
-
       buttonController.data.linkedBoard = _lastLinkedBoard.value;
     });
 
@@ -175,6 +172,7 @@ class _ButtonConfigPopupState extends State<ButtonConfigPopup> {
                   MaterialPageRoute(
                     builder: (_) => BoardSelectScreen(
                       project: buttonController.project!,
+                      eventHandler: widget.eventHandler,
                       startingBoard: _lastLinkedBoard.value ??
                           buttonController.project!.root!,
                     ),
@@ -198,6 +196,7 @@ class _ButtonConfigPopupState extends State<ButtonConfigPopup> {
                 showCreateBoardDialog(
                   context,
                   _lastLinkedBoard,
+                  widget.eventHandler,
                 );
               },
               style: TextButton.styleFrom(backgroundColor: Colors.blue),
@@ -266,18 +265,9 @@ class _ButtonConfigPopupState extends State<ButtonConfigPopup> {
             if (buttonController.projectPath == null) {
               return;
             }
-            final String projectPath = buttonController.projectPath!;
             XFile? audio = await getAudioFile();
             if (audio == null) {
               return;
-            }
-            String? audioPath = _selectedAudioPath.value;
-            File? file;
-            if (audioPath != null) {
-              file = File(p.join(projectPath, audioPath));
-            }
-            if (file != null && file.existsSync()) {
-              file.deleteSync();
             }
 
             _selectedAudioPath.value = await writeTempAudio(
@@ -468,7 +458,8 @@ class _ButtonConfigPopupState extends State<ButtonConfigPopup> {
           space(),
           _audioTypeMenu(maxWidth),
           space(),
-          _previewButton("preview", buttonController, maxWidth),
+          _previewButton(
+              "preview", buttonController, widget.eventHandler, maxWidth),
         ],
       ),
     );
@@ -492,6 +483,7 @@ enum BoardLinkingActionMode {
 Widget _previewButton(
   String label,
   ParrotButtonNotifier controller,
+  ProjectEventHandler eventHandler,
   double width,
 ) {
   //TODO: might be better if I preserve the size in the grid screen or do something based on the screen size
@@ -504,7 +496,10 @@ Widget _previewButton(
         child: SizedBox(
           width: width,
           height: 350,
-          child: ParrotButton(controller: controller),
+          child: ParrotButton(
+            controller: controller,
+            eventHandler: eventHandler,
+          ),
         ),
       ),
     ],

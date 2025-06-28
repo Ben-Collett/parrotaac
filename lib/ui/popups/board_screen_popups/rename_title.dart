@@ -1,10 +1,13 @@
 import 'package:flutter/material.dart';
 import 'package:parrotaac/ui/board_screen_constants.dart';
+import 'package:parrotaac/ui/event_handler.dart';
 
 void showRenameTitlePopup({
   required BuildContext context,
   required TextEditingController controller,
+  required ProjectEventHandler eventHandler,
 }) {
+  final String prevName = controller.text;
   showDialog(
     context: context,
     builder: (context) {
@@ -33,5 +36,6 @@ void showRenameTitlePopup({
     if (controller.text.trim() == "") {
       controller.text = untitledBoard;
     }
+    eventHandler.renameBoard(prevName, controller.text);
   });
 }

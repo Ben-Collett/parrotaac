@@ -1,8 +1,10 @@
 import 'dart:collection';
 
 import 'package:openboard_wrapper/button_data.dart';
+import 'package:openboard_wrapper/color_data.dart';
 import 'package:parrotaac/audio/audio_source.dart';
 import 'package:parrotaac/audio/prefered_audio_source.dart';
+import 'package:parrotaac/backend/project/parrot_project.dart';
 
 import 'package:path/path.dart' as p;
 
@@ -89,5 +91,56 @@ extension ButtonDataExtension on ButtonData {
     }
     out.add(PreferredAudioSourceType.tts);
     return out;
+  }
+}
+
+extension UpdateFromDiff on ButtonData {
+  void merge(Map<String, dynamic> diff, {ParrotProject? project}) {
+    if (diff.containsKey(ButtonData.labelKey)) {
+      label = diff[ButtonData.labelKey];
+    }
+
+    if (diff.containsKey(ButtonData.voclizationKey)) {
+      voclization = diff[ButtonData.voclizationKey];
+    }
+
+    if (diff.containsKey(ButtonData.bgColorKey)) {
+      backgroundColor = ColorData.fromString(diff[ButtonData.bgColorKey]);
+    }
+
+    if (diff.containsKey(ButtonData.borderColorKey)) {
+      borderColor = ColorData.fromString(diff[ButtonData.borderColorKey]);
+    }
+
+    if (diff.containsKey(ButtonData.actionKey)) {
+      action = diff[ButtonData.actionKey];
+    }
+
+    if (diff.containsKey(ButtonData.actionsKey)) {
+      actions = diff[ButtonData.actionsKey];
+    }
+
+    //TODO: really should log if the project is null
+    if (diff.containsKey('load_board') && diff['load_board'] == null) {
+      linkedBoard = null;
+      loadBoardData = null;
+    }
+
+    if (diff['load_board'] is Map && project != null) {
+      String? boardId = diff['load_board']['id'];
+      if (boardId != null) {
+        linkedBoard = project.findBoardById(boardId);
+      }
+    }
+
+    Iterable<String> changedExtendedProperties =
+        diff.keys.where((e) => e.startsWith('ext_'));
+    for (String key in changedExtendedProperties) {
+      if (diff[key] == null) {
+        extendedProperties.remove(key);
+      } else {
+        extendedProperties[key] = diff[key];
+      }
+    }
   }
 }

@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:openboard_wrapper/button_data.dart';
 import 'package:openboard_wrapper/color_data.dart';
@@ -10,9 +11,10 @@ import 'package:parrotaac/backend/project/parrot_project.dart';
 import 'package:parrotaac/extensions/button_data_extensions.dart';
 import 'package:parrotaac/extensions/color_extensions.dart';
 import 'package:parrotaac/extensions/image_extensions.dart';
+import 'package:parrotaac/extensions/map_extensions.dart';
+import 'package:parrotaac/ui/event_handler.dart';
 import 'package:parrotaac/ui/popups/button_config.dart';
 import 'package:parrotaac/ui/widgets/sentence_box.dart';
-
 import 'actions/button_actions.dart';
 
 void Function(Obf) _defaultGoToLinkedBoard = (_) {};
@@ -50,6 +52,7 @@ class ParrotButtonNotifier extends ChangeNotifier {
 
   void setLinkActionToGoHome() {
     _data.linkedBoard = null;
+    _data.loadBoardData = null;
     List<ParrotAction> actions = this.actions.nonNulls.toList();
 
     if (actions.contains(ParrotAction.home)) {
@@ -63,6 +66,7 @@ class ParrotButtonNotifier extends ChangeNotifier {
 
   void clearAllLinkActions() {
     _data.linkedBoard = null;
+    _data.loadBoardData = null;
   }
 
   void setLinkActionGoToBoard(Obf board) {
@@ -80,6 +84,10 @@ class ParrotButtonNotifier extends ChangeNotifier {
 
   void updateActions(List<ParrotAction> actions) {
     _data.actions = actions.map((p) => p.toString()).toList();
+  }
+
+  void update() {
+    notifyListeners();
   }
 
   void enableParrotActionModeIfDisabled() {
@@ -116,6 +124,7 @@ class ParrotButtonNotifier extends ChangeNotifier {
       this.boxController,
       this.goHome,
       this.project,
+      this.onPressOverride,
       this.onDelete})
       : _data = data ?? ButtonData(),
         goToLinkedBoard = goToLinkedBoard ?? _defaultGoToLinkedBoard;
@@ -151,10 +160,12 @@ class ParrotButtonNotifier extends ChangeNotifier {
 class ParrotButton extends StatelessWidget {
   final ParrotButtonNotifier controller;
   final bool holdToConfig;
+  final ProjectEventHandler eventHandler;
   ButtonData get buttonData => controller.data;
   const ParrotButton({
     super.key,
     required this.controller,
+    required this.eventHandler,
     this.holdToConfig = false,
   });
   void onTap() {
@@ -163,6 +174,12 @@ class ParrotButton extends StatelessWidget {
     } else {
       controller.enableParrotActionModeIfDisabled();
 
+      if (buttonData.linkedBoard == null) {
+        String? id = buttonData.loadBoardData?.id;
+        if (id != null) {
+          buttonData.linkedBoard = eventHandler.project.findBoardById(id);
+        }
+      }
       if (buttonData.linkedBoard != null) {
         Obf linkedBoard = buttonData.linkedBoard!;
         controller.goToLinkedBoard(linkedBoard);
@@ -172,14 +189,16 @@ class ParrotButton extends StatelessWidget {
     }
   }
 
-  void onLongPress(context) {
+  void onLongPress(BuildContext context) {
     showDialog(
       context: context,
       barrierDismissible: false,
       builder: (context) {
         ButtonData data = controller.data;
+        Map<String, dynamic> originalJson = controller.data.toJson();
         final List<String> originalActions = List.of(data.actions);
         final SoundData? originalSound = data.sound;
+        final ImageData? originalImage = data.image;
         final preferredSoundType = data.preferredAudioSourceType;
         //The sentence box controller has to be null in the config screen to avoid taps in the preview being added to the sentence box
         final sentenceBoxController = controller.boxController;
@@ -208,6 +227,33 @@ class ParrotButton extends StatelessWidget {
             controller.boxController = sentenceBoxController;
             controller.goToLinkedBoard = goToLinkedBoard;
             Navigator.of(context).pop();
+            final Map<String, dynamic> currentJson = controller.data.toJson();
+            final Map<String, dynamic> diff =
+                originalJson.valuesThatAreDifferent(currentJson);
+            final Map<String, dynamic> undoDiff =
+                currentJson.valuesThatAreDifferent(originalJson);
+
+            //WARNING: mapEquals only works if there are no nested structures
+            bool soundChanged = !mapEquals(
+              originalSound?.toJson(),
+              data.sound?.toJson(),
+            );
+            bool imageChanged = !mapEquals(
+              originalImage?.toJson(),
+              data.image?.toJson(),
+            );
+
+            if (diff.isNotEmpty || soundChanged || imageChanged) {
+              eventHandler.addConfigureButtonToHistory(
+                controller.data.id,
+                diff,
+                undoDiff,
+                originalSound: originalSound,
+                originalImage: originalImage,
+                newImage: data.image,
+                newSound: data.sound,
+              );
+            }
           },
         );
 
@@ -239,7 +285,10 @@ class ParrotButton extends StatelessWidget {
         actions.add(acceptButton);
 
         return AlertDialog(
-          content: ButtonConfigPopup(buttonController: controller),
+          content: ButtonConfigPopup(
+            buttonController: controller,
+            eventHandler: eventHandler,
+          ),
           actions: [row],
         );
       },

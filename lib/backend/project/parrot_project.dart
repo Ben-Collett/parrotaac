@@ -25,6 +25,10 @@ class ParrotProject extends Obz with AACProject {
   String Function(String)? get sanatizeFilePathForManifest =>
       (path) => Platform.isWindows ? windowsPathToPosix(path) : path;
 
+  ///only rewrite the boards that have actually updated, can be disabled for testing
+  static const bool optimizedSaves = true;
+  Set<Obf> boardsThatNeedUpdatedOnWrite = {};
+
   String? get displayImagePath {
     return manifestExtendedProperties[imagePathKey];
   }

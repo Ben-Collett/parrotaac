@@ -1,9 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:openboard_wrapper/button_data.dart';
+import 'package:openboard_wrapper/color_data.dart';
 import 'package:openboard_wrapper/obf.dart';
 import 'package:parrotaac/backend/history_stack.dart';
 import 'package:parrotaac/backend/project/parrot_project.dart';
 import 'package:parrotaac/ui/board_modes.dart';
+import 'package:parrotaac/ui/event_handler.dart';
 import 'package:parrotaac/ui/parrot_button.dart';
 import 'package:parrotaac/ui/popups/button_config.dart';
 import 'package:parrotaac/ui/sentence_bar.dart';
@@ -17,11 +19,13 @@ class BoardWidget extends StatefulWidget {
   final ValueNotifier<BoardMode>? boardMode;
   final ValueNotifier<Obf>? currentObfNotfier;
   final GridNotfier<ParrotButton>? gridNotfier;
+  final ProjectEventHandler eventHandler;
   final SentenceBoxController? sentenceBoxController;
   final bool showSentenceBar;
   const BoardWidget({
     super.key,
     required this.project,
+    required this.eventHandler,
     this.path,
     this.boardMode,
     this.currentObfNotfier,
@@ -73,12 +77,16 @@ class _BoardWidgetState extends State<BoardWidget> {
           data: [],
           toWidget: (obj) {
             if (obj is ParrotButtonNotifier) {
-              return ParrotButton(controller: obj);
+              return ParrotButton(
+                controller: obj,
+                eventHandler: widget.eventHandler,
+              );
             }
             return null;
           },
           draggable: false,
-          onMove: _updateButtonNotfierOnDelete,
+          onSwap: (_, __, row, col) => _updateButtonNotfierOnDelete(
+              _gridNotfier.getWidget(row, col)!, widget.eventHandler, row, col),
         );
 
     _gridNotfier.setData(_getButtonsFromObf(currentObf));
@@ -89,30 +97,38 @@ class _BoardWidgetState extends State<BoardWidget> {
         BoardMode mode = _boardMode.value;
         _gridNotfier.draggable = mode.draggableButtons;
         _gridNotfier.emptySpotWidget = mode.emptySpotWidget;
-        _gridNotfier.toWidget = _toParrotButton;
-        mode.onPressedOverride(_gridNotfier);
+        _gridNotfier.toWidget =
+            (obf) => _toParrotButton(obf, widget.eventHandler);
+        mode.onPressedOverride(_gridNotfier, widget.eventHandler);
 
         if (mode == BoardMode.builderMode) {
-          _gridNotfier.onEmptyPressed = _showCreateNewButtonDialog;
+          _gridNotfier.onEmptyPressed = (row, col) =>
+              _showCreateNewButtonDialog(row, col, widget.eventHandler);
         } else if (mode == BoardMode.deleteRowMode) {
           _gridNotfier.onEmptyPressed = (row, _) {
-            _gridNotfier.removeRow(row);
+            widget.eventHandler.removeRow(row);
             mode.onPressedOverride(
-                _gridNotfier); //updates the grid notifier to tell the buttons inside of it to delete the new row
+                _gridNotfier,
+                widget
+                    .eventHandler); //updates the grid notifier to tell the buttons inside of it to delete the new row
             _gridNotfier.forEachIndexed((obj, int row, int col) {
               if (obj is ParrotButtonNotifier) {
-                _updateButtonNotfierOnDelete(obj, row, col);
+                _updateButtonNotfierOnDelete(
+                    obj, widget.eventHandler, row, col);
               }
             });
           };
         } else if (mode == BoardMode.deleteColMode) {
           _gridNotfier.onEmptyPressed = (_, col) {
-            _gridNotfier.removeCol(col);
+            widget.eventHandler.removeCol(col);
             mode.onPressedOverride(
-                _gridNotfier); //updates the grid notifier to tell the buttons inside of it to delete the new col.
+              _gridNotfier,
+              widget.eventHandler,
+            ); //updates the grid notifier to tell the buttons inside of it to delete the new col.
             _gridNotfier.forEachIndexed((obj, int row, int col) {
               if (obj is ParrotButtonNotifier) {
-                _updateButtonNotfierOnDelete(obj, row, col);
+                _updateButtonNotfierOnDelete(
+                    obj, widget.eventHandler, row, col);
               }
             });
           };
@@ -132,15 +148,17 @@ class _BoardWidgetState extends State<BoardWidget> {
     super.initState();
   }
 
-  void _updateButtonNotfierOnDelete(Object data, int row, int col) {
+  void _updateButtonNotfierOnDelete(
+      Object data, ProjectEventHandler eventHandler, int row, int col) {
     if (data is ParrotButtonNotifier) {
       data.onDelete = () {
-        _gridNotfier.removeAt(row, col);
+        eventHandler.removeButton(row, col);
       };
     }
   }
 
-  void _showCreateNewButtonDialog(int row, int col) {
+  void _showCreateNewButtonDialog(
+      int row, int col, ProjectEventHandler eventHandler) {
     {
       ParrotButtonNotifier notifier = ParrotButtonNotifier(
         project: widget.project,
@@ -152,7 +170,10 @@ class _BoardWidgetState extends State<BoardWidget> {
         builder: (context) {
           return AlertDialog(
             content: SizedBox(
-              child: ButtonConfigPopup(buttonController: notifier),
+              child: ButtonConfigPopup(
+                buttonController: notifier,
+                eventHandler: eventHandler,
+              ),
             ),
             actions: [
               IconButton(
@@ -168,14 +189,29 @@ class _BoardWidgetState extends State<BoardWidget> {
                 icon: Icon(Icons.check),
                 onPressed: () {
                   notifier.goToLinkedBoard = _changeObf;
-                  notifier.onDelete = () => _gridNotfier.removeAt(row, col);
+                  notifier.onDelete = () => eventHandler.removeButton(row, col);
                   notifier.goHome = _goToRootBoard;
                   notifier.boxController = _sentenceController;
-                  _gridNotfier.setWidget(
-                    row: row,
-                    col: col,
-                    data: notifier,
+                  notifier.data.id =
+                      eventHandler.project.generateGloballyUniqueId(
+                    prefix: "bd",
                   );
+                  notifier.data.backgroundColor =
+                      notifier.data.backgroundColor ??
+                          ColorData(
+                            red: 255,
+                            green: 255,
+                            blue: 255,
+                          );
+                  notifier.data.borderColor = notifier.data.borderColor ??
+                      ColorData(
+                        red: 255,
+                        green: 255,
+                        blue: 255,
+                      );
+
+                  eventHandler.addButton(row, col, notifier.data);
+                  notifier.dispose();
 
                   Navigator.of(context).pop();
                 },
@@ -187,10 +223,12 @@ class _BoardWidgetState extends State<BoardWidget> {
     }
   }
 
-  ParrotButton? _toParrotButton(Object? object) {
+  ParrotButton? _toParrotButton(
+      Object? object, ProjectEventHandler eventHandler) {
     if (object is ParrotButtonNotifier) {
       return ParrotButton(
         controller: object,
+        eventHandler: eventHandler,
         holdToConfig: _boardMode.value.configOnButtonHold,
       );
     }
@@ -224,7 +262,7 @@ class _BoardWidgetState extends State<BoardWidget> {
               goToLinkedBoard: _changeObf,
               goHome: _goToRootBoard,
               onDelete: () {
-                _gridNotfier.removeAt(i, j);
+                widget.eventHandler.removeButton(i, j);
               },
               project: widget.project,
             ),

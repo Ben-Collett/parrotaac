@@ -3,6 +3,7 @@ import 'package:openboard_wrapper/button_data.dart';
 import 'package:openboard_wrapper/obf.dart';
 import 'package:parrotaac/backend/project/parrot_project.dart';
 import 'package:parrotaac/ui/board_screen_appbar.dart';
+import 'package:parrotaac/ui/event_handler.dart';
 import 'package:parrotaac/ui/util_widgets/board.dart';
 import 'package:parrotaac/ui/util_widgets/draggable_grid.dart';
 import 'package:parrotaac/ui/widgets/sentence_box.dart';
@@ -28,6 +29,11 @@ class _BoardScreenState extends State<BoardScreen> {
       ValueNotifier(BoardMode.normalMode);
   late final TextEditingController _titleController;
   late final ValueNotifier<Obf> _currentObfNotfier;
+  final ValueNotifier<bool> canUndo = ValueNotifier(false);
+  final ValueNotifier<bool> canRedo = ValueNotifier(false);
+
+  late final ProjectEventHandler eventHandler;
+
   Obf get _currentObf => _currentObfNotfier.value;
   set _currentObf(Obf obf) => _currentObfNotfier.value = obf;
   @override
@@ -44,16 +50,27 @@ class _BoardScreenState extends State<BoardScreen> {
     _sentenceController = SentenceBoxController(projectPath: widget.path);
     _titleController = TextEditingController(text: _currentObf.name);
     _gridNotfier = GridNotfier(
-      data: [],
-      toWidget: (obj) {
-        if (obj is ParrotButtonNotifier) {
-          return ParrotButton(controller: obj);
-        }
-        return null;
-      },
-      draggable: false,
-      onMove: _updateButtonNotfierOnDelete,
-    );
+        data: [],
+        toWidget: (obj) {
+          if (obj is ParrotButtonNotifier) {
+            return ParrotButton(
+              controller: obj,
+              eventHandler: eventHandler,
+            );
+          }
+          return null;
+        },
+        draggable: false,
+        onSwap: (oldRow, oldCol, newRow, newCol) {
+          eventHandler.swapButtons(oldRow, oldCol, newRow, newCol);
+          final data = _gridNotfier.getWidget(newRow, newCol);
+          _updateButtonNotfierOnDelete(
+            data!,
+            eventHandler,
+            newRow,
+            newCol,
+          );
+        });
     _boardMode.addListener(
       () async {
         if (_boardMode.value == BoardMode.normalMode) {
@@ -70,14 +87,23 @@ class _BoardScreenState extends State<BoardScreen> {
     _currentObfNotfier.addListener(() {
       _titleController.text = _currentObf.name;
     });
-
+    eventHandler = ProjectEventHandler(
+        project: widget.project,
+        gridNotfier: _gridNotfier,
+        boxController: _sentenceController,
+        canUndo: canUndo,
+        canRedo: canRedo,
+        modeNotifier: _boardMode,
+        titleController: _titleController,
+        currentObf: _currentObfNotfier);
     super.initState();
   }
 
-  void _updateButtonNotfierOnDelete(Object data, int row, int col) {
+  void _updateButtonNotfierOnDelete(
+      Object data, ProjectEventHandler eventHandler, int row, int col) {
     if (data is ParrotButtonNotifier) {
       data.onDelete = () {
-        _gridNotfier.removeAt(row, col);
+        eventHandler.removeButton(row, col);
       };
     }
   }
@@ -156,11 +182,13 @@ class _BoardScreenState extends State<BoardScreen> {
         context: context,
         boardMode: _boardMode,
         titleController: _titleController,
-        gridNotfier: _gridNotfier,
+        project: widget.project,
+        eventHandler: eventHandler,
       ),
       body: BoardWidget(
         project: widget.project,
         path: widget.path,
+        eventHandler: eventHandler,
         boardMode: _boardMode,
         gridNotfier: _gridNotfier,
         sentenceBoxController: _sentenceController,

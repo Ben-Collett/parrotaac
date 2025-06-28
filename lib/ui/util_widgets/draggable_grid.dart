@@ -6,7 +6,7 @@ class GridNotfier<T extends Widget> extends ChangeNotifier {
   bool get draggable => _draggable;
   T? Function(Object?)? _toWidget;
   T? Function(Object?)? get toWidget => _toWidget;
-  void Function(Object data, int row, int col)? onMove;
+  void Function(int oldRow, int oldCol, int newRow, int newCol)? onSwap;
   set toWidget(T? Function(Object?)? toWid) {
     _toWidget = toWid;
     notifyListeners();
@@ -19,7 +19,12 @@ class GridNotfier<T extends Widget> extends ChangeNotifier {
     notifyListeners();
   }
 
+  void update() {
+    notifyListeners();
+  }
+
   List<List<Object?>> _data;
+
   Widget? emptySpotWidget;
 
   int get rows {
@@ -53,7 +58,7 @@ class GridNotfier<T extends Widget> extends ChangeNotifier {
     bool draggable = true,
     T? Function(Object?)? toWidget,
     this.onEmptyPressed,
-    this.onMove,
+    this.onSwap,
   })  : _data = data,
         _draggable = draggable,
         _toWidget = toWidget;
@@ -63,6 +68,30 @@ class GridNotfier<T extends Widget> extends ChangeNotifier {
     } else {
       _data.add(List.generate(columns, (_) => null));
     }
+    notifyListeners();
+  }
+
+  void swap(int oldRow, int oldCol, int newRow, int newCol) {
+    final Object? old = _data[oldRow][oldCol];
+    _data[oldRow][oldCol] = _data[newRow][newCol];
+    _data[newRow][newCol] = old;
+    notifyListeners();
+  }
+
+  void insertColumn(int colIndex, List<Object?> column) {
+    assert(_data.isEmpty || column.length == _data.length,
+        "Column length must match number of rows");
+
+    for (int row = 0; row < column.length; row++) {
+      _data[row].insert(colIndex, column[row]);
+    }
+
+    notifyListeners();
+  }
+
+  void insertRow(int rowIndex, List<Object?> row) {
+    List<Object?> newRow = List<Object?>.from(row);
+    _data.insert(rowIndex, newRow);
     notifyListeners();
   }
 
@@ -142,11 +171,12 @@ class GridNotfier<T extends Widget> extends ChangeNotifier {
     required int newRow,
     required int newCol,
   }) {
-    _data[newRow][newCol] = _data[oldRow][oldCol];
-    _data[oldRow][oldCol] = null;
+    final old = _data[oldRow][oldCol];
+    _data[oldRow][oldCol] = _data[newRow][newCol];
+    _data[newRow][newCol] = old;
 
-    if (onMove != null && _data[newRow][newCol] != null) {
-      onMove!(_data[newRow][newCol]!, newRow, newCol);
+    if (onSwap != null && _data[newRow][newCol] != null) {
+      onSwap!(oldRow, oldCol, newRow, newCol);
     }
 
     notifyListeners();

@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:parrotaac/ui/event_handler.dart';
 
 import 'parrot_button.dart';
 import 'util_widgets/draggable_grid.dart';
@@ -19,7 +20,8 @@ class BoardMode {
   final Widget? emptySpotWidget;
   final bool configOnButtonHold;
   final bool draggableButtons;
-  final void Function(GridNotfier grid) onPressedOverride;
+  final void Function(GridNotfier grid, ProjectEventHandler handler)
+      onPressedOverride;
 
   const BoardMode._(
       {this.emptySpotWidget,
@@ -49,7 +51,8 @@ class BoardMode {
       onPressedOverride: _setGridToDefaultOnPress);
 }
 
-void _setGridToDefaultOnPress(GridNotfier notfier) {
+void _setGridToDefaultOnPress(
+    GridNotfier notfier, ProjectEventHandler handler) {
   notfier.forEach((obj) {
     if (obj is ParrotButtonNotifier) {
       obj.onPressOverride = null;
@@ -61,27 +64,28 @@ void _setButtonToDeleteRowMode(
   Object? object,
   int row,
   GridNotfier gridNotfier,
+  ProjectEventHandler handler,
 ) {
   if (object is ParrotButtonNotifier) {
     object.onPressOverride = () {
-      gridNotfier.removeRow(row);
+      handler.removeRow(row);
       //the line below updates the buttons indexes when the row is deleted, has to be used to allow deleting when pressing a button, doesn't when dealing with empty spaces though.
       gridNotfier.forEachIndexed((object, row, _) {
-        _setButtonToDeleteRowMode(object, row, gridNotfier);
+        _setButtonToDeleteRowMode(object, row, gridNotfier, handler);
       });
     };
   }
 }
 
-void _setGridToDeleteRowMode(GridNotfier grid) {
+void _setGridToDeleteRowMode(GridNotfier grid, ProjectEventHandler handler) {
   grid.forEachIndexed((obj, row, col) {
-    _setButtonToDeleteRowMode(obj, row, grid);
+    _setButtonToDeleteRowMode(obj, row, grid, handler);
   });
 }
 
-void _setGridToDeleteColMode(GridNotfier grid) {
+void _setGridToDeleteColMode(GridNotfier grid, ProjectEventHandler handler) {
   grid.forEachIndexed((obj, row, col) {
-    _setButtonToDeleteColMode(obj, col, grid);
+    _setButtonToDeleteColMode(obj, col, grid, handler);
   });
 }
 
@@ -89,13 +93,14 @@ void _setButtonToDeleteColMode(
   Object? object,
   int col,
   GridNotfier gridNotfier,
+  ProjectEventHandler handler,
 ) {
   if (object is ParrotButtonNotifier) {
     object.onPressOverride = () {
-      gridNotfier.removeCol(col);
+      handler.removeCol(col);
       //the line below updates the buttons indexes when the col is deleted, has to be used to allow deleting when pressing a button, doesn't when dealing with empty spaces though.
       gridNotfier.forEachIndexed((object, _, col) {
-        _setButtonToDeleteColMode(object, col, gridNotfier);
+        _setButtonToDeleteColMode(object, col, gridNotfier, handler);
       });
     };
   }

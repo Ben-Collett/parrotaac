@@ -2,7 +2,9 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:openboard_wrapper/grid_data.dart';
 import 'package:openboard_wrapper/obf.dart';
+import 'package:openboard_wrapper/obz.dart';
 import 'package:parrotaac/ui/board_screen_constants.dart';
+import 'package:parrotaac/ui/event_handler.dart';
 import 'package:parrotaac/ui/popups/cancable_dialog.dart';
 
 import 'popup_utils.dart';
@@ -10,6 +12,7 @@ import 'popup_utils.dart';
 Future<void> showCreateBoardDialog(
   BuildContext context,
   ValueNotifier<Obf?> currentObf,
+  ProjectEventHandler eventHandler,
 ) async {
   return showDialog(
       context: context,
@@ -17,6 +20,7 @@ Future<void> showCreateBoardDialog(
       builder: (context) {
         return CreateBoardPopup(
           currentObf: currentObf,
+          eventHandler: eventHandler,
         );
       });
 }
@@ -24,9 +28,11 @@ Future<void> showCreateBoardDialog(
 class CreateBoardPopup extends StatefulWidget {
   ///The caller must make sure that the dialog is dismissed before the notfier is disposed
   final ValueNotifier<Obf?> currentObf;
+  final ProjectEventHandler eventHandler;
   const CreateBoardPopup({
     super.key,
     required this.currentObf,
+    required this.eventHandler,
   });
 
   @override
@@ -113,12 +119,15 @@ class _CreateBoardPopupState extends State<CreateBoardPopup> {
         ),
       ),
       onAccept: (context) {
+        Obz project = widget.eventHandler.project;
         Obf obf = Obf(
           locale: 'en-us',
           name: boardName,
-          id: 'b0',
+          id: project.generateGloballyUniqueId(prefix: 'bo'),
           grid: GridData.empty(rowCount: rowCount, colCount: colCount),
         );
+
+        widget.eventHandler.addBoard(obf);
 
         widget.currentObf.value = obf;
         Navigator.of(context).pop();

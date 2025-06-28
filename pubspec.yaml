@@ -44,6 +44,8 @@ dependencies:
   flutter_svg: ^2.0.17
   flutter_tts: ^4.2.2
   image_picker: ^1.1.2
+  json_annotation: ^4.9.0
+  json_serializable: ^6.9.5
   mockito: ^5.4.5
   openboard_wrapper:
     git:
@@ -62,6 +64,7 @@ dev_dependencies:
   # activated in the `analysis_options.yaml` file located at the root of your
   # package. See that file for information about deactivating specific lint
   # rules and activating additional ones.
+  build_runner: ^2.4.15
   flutter_lints: ^6.0.0
   flutter_test:
     sdk: flutter
