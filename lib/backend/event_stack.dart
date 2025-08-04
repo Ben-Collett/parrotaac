@@ -1,38 +1,55 @@
 import 'dart:collection';
+import 'dart:ui';
 
 import 'package:openboard_wrapper/button_data.dart';
 import 'package:openboard_wrapper/obf.dart';
 import 'package:parrotaac/backend/project/code_gen_allowed/event/project_events.dart';
+import 'package:parrotaac/backend/stack.dart';
 
 class EventHistory {
   ///the bool should be true if the caller is currently undoing an event.
   final void Function(ProjectEvent, bool) executeEvent;
-  final Queue<ProjectEvent> _undoStack = Queue();
-  final Queue<ProjectEvent> _redoStack = Queue();
+  final QueueStack<ProjectEvent> _undoStack;
+  final QueueStack<ProjectEvent> _redoStack;
 
   ///stores every button that has been removed since the last clear
   ///In the future this could be made to be updated when undoing and then doing another event however for now this seems impractical
   final Queue<ButtonData> _removedButtons = Queue();
   final Queue<Obf> _removedBoards = Queue();
   final Queue<List<ButtonData?>> _removedRowsAndCols = Queue();
-  EventHistory({required this.executeEvent});
+  EventHistory({
+    required this.executeEvent,
+    VoidCallback? onUndoStackChange,
+    VoidCallback? onRedoStackChange,
+  })  : _undoStack = QueueStack<ProjectEvent>(onChange: onUndoStackChange),
+        _redoStack = QueueStack<ProjectEvent>(onChange: onRedoStackChange);
   void undo() {
-    ProjectEvent event = _undoStack.removeLast();
+    ProjectEvent event = _undoStack.pop();
     executeEvent(event.undoEvent(), true);
-    _redoStack.add(event);
+    _redoStack.push(event);
   }
+
+  UnmodifiableListView<ProjectEvent> get undoList =>
+      UnmodifiableListView(_undoStack.toList());
+  UnmodifiableListView<ProjectEvent> get redoList =>
+      UnmodifiableListView(_redoStack.toList());
 
   void clear() {
     _undoStack.clear();
     _redoStack.clear();
     _removedBoards.clear();
+    _removedButtons.clear();
+    _removedRowsAndCols.clear();
   }
 
   void redo() {
-    ProjectEvent event = _redoStack.removeLast();
+    ProjectEvent event = _redoStack.pop();
     executeEvent(event, false);
-    _undoStack.add(event);
+    _undoStack.push(event);
   }
+
+  void updateRedoStack(Iterable<ProjectEvent> events) =>
+      _redoStack.update(events);
 
   ButtonData? getLastRemovedButton() {
     if (_removedButtons.isEmpty) {
@@ -64,7 +81,7 @@ class EventHistory {
   }
 
   void add(ProjectEvent event) {
-    _undoStack.add(event);
+    _undoStack.push(event);
     _redoStack.clear();
   }
 

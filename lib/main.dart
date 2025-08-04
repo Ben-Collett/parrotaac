@@ -1,8 +1,19 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:parrotaac/board_selector.dart';
 
-void main() {
+import 'backend/quick_store.dart';
+import 'backend/settings_utils.dart';
+import 'restorative_navigator.dart';
+
+void main() async {
+  await initializeQuickStorePluggins();
+
+  await Future.wait(
+    [
+      initializeSettings(),
+      RestorativeNavigator().initialize(),
+    ],
+  );
   runApp(ProviderScope(child: const MyApp()));
 }
 
@@ -11,7 +22,7 @@ class MyApp extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return const MaterialApp(
+    return MaterialApp(
       title: 'Parrot AAC',
       home: MainScreen(),
     );
@@ -23,6 +34,6 @@ class MainScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return ProjectSelector();
+    return RestorativeNavigator().topScreen;
   }
 }

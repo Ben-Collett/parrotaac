@@ -99,16 +99,12 @@ class _MathProblemDialogState extends State<MathProblemDialog> {
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (_accepted) {
         Navigator.of(context).pop();
-        if (widget.onAccept != null) {
-          widget.onAccept!();
-        }
+        widget.onAccept?.call();
       }
 
       if (_rejected) {
         Navigator.of(context).pop();
-        if (widget.onReject != null) {
-          widget.onReject!();
-        }
+        widget.onReject?.call();
       }
     });
 

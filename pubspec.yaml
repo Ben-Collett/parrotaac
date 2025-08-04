@@ -43,9 +43,12 @@ dependencies:
   flutter_slidable: ^4.0.0
   flutter_svg: ^2.0.17
   flutter_tts: ^4.2.2
+  hive: ^2.2.3
+  hive_flutter: ^1.1.0
   image_picker: ^1.1.2
   json_annotation: ^4.9.0
   json_serializable: ^6.9.5
+  logger: ^2.6.1
   mockito: ^5.4.5
   openboard_wrapper:
     git:

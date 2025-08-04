@@ -11,6 +11,7 @@ import 'package:parrotaac/extensions/button_data_extensions.dart';
 import 'package:parrotaac/ui/board_modes.dart';
 import 'package:parrotaac/ui/util_widgets/draggable_grid.dart';
 
+import '../backend/project_restore_write_stream.dart';
 import 'parrot_button.dart';
 import 'widgets/sentence_box.dart';
 
@@ -27,9 +28,16 @@ class ProjectEventHandler {
   final ValueNotifier<bool> canRedo;
   final SentenceBoxController boxController;
   final TextEditingController titleController;
+  final ProjectRestoreStream? restoreStream;
   late final EventHistory history = EventHistory(
       executeEvent: (e, undoing) =>
-          execute(e, addToHistory: false, undoing: undoing));
+          execute(e, addToHistory: false, undoing: undoing),
+      onUndoStackChange: () {
+        restoreStream?.updateUndoStack(history.undoList);
+      },
+      onRedoStackChange: () {
+        restoreStream?.updateRedoStack(history.redoList);
+      });
 
   Obf get _obf => currentObf.value;
 
@@ -42,7 +50,19 @@ class ProjectEventHandler {
     required this.modeNotifier,
     required this.titleController,
     required this.boxController,
+    this.restoreStream,
   });
+
+  void bulkExecute(Iterable<ProjectEvent> events, {bool updateUi = true}) {
+    void playEvent(ProjectEvent event) => execute(event, updateUi: updateUi);
+
+    events.forEach(playEvent);
+  }
+
+  void setRedoStack(Iterable<ProjectEvent> events) {
+    history.updateRedoStack(events);
+    canRedo.value = events.isNotEmpty;
+  }
 
   //TODO: I need to decide if adding and removing boards should go into the history and how to display those actions
   void execute(
@@ -107,6 +127,7 @@ class ProjectEventHandler {
           button,
           event.row,
           event.col,
+          updateUi: updateUi,
           imageData: image,
           soundData: sound,
         );
@@ -170,6 +191,10 @@ class ProjectEventHandler {
   }
 
   void clear() {
+    restoreStream?.updateRedoStack([]);
+    restoreStream?.updateUndoStack([]);
+    canUndo.value = false;
+    canRedo.value = false;
     history.clear();
   }
 
@@ -469,6 +494,7 @@ class ProjectEventHandler {
       project: project,
       boxController: boxController,
       onPressOverride: onPressOverride,
+      eventHandler: this,
       onDelete: () => removeButton(row, col),
     );
   }

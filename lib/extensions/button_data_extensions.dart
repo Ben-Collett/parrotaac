@@ -2,9 +2,12 @@ import 'dart:collection';
 
 import 'package:openboard_wrapper/button_data.dart';
 import 'package:openboard_wrapper/color_data.dart';
+import 'package:openboard_wrapper/image_data.dart';
+import 'package:openboard_wrapper/sound_data.dart';
 import 'package:parrotaac/audio/audio_source.dart';
 import 'package:parrotaac/audio/prefered_audio_source.dart';
 import 'package:parrotaac/backend/project/parrot_project.dart';
+import 'package:parrotaac/backend/simple_logger.dart';
 
 import 'package:path/path.dart' as p;
 
@@ -96,6 +99,9 @@ extension ButtonDataExtension on ButtonData {
 
 extension UpdateFromDiff on ButtonData {
   void merge(Map<String, dynamic> diff, {ParrotProject? project}) {
+    if (project == null) {
+      SimpleLogger().logWarning("null project");
+    }
     if (diff.containsKey(ButtonData.labelKey)) {
       label = diff[ButtonData.labelKey];
     }
@@ -120,7 +126,23 @@ extension UpdateFromDiff on ButtonData {
       actions = diff[ButtonData.actionsKey];
     }
 
-    //TODO: really should log if the project is null
+    //TODO: poteintinal bug here if the image doesn't end up added to the project I need to look into that more
+    if (diff[ButtonData.imageKey] is String) {
+      image = project?.images
+          .where((im) => im.id == diff[ButtonData.imageKey])
+          .firstOrNull;
+    } else if (diff[ButtonData.imageKey] is Map) {
+      image = ImageData.decodeJson(diff[ButtonData.imageKey]);
+    }
+
+    if (diff[ButtonData.soundKey] is String) {
+      sound = project?.sounds
+          .where((so) => so.id == diff[ButtonData.imageKey])
+          .firstOrNull;
+    } else if (diff[ButtonData.soundKey] is Map) {
+      sound = SoundData.decode(diff[ButtonData.soundKey]);
+    }
+
     if (diff.containsKey('load_board') && diff['load_board'] == null) {
       linkedBoard = null;
       loadBoardData = null;

@@ -4,9 +4,11 @@ import 'widgets/sentence_box.dart';
 
 class SentenceBar extends StatefulWidget {
   final SentenceBoxController? sentenceBoxController;
+  final VoidCallback? goBack;
   const SentenceBar({
     super.key,
     this.sentenceBoxController,
+    this.goBack,
   });
 
   @override
@@ -23,7 +25,7 @@ class _SentenceBarState extends State<SentenceBar> {
 
   Widget _sentenceBoxButton({
     required IconData icon,
-    required VoidCallback onTap,
+    required VoidCallback? onTap,
   }) {
     const color = Colors.grey;
     return Expanded(
@@ -38,6 +40,11 @@ class _SentenceBarState extends State<SentenceBar> {
 
   @override
   Widget build(BuildContext context) {
+    //TODO: I don't like how the backButton works
+    final backButton = _sentenceBoxButton(
+      icon: Icons.arrow_back,
+      onTap: widget.goBack,
+    );
     final clearButton = _sentenceBoxButton(
       icon: Icons.clear,
       onTap: _controller.clear,
@@ -54,6 +61,7 @@ class _SentenceBarState extends State<SentenceBar> {
 
     return Row(
       children: [
+        backButton,
         Flexible(
           flex: 10,
           child: SentenceBox(controller: _controller),

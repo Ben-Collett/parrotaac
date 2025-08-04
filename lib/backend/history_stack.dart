@@ -8,30 +8,40 @@ class BoardHistoryStack {
   final int? maxHistorySize;
   final Queue<Obf> _queue;
 
-  ///used to keep track of the current board
-  Obf currentBoard;
+  Obf get currentBoard {
+    Obf head = _queue.removeLast();
+    _queue.add(head);
+    return head;
+  }
 
   BoardHistoryStack({
     required this.maxHistorySize,
-    required this.currentBoard,
-  }) : _queue = Queue();
+    required Obf currentBoard,
+  }) : _queue = Queue.of([currentBoard]);
 
-  Obf peek() {
-    Obf out = _queue.removeLast();
-    _queue.addLast(out);
-    return out;
-  }
+  BoardHistoryStack.fromNonEmptyList(
+    List<Obf> boards, {
+    required this.maxHistorySize,
+  }) : _queue = Queue.from(boards);
 
   Obf pop() {
-    currentBoard = _queue.removeLast();
-    return currentBoard;
+    return _queue.removeLast();
   }
 
+  List<String> toIdList() {
+    String toId(b) => b.id;
+
+    return _queue.map(toId).toList();
+  }
+
+  ///allows you to push boards to the history, if the same board is pushed twice in a row the second push is ignored.
   void push(Obf obf) {
+    if (obf == currentBoard) {
+      return;
+    }
     if (_queue.length + 1 == maxHistorySize) {
       _queue.removeFirst();
     }
-    _queue.addLast(currentBoard);
-    currentBoard = obf;
+    _queue.addLast(obf);
   }
 }

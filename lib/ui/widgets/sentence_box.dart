@@ -2,13 +2,14 @@ import 'dart:collection';
 
 import 'package:flutter/material.dart';
 import 'package:openboard_wrapper/button_data.dart';
+import 'package:openboard_wrapper/obf.dart';
 import 'package:parrotaac/audio/audio_source.dart';
 import 'package:parrotaac/audio_player.dart';
 import 'package:parrotaac/ui/parrot_button.dart';
 import 'package:parrotaac/extensions/button_data_extensions.dart';
 
 class SentenceBoxController extends ChangeNotifier {
-  List<ButtonData> _dataToDisplay;
+  List<SenteceBoxDisplayEntry> _dataToDisplay;
   String? projectPath;
   double _buttonWidth;
   double _buttonHeight;
@@ -35,7 +36,7 @@ class SentenceBoxController extends ChangeNotifier {
     double buttonWidth = 100,
     double buttonHeight = 100,
     this.projectPath,
-    List<ButtonData>? initialData,
+    List<SenteceBoxDisplayEntry>? initialData,
   })  : _buttonWidth = buttonWidth,
         _buttonHeight = buttonHeight,
         _dataToDisplay = initialData ?? [];
@@ -45,30 +46,35 @@ class SentenceBoxController extends ChangeNotifier {
     notifyListeners();
   }
 
+  void update() {
+    notifyListeners();
+  }
+
   void backSpace() {
     if (_dataToDisplay.isNotEmpty) {
       _dataToDisplay.removeLast();
+
       notifyListeners();
     }
   }
 
-  void updateData(List<ButtonData> buttons) {
-    _dataToDisplay = buttons;
+  void updateData(List<SenteceBoxDisplayEntry> entries) {
+    _dataToDisplay = entries;
     notifyListeners();
   }
 
-  void add(ButtonData button) {
-    _dataToDisplay.add(button);
+  void add(SenteceBoxDisplayEntry entry) {
+    _dataToDisplay.add(entry);
     notifyListeners();
   }
 
-  UnmodifiableListView<ButtonData> dataCopyView() {
+  UnmodifiableListView<SenteceBoxDisplayEntry> dataCopyView() {
     return UnmodifiableListView(_dataToDisplay);
   }
 
   Iterable<AudioSource> get audioSourcesCopy {
     return _dataToDisplay.map(
-      (b) => b.getSource(projectPath: projectPath),
+      (b) => b.data.getSource(projectPath: projectPath),
     );
   }
 
@@ -77,6 +83,16 @@ class SentenceBoxController extends ChangeNotifier {
       audioSourcesCopy,
     );
   }
+}
+
+class SenteceBoxDisplayEntry {
+  final ButtonData data;
+  final Obf? board;
+
+  SenteceBoxDisplayEntry({
+    required this.data,
+    this.board,
+  });
 }
 
 class SentenceBox extends StatelessWidget {
@@ -94,6 +110,7 @@ class SentenceBox extends StatelessWidget {
         return ListView(
           scrollDirection: Axis.horizontal,
           children: controller._dataToDisplay
+              .map((entry) => entry.data)
               .map(toStatelessParrotButton)
               .map((b) => SizedBox(
                   width: controller.buttonWidth,

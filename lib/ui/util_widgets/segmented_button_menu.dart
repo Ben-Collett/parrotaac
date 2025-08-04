@@ -46,9 +46,7 @@ class _SegmentedButtonMenuState<T> extends State<SegmentedButtonMenu> {
     setState(() {
       value = input.first;
     });
-    if (widget.onChange != null) {
-      widget.onChange!(value);
-    }
+    widget.onChange?.call(value);
   }
 
   SegmentedButton _createSegmentedButton() {

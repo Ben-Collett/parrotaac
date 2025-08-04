@@ -6,7 +6,9 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:parrotaac/backend/project/parrot_project.dart';
 import 'package:parrotaac/backend/project/project_interface.dart';
-import 'package:parrotaac/setting_screen.dart';
+import 'package:parrotaac/restorative_navigator.dart';
+import 'package:parrotaac/shared_providers/project_dir_controller.dart';
+import 'package:parrotaac/ui/util_widgets/future_controller_builder.dart';
 import 'package:parrotaac/utils.dart';
 
 import 'backend/project/default_project.dart.dart';
@@ -93,11 +95,6 @@ class ProjectSelector extends StatefulWidget {
 
 class _ProjectSelectorState extends State<ProjectSelector> {
   final selectedNotifier = SelectedNotifier();
-  @override
-  void dispose() {
-    selectedNotifier.dispose();
-    super.dispose();
-  }
 
   Widget _iconButtonThatIsDisabledWhenSelectedNotfierIsEmpty(
     Icon icon, {
@@ -144,7 +141,8 @@ class _ProjectSelectorState extends State<ProjectSelector> {
                   }
 
                   selectedNotifier.clear();
-                  ref.invalidate(projectDirProvider);
+                  projectDirController.refresh();
+                  //ref.invalidate(projectDirProvider);
                   Navigator.of(context).pop();
                   Navigator.of(context).pop();
                 }
@@ -308,17 +306,15 @@ class _ProjectSelectorState extends State<ProjectSelector> {
                           Navigator.of(context).pop();
                         }
 
-                        ref.invalidate(projectDirProvider);
+                        projectDirController.refresh();
+                        //ref.invalidate(projectDirProvider);
                       },
                     );
                   },
                 ),
                 IconButton(
                   icon: Icon(Icons.settings),
-                  onPressed: () => Navigator.push(
-                    context,
-                    MaterialPageRoute(builder: (_) => SettingsScreen()),
-                  ),
+                  onPressed: () => RestorativeNavigator().goToSettings(context),
                 ),
               ],
             )
@@ -397,57 +393,55 @@ class _CreateProjectDialogState extends State<CreateProjectDialog> {
                 constraints: BoxConstraints(minWidth: 0, maxWidth: maxWidth),
                 child: SizedBox(
                   width: maxWidth,
-                  child: Consumer(
-                    builder: (_, ref, __) {
-                      Iterable<Directory> dirs =
-                          switch (ref.watch(projectDirProvider)) {
-                        AsyncData(:final value) => value,
-                        _ => [],
-                      };
-                      final ViewType viewType = ref.watch(_viewTypeProvider);
-                      List<String> displayNames =
-                          _displayDataFromDirList(dirs, viewType: viewType)
-                              .map((d) => d.displayName.data)
-                              .whereType<String>()
-                              .toList();
-                      List<Widget> column = [
-                        TextFormField(
-                          controller: widget.controller,
-                          validator: (text) => validate(text, displayNames),
-                          decoration: InputDecoration(
-                            border: OutlineInputBorder(),
-                            labelText: "Project Name",
+                  child: Consumer(builder: (_, ref, __) {
+                    return FutureControllerBuilder(
+                      controller: projectDirController,
+                      onData: (dirs) {
+                        final ViewType viewType = ref.watch(_viewTypeProvider);
+                        List<String> displayNames =
+                            _displayDataFromDirList(dirs!, viewType: viewType)
+                                .map((d) => d.displayName.data)
+                                .whereType<String>()
+                                .toList();
+                        List<Widget> column = [
+                          TextFormField(
+                            controller: widget.controller,
+                            validator: (text) => validate(text, displayNames),
+                            decoration: InputDecoration(
+                              border: OutlineInputBorder(),
+                              labelText: "Project Name",
+                            ),
                           ),
-                        ),
-                      ];
+                        ];
 
-                      if (_image != null) {
-                        column.add(
-                          FutureBuilder(
-                            future: _image,
-                            builder: (_, snapshot) {
-                              if (snapshot.data == null) {
-                                return SizedBox(width: 0, height: 0);
-                              }
-                              XFile data = snapshot.requireData!;
-                              return ConstrainedBox(
-                                constraints: BoxConstraints(maxHeight: 100),
-                                child: imageFromPath(data.path),
-                              );
-                            },
-                          ),
+                        if (_image != null) {
+                          column.add(
+                            FutureBuilder(
+                              future: _image,
+                              builder: (_, snapshot) {
+                                if (snapshot.data == null) {
+                                  return SizedBox(width: 0, height: 0);
+                                }
+                                XFile data = snapshot.requireData!;
+                                return ConstrainedBox(
+                                  constraints: BoxConstraints(maxHeight: 100),
+                                  child: imageFromPath(data.path),
+                                );
+                              },
+                            ),
+                          );
+                        }
+                        column.add(TextButton(
+                          child: Text("select project image"),
+                          onPressed: () => setImage(getImage()),
+                        ));
+
+                        return Column(
+                          children: column,
                         );
-                      }
-                      column.add(TextButton(
-                        child: Text("select project image"),
-                        onPressed: () => setImage(getImage()),
-                      ));
-
-                      return Column(
-                        children: column,
-                      );
-                    },
-                  ),
+                      },
+                    );
+                  }),
                 ),
               ),
             ],
@@ -482,7 +476,9 @@ class _CreateProjectDialogState extends State<CreateProjectDialog> {
                 if (context.mounted) {
                   Navigator.of(context).pop();
                 }
-                ref.invalidate(projectDirProvider);
+
+                projectDirController.refresh();
+                //ref.invalidate(projectDirProvider);
               }
             },
           );
@@ -520,15 +516,15 @@ class BoardCountText extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     String search = ref.watch(_searchTextProvider);
-    return switch (ref.watch(projectDirProvider)) {
-      AsyncError(:final error) => Text('error $error'),
-      AsyncData(:final value) => Text('${filteredEntries(
-          value,
-          search,
-          viewType: ViewType.list,
-        ).length} boards'),
-      _ => const Text('calculating #of boards'),
-    };
+    return FutureControllerBuilder(
+      controller: projectDirController,
+      onData: (value) => Text('${filteredEntries(
+        value!,
+        search,
+        viewType: ViewType.list,
+      ).length} boards'),
+      onLoad: const Text('calculating #of boards'),
+    );
   }
 }
 
@@ -624,12 +620,14 @@ class DisplayView extends ConsumerWidget {
     }
 
     final viewType = ref.watch(_viewTypeProvider);
-    return switch (ref.watch(projectDirProvider)) {
-      AsyncError(:final error) => Text('error $error'),
-      AsyncData(:final value) =>
-        viewType == ViewType.list ? listView(value) : gridView(value),
-      _ => const CircularProgressIndicator(),
-    };
+    return FutureControllerBuilder(
+      controller: projectDirController,
+      onData: (value) => viewType == ViewType.list
+          ? listView(value!)
+          : gridView(
+              value!,
+            ),
+    );
   }
 }
 

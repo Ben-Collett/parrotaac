@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:parrotaac/restorative_navigator.dart';
 
 class SettingsScreen extends StatelessWidget {
   const SettingsScreen({super.key});
@@ -9,6 +10,10 @@ class SettingsScreen extends StatelessWidget {
       appBar: AppBar(
         title: const Text('Settings'),
         backgroundColor: Colors.grey[900],
+        leading: IconButton(
+          icon: Icon(Icons.arrow_back),
+          onPressed: () => RestorativeNavigator().pop(context),
+        ),
         elevation: 0,
       ),
       body: ListView(

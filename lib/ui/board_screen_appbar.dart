@@ -1,10 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_svg/svg.dart';
 import 'package:parrotaac/backend/project/parrot_project.dart';
+import 'package:parrotaac/restorative_navigator.dart';
 import 'package:parrotaac/ui/event_handler.dart';
 import 'package:parrotaac/ui/util_widgets/icon_button_on_notfier.dart';
 
-import '../setting_screen.dart';
 import 'board_modes.dart';
 import 'board_screen_constants.dart';
 import 'popups/board_screen_popups/rename_title.dart';
@@ -16,6 +16,7 @@ AppBar boardScreenAppbar({
   required TextEditingController titleController,
   required ProjectEventHandler eventHandler,
   required ParrotProject project,
+  Widget? leading,
 }) {
   final addColButton = IconButton(
     onPressed: eventHandler.addCol,
@@ -49,14 +50,12 @@ AppBar boardScreenAppbar({
     icon: Icon(Icons.settings),
     onPressed: () => showAdminLockPopup(
       context: context,
-      onAccept: () => Navigator.push(
-        context,
-        MaterialPageRoute(builder: (_) => SettingsScreen()),
-      ),
+      onAccept: () => RestorativeNavigator().goToSettings(context),
     ),
   );
 
   return AppBar(
+    leading: leading,
     title: Row(
       mainAxisAlignment: MainAxisAlignment.spaceBetween,
       children: [

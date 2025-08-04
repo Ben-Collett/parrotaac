@@ -1,16 +1,18 @@
 import 'dart:ui';
 
 import 'package:openboard_wrapper/button_data.dart';
+import 'package:openboard_wrapper/obf.dart';
 import 'package:parrotaac/audio/audio_source.dart';
 import 'package:parrotaac/audio_player.dart';
 import 'package:parrotaac/extensions/button_data_extensions.dart';
 import 'package:parrotaac/ui/parrot_button.dart';
 import '../widgets/sentence_box.dart';
 
-void executeActions(ParrotButtonNotifier button) {
+void executeActions(ParrotButtonNotifier button, {Obf? board}) {
   SentenceBoxController? boxController = button.boxController;
   final dataCopy = boxController?.dataCopyView();
-  final List<ButtonData> sentenceBoxInitialState = List.of(dataCopy ?? []);
+  final List<SenteceBoxDisplayEntry> sentenceBoxInitialState =
+      List.of(dataCopy ?? []);
   Iterable<ParrotAction> actions;
 
   List<String> actionStrings = button.data.actions;
@@ -22,7 +24,7 @@ void executeActions(ParrotButtonNotifier button) {
 
   final String? projectPath = button.projectPath;
   final actionBuilder = _ActionBuilder(
-    buttonData: button.data,
+    displayEntry: SenteceBoxDisplayEntry(data: button.data, board: board),
     sentenceBoxInitialState,
     projectPath: projectPath,
     goHome: button.goHome,
@@ -37,15 +39,16 @@ void executeActions(ParrotButtonNotifier button) {
 
 class _ActionBuilder {
   final List<AudioSource> toSpeak = [];
-  final List<ButtonData> sentenceBoxState;
+  final List<SenteceBoxDisplayEntry> sentenceBoxState;
   final String? projectPath;
-  final ButtonData? buttonData;
+  final SenteceBoxDisplayEntry? displayEntry;
+  ButtonData? get buttonData => displayEntry?.data;
   VoidCallback? goHome;
 
   _ActionBuilder(
     this.sentenceBoxState, {
     this.projectPath,
-    this.buttonData,
+    this.displayEntry,
     this.goHome,
   });
 
@@ -62,9 +65,7 @@ class _ActionBuilder {
       case ParrotAction.addToSentenceBox:
         addToSentenceBox();
       case ParrotAction.home:
-        if (goHome != null) {
-          goHome!();
-        }
+        goHome?.call();
     }
   }
 
@@ -76,7 +77,7 @@ class _ActionBuilder {
   void speak() {
     toSpeak.addAll(
       _toAudioSources(
-        sentenceBoxState,
+        sentenceBoxState.map((entry) => entry.data).toList(),
         projectPath: projectPath,
       ),
     );
@@ -101,7 +102,7 @@ class _ActionBuilder {
 
   void addToSentenceBox() {
     if (buttonData != null) {
-      sentenceBoxState.add(buttonData!);
+      sentenceBoxState.add(displayEntry!);
     }
   }
 

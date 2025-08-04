@@ -16,39 +16,53 @@ final Widget _addButtonWidget = Padding(
   ),
 );
 
+//this is functinally very similar to an enum, there is a private constractore the a bunch of static final instances you can reference so only those insteances should exist.
 class BoardMode {
   final Widget? emptySpotWidget;
   final bool configOnButtonHold;
   final bool draggableButtons;
   final void Function(GridNotfier grid, ProjectEventHandler handler)
       onPressedOverride;
+  final String asString;
 
   const BoardMode._(
       {this.emptySpotWidget,
       required this.configOnButtonHold,
       required this.draggableButtons,
-      required this.onPressedOverride});
+      required this.onPressedOverride,
+      required this.asString});
 
   static final builderMode = BoardMode._(
       emptySpotWidget: _addButtonWidget,
       configOnButtonHold: true,
       draggableButtons: true,
-      onPressedOverride: _setGridToDefaultOnPress);
+      onPressedOverride: _setGridToDefaultOnPress,
+      asString: "builder_mode");
   static final deleteRowMode = BoardMode._(
       emptySpotWidget: _addButtonWidget,
       configOnButtonHold: true,
       draggableButtons: true,
-      onPressedOverride: _setGridToDeleteRowMode);
+      onPressedOverride: _setGridToDeleteRowMode,
+      asString: "delete_row_mode");
   static final deleteColMode = BoardMode._(
       emptySpotWidget: _addButtonWidget,
       configOnButtonHold: true,
       draggableButtons: true,
-      onPressedOverride: _setGridToDeleteColMode);
+      onPressedOverride: _setGridToDeleteColMode,
+      asString: "delete_col_mode");
   static final normalMode = BoardMode._(
       emptySpotWidget: null,
       configOnButtonHold: false,
       draggableButtons: false,
-      onPressedOverride: _setGridToDefaultOnPress);
+      onPressedOverride: _setGridToDefaultOnPress,
+      asString: "normal_mode");
+
+  static List<BoardMode> get values => [
+        builderMode,
+        deleteRowMode,
+        deleteColMode,
+        normalMode,
+      ];
 }
 
 void _setGridToDefaultOnPress(

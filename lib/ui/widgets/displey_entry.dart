@@ -7,11 +7,10 @@ import 'package:parrotaac/backend/project/manifest_utils.dart';
 import 'package:parrotaac/backend/project/parrot_project.dart';
 import 'package:parrotaac/backend/project/project_interface.dart';
 import 'package:parrotaac/file_utils.dart';
-import 'package:parrotaac/shared_providers/future_providers.dart';
+import 'package:parrotaac/restorative_navigator.dart';
+import 'package:parrotaac/shared_providers/project_dir_controller.dart';
 import 'package:parrotaac/ui/popups/loading.dart';
 import 'package:parrotaac/utils.dart';
-
-import '../board_screen.dart';
 
 enum ViewType { grid, list }
 
@@ -73,6 +72,10 @@ class DisplayEntry extends StatefulWidget {
 
 class _DisplayEntryState extends State<DisplayEntry> {
   bool selected = false;
+  @override
+  void dispose() {
+    super.dispose();
+  }
 
   Widget get _circleSelectedIndicator {
     const double radius = 11;
@@ -109,17 +112,15 @@ class _DisplayEntryState extends State<DisplayEntry> {
     }
   }
 
-  void _openBoard(WidgetRef ref) {
+  void _openBoard(WidgetRef ref) async {
     updateAccessedTimeInManifest(widget.dir!);
-    Navigator.of(context).push(
-      MaterialPageRoute(
-        builder: (_) => BoardScreen(
-          project: ParrotProject.fromDirectory(widget.dir!),
-          path: widget.dir!.path,
-        ),
+    await RestorativeNavigator().openProject(
+      context,
+      ParrotProject.fromDirectory(
+        widget.dir!,
       ),
     );
-    ref.invalidate(projectDirProvider);
+    projectDirController.refresh();
   }
 
   @override
@@ -222,7 +223,7 @@ class _DisplayEntryState extends State<DisplayEntry> {
                                     widget.dir?.deleteSync(recursive: true);
                                     Navigator.of(context).pop();
                                     Navigator.of(context).pop();
-                                    ref.invalidate(projectDirProvider);
+                                    projectDirController.refresh();
                                   },
                                   child: Text('yes'),
                                 ),

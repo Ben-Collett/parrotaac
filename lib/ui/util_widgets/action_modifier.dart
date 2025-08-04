@@ -17,12 +17,14 @@ class ActionConfig extends StatefulWidget {
   final double width;
   final double totalHeight;
   final double topBarHeight;
+  final void Function(List<ParrotAction>)? onChange;
   const ActionConfig(
       {super.key,
       required this.controller,
       required this.width,
       required this.totalHeight,
-      required this.topBarHeight});
+      required this.topBarHeight,
+      this.onChange});
 
   @override
   State<ActionConfig> createState() => _ActionConfigState();
@@ -55,6 +57,7 @@ class _ActionConfigState extends State<ActionConfig> {
               onPressed: () {
                 actions.removeAt(i);
                 controller.updateActions(actions);
+                widget.onChange?.call(actions);
                 setState(() {});
               },
               icon: Icon(Icons.close),
@@ -113,6 +116,8 @@ class _ActionConfigState extends State<ActionConfig> {
                     onPressed: () {
                       actions.add(selectedAction);
                       controller.updateActions(actions);
+
+                      widget.onChange?.call(actions);
                       setState(() {});
                     },
                     textColor: Colors.lightBlue,
@@ -138,6 +143,7 @@ class _ActionConfigState extends State<ActionConfig> {
                   final ParrotAction action = actions.removeAt(oldIndex);
                   actions.insert(newIndex, action);
                   controller.updateActions(actions);
+                  widget.onChange?.call(actions);
                   setState(() {});
                 }),
           ),

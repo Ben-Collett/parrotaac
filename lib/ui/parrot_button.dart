@@ -1,4 +1,3 @@
-import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:openboard_wrapper/button_data.dart';
 import 'package:openboard_wrapper/color_data.dart';
@@ -11,11 +10,12 @@ import 'package:parrotaac/backend/project/parrot_project.dart';
 import 'package:parrotaac/extensions/button_data_extensions.dart';
 import 'package:parrotaac/extensions/color_extensions.dart';
 import 'package:parrotaac/extensions/image_extensions.dart';
-import 'package:parrotaac/extensions/map_extensions.dart';
+import 'package:parrotaac/ui/board_screen_popup_history.dart';
 import 'package:parrotaac/ui/event_handler.dart';
 import 'package:parrotaac/ui/popups/button_config.dart';
 import 'package:parrotaac/ui/widgets/sentence_box.dart';
 import 'actions/button_actions.dart';
+import 'restore_button_diff.dart';
 
 void Function(Obf) _defaultGoToLinkedBoard = (_) {};
 const String parrotActionMode = "ext_parrot_action_mode";
@@ -23,6 +23,7 @@ const String parrotActionMode = "ext_parrot_action_mode";
 class ParrotButtonNotifier extends ChangeNotifier {
   ButtonData _data;
   ButtonData get data => _data;
+  ProjectEventHandler eventHandler;
   VoidCallback? onDelete;
   VoidCallback? onPressOverride;
 
@@ -125,6 +126,7 @@ class ParrotButtonNotifier extends ChangeNotifier {
       this.goHome,
       this.project,
       this.onPressOverride,
+      required this.eventHandler,
       this.onDelete})
       : _data = data ?? ButtonData(),
         goToLinkedBoard = goToLinkedBoard ?? _defaultGoToLinkedBoard;
@@ -160,12 +162,16 @@ class ParrotButtonNotifier extends ChangeNotifier {
 class ParrotButton extends StatelessWidget {
   final ParrotButtonNotifier controller;
   final bool holdToConfig;
-  final ProjectEventHandler eventHandler;
+  final BoardScreenPopupHistory? popupHistory;
+  final Obf? currentBoard;
+  final RestorableButtonDiff? restorableButtonDiff;
   ButtonData get buttonData => controller.data;
   const ParrotButton({
     super.key,
     required this.controller,
-    required this.eventHandler,
+    this.currentBoard,
+    this.popupHistory,
+    this.restorableButtonDiff,
     this.holdToConfig = false,
   });
   void onTap() {
@@ -177,7 +183,8 @@ class ParrotButton extends StatelessWidget {
       if (buttonData.linkedBoard == null) {
         String? id = buttonData.loadBoardData?.id;
         if (id != null) {
-          buttonData.linkedBoard = eventHandler.project.findBoardById(id);
+          buttonData.linkedBoard =
+              controller.eventHandler.project.findBoardById(id);
         }
       }
       if (buttonData.linkedBoard != null) {
@@ -185,146 +192,17 @@ class ParrotButton extends StatelessWidget {
         controller.goToLinkedBoard(linkedBoard);
       }
 
-      executeActions(controller);
+      executeActions(controller, board: currentBoard);
     }
   }
 
-  void onLongPress(BuildContext context) {
-    showDialog(
-      context: context,
-      barrierDismissible: false,
-      builder: (context) {
-        ButtonData data = controller.data;
-        Map<String, dynamic> originalJson = controller.data.toJson();
-        final List<String> originalActions = List.of(data.actions);
-        final SoundData? originalSound = data.sound;
-        final ImageData? originalImage = data.image;
-        final preferredSoundType = data.preferredAudioSourceType;
-        //The sentence box controller has to be null in the config screen to avoid taps in the preview being added to the sentence box
-        final sentenceBoxController = controller.boxController;
-        controller.boxController = null;
-        final goToLinkedBoard = controller.goToLinkedBoard;
-        controller.goToLinkedBoard = (_) {};
-
-        IconButton cancelButton = IconButton(
-          color: Colors.red,
-          icon: Icon(Icons.cancel_rounded),
-          onPressed: () {
-            data.actions = originalActions;
-            controller.goToLinkedBoard = goToLinkedBoard;
-            controller.data = data;
-            controller.boxController = sentenceBoxController;
-            data.sound = originalSound;
-            data.preferredAudioSourceType = preferredSoundType;
-            Navigator.of(context).pop();
-          },
-        );
-
-        IconButton acceptButton = IconButton(
-          color: Colors.green,
-          icon: Icon(Icons.check),
-          onPressed: () {
-            controller.boxController = sentenceBoxController;
-            controller.goToLinkedBoard = goToLinkedBoard;
-            Navigator.of(context).pop();
-            final Map<String, dynamic> currentJson = controller.data.toJson();
-            final Map<String, dynamic> diff =
-                originalJson.valuesThatAreDifferent(currentJson);
-            final Map<String, dynamic> undoDiff =
-                currentJson.valuesThatAreDifferent(originalJson);
-
-            //WARNING: mapEquals only works if there are no nested structures
-            bool soundChanged = !mapEquals(
-              originalSound?.toJson(),
-              data.sound?.toJson(),
-            );
-            bool imageChanged = !mapEquals(
-              originalImage?.toJson(),
-              data.image?.toJson(),
-            );
-
-            if (diff.isNotEmpty || soundChanged || imageChanged) {
-              eventHandler.addConfigureButtonToHistory(
-                controller.data.id,
-                diff,
-                undoDiff,
-                originalSound: originalSound,
-                originalImage: originalImage,
-                newImage: data.image,
-                newSound: data.sound,
-              );
-            }
-          },
-        );
-
-        IconButton deleteButton = IconButton(
-          color: Colors.red,
-          icon: Icon(Icons.delete),
-          onPressed: () {
-            _showConfirmDeleteDialog(context, controller.onDelete);
-          },
-        );
-
-        List<Widget> actions = [];
-        //if (controller.onDelete != null) {
-        // actions.add(deleteButton);
-        // }
-        Row row = Row(
-          children: [
-            cancelButton,
-            acceptButton,
-          ],
-        );
-        if (controller.onDelete != null) {
-          row = Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [deleteButton, row],
-          );
-        }
-        actions.add(cancelButton);
-        actions.add(acceptButton);
-
-        return AlertDialog(
-          content: ButtonConfigPopup(
-            buttonController: controller,
-            eventHandler: eventHandler,
-          ),
-          actions: [row],
-        );
-      },
-    );
-  }
-
-  void _showConfirmDeleteDialog(BuildContext context, VoidCallback? onDelete) {
-    IconButton cancelButton = IconButton(
-      color: Colors.red,
-      icon: Icon(Icons.cancel_rounded),
-      onPressed: () {
-        Navigator.of(context).pop();
-      },
-    );
-
-    IconButton acceptButton = IconButton(
-      color: Colors.green,
-      icon: Icon(Icons.check),
-      onPressed: () {
-        if (onDelete != null) {
-          onDelete();
-        }
-        Navigator.of(context).pop();
-        Navigator.of(context).pop();
-      },
-    );
-    showDialog(
-      context: context,
-      builder: (context) {
-        return AlertDialog(
-          title: Text("confirm button delete"),
-          actions: [cancelButton, acceptButton],
-        );
-      },
-    );
-  }
+  void onLongPress(BuildContext context) => showConfigExistingPopup(
+        context: context,
+        controller: controller,
+        restorableButtonDiff: restorableButtonDiff,
+        currentBoard: currentBoard,
+        popupHistory: popupHistory,
+      );
 
   @override
   Widget build(BuildContext context) {

@@ -1,20 +1,44 @@
 import 'package:flutter/material.dart';
 import 'package:openboard_wrapper/button_data.dart';
 import 'package:openboard_wrapper/obf.dart';
+import 'package:parrotaac/backend/history_stack.dart';
+import 'package:parrotaac/backend/project/code_gen_allowed/event/project_events.dart';
 import 'package:parrotaac/backend/project/parrot_project.dart';
+import 'package:parrotaac/backend/project_restore_write_stream.dart';
 import 'package:parrotaac/ui/board_screen_appbar.dart';
 import 'package:parrotaac/ui/event_handler.dart';
 import 'package:parrotaac/ui/util_widgets/board.dart';
 import 'package:parrotaac/ui/util_widgets/draggable_grid.dart';
 import 'package:parrotaac/ui/widgets/sentence_box.dart';
+import '../restorative_navigator.dart';
 import 'board_modes.dart';
+import 'board_screen_popup_history.dart';
 import 'parrot_button.dart';
+import 'restore_button_diff.dart' show RestorableButtonDiff;
 
 class BoardScreen extends StatefulWidget {
   final ParrotProject project;
+  final ProjectRestoreStream? restoreStream;
+  final BoardHistoryStack? history;
+  final BoardMode? initialMode;
+  final List<SenteceBoxDisplayEntry>? initialBoxData;
+  final List<ProjectEvent>? initialUndoEventStack;
+  final List<ProjectEvent>? initialRedoEventStack;
+  final BoardScreenPopupHistory? popupHistory;
+  final RestorableButtonDiff? restorableButtonDiff;
   //WARNING: storing the path will only work if I wait to rename a project somehow
-  final String? path;
-  const BoardScreen({super.key, required this.project, this.path});
+  const BoardScreen({
+    super.key,
+    required this.project,
+    this.initialBoxData,
+    this.initialMode,
+    this.popupHistory,
+    this.restoreStream,
+    this.initialUndoEventStack,
+    this.initialRedoEventStack,
+    this.restorableButtonDiff,
+    this.history,
+  });
 
   @override
   State<BoardScreen> createState() => _BoardScreenState();
@@ -25,8 +49,8 @@ class _BoardScreenState extends State<BoardScreen> {
   static const String defaultID = "board";
   late final GridNotfier<ParrotButton> _gridNotfier;
   late final SentenceBoxController _sentenceController;
-  final ValueNotifier<BoardMode> _boardMode =
-      ValueNotifier(BoardMode.normalMode);
+  late final ValueNotifier<BoardMode> _boardMode;
+
   late final TextEditingController _titleController;
   late final ValueNotifier<Obf> _currentObfNotfier;
   final ValueNotifier<bool> canUndo = ValueNotifier(false);
@@ -38,8 +62,10 @@ class _BoardScreenState extends State<BoardScreen> {
   set _currentObf(Obf obf) => _currentObfNotfier.value = obf;
   @override
   void initState() {
+    _boardMode = ValueNotifier(widget.initialMode ?? BoardMode.normalMode);
     _currentObfNotfier = ValueNotifier(
-      widget.project.root ??
+      widget.history?.currentBoard ??
+          widget.project.root ??
           Obf(
             locale: "en",
             name: defaultBoardName,
@@ -47,7 +73,15 @@ class _BoardScreenState extends State<BoardScreen> {
           ),
     );
 
-    _sentenceController = SentenceBoxController(projectPath: widget.path);
+    _sentenceController = SentenceBoxController(
+      projectPath: widget.project.path,
+      initialData: widget.initialBoxData,
+    );
+
+    _sentenceController.addListener(() {
+      final data = _sentenceController.dataCopyView();
+      widget.restoreStream?.updateSentenceBar(data);
+    });
     _titleController = TextEditingController(text: _currentObf.name);
     _gridNotfier = GridNotfier(
         data: [],
@@ -55,7 +89,9 @@ class _BoardScreenState extends State<BoardScreen> {
           if (obj is ParrotButtonNotifier) {
             return ParrotButton(
               controller: obj,
-              eventHandler: eventHandler,
+              currentBoard: _currentObf,
+              restorableButtonDiff: widget.restorableButtonDiff,
+              popupHistory: widget.popupHistory,
             );
           }
           return null;
@@ -72,6 +108,9 @@ class _BoardScreenState extends State<BoardScreen> {
           );
         });
     _boardMode.addListener(
+      () => widget.restoreStream?.updateBoardMode(_boardMode.value),
+    );
+    _boardMode.addListener(
       () async {
         if (_boardMode.value == BoardMode.normalMode) {
           _updateButtonPositionsInObf();
@@ -87,6 +126,7 @@ class _BoardScreenState extends State<BoardScreen> {
     _currentObfNotfier.addListener(() {
       _titleController.text = _currentObf.name;
     });
+
     eventHandler = ProjectEventHandler(
         project: widget.project,
         gridNotfier: _gridNotfier,
@@ -95,7 +135,24 @@ class _BoardScreenState extends State<BoardScreen> {
         canRedo: canRedo,
         modeNotifier: _boardMode,
         titleController: _titleController,
-        currentObf: _currentObfNotfier);
+        currentObf: _currentObfNotfier,
+        restoreStream: widget.restoreStream);
+
+    _boardMode.addListener(() {
+      if (_boardMode.value == BoardMode.normalMode) {
+        eventHandler.clear();
+      }
+    });
+
+    if (widget.initialUndoEventStack != null) {
+      eventHandler.bulkExecute(
+        widget.initialUndoEventStack!,
+        updateUi: false,
+      );
+    }
+    if (widget.initialRedoEventStack != null) {
+      eventHandler.setRedoStack(widget.initialRedoEventStack!);
+    }
     super.initState();
   }
 
@@ -128,11 +185,16 @@ class _BoardScreenState extends State<BoardScreen> {
   }
 
   Future<void> writeToDisk() async {
-    await widget.project.write(path: widget.path);
+    await widget.project.write(path: widget.project.path);
   }
 
   void addButtonToSentenceBox(ButtonData buttonData) {
-    _sentenceController.add(buttonData);
+    _sentenceController.add(
+      SenteceBoxDisplayEntry(
+        data: buttonData,
+        board: _currentObf,
+      ),
+    );
   }
 
   void _updateObfName() {
@@ -184,13 +246,20 @@ class _BoardScreenState extends State<BoardScreen> {
         titleController: _titleController,
         project: widget.project,
         eventHandler: eventHandler,
+        leading: IconButton(
+          icon: Icon(Icons.arrow_back),
+          onPressed: () => RestorativeNavigator().pop(context),
+        ),
       ),
       body: BoardWidget(
         project: widget.project,
-        path: widget.path,
+        history: widget.history,
         eventHandler: eventHandler,
         boardMode: _boardMode,
+        restorableButtonDiff: widget.restorableButtonDiff,
         gridNotfier: _gridNotfier,
+        popupHistory: widget.popupHistory,
+        restoreStream: widget.restoreStream,
         sentenceBoxController: _sentenceController,
         currentObfNotfier: _currentObfNotfier,
       ),
