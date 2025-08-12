@@ -5,6 +5,8 @@ import 'package:openboard_wrapper/obf.dart';
 import 'package:parrotaac/backend/history_stack.dart';
 import 'package:parrotaac/backend/project/parrot_project.dart';
 import 'package:parrotaac/backend/project_restore_write_stream.dart';
+import 'package:parrotaac/extensions/color_extensions.dart';
+import 'package:parrotaac/extensions/obf_extensions.dart';
 import 'package:parrotaac/ui/board_modes.dart';
 import 'package:parrotaac/ui/board_screen_popup_history.dart';
 import 'package:parrotaac/ui/codgen/board_screen_popups.dart';
@@ -19,12 +21,11 @@ import 'package:parrotaac/ui/widgets/sentence_box.dart';
 class BoardWidget extends StatefulWidget {
   final ParrotProject project;
   final ValueNotifier<BoardMode>? boardMode;
-  final ValueNotifier<Obf>? currentObfNotfier;
   final GridNotfier<ParrotButton>? gridNotfier;
   final ProjectEventHandler eventHandler;
   final SentenceBoxController? sentenceBoxController;
   final BoardHistoryStack? history;
-  final bool showSentenceBar;
+  final bool? showSentenceBar;
   final ProjectRestoreStream? restoreStream;
   final BoardScreenPopupHistory? popupHistory;
   final RestorableButtonDiff? restorableButtonDiff;
@@ -33,15 +34,13 @@ class BoardWidget extends StatefulWidget {
     required this.project,
     required this.eventHandler,
     this.boardMode,
-    this.currentObfNotfier,
     this.gridNotfier,
     this.restoreStream,
     this.popupHistory,
     this.restorableButtonDiff,
     this.history,
-    this.showSentenceBar =
-        true, //TODO: better to pass in a sentence bar and disable the setnenceBoxController if null
     this.sentenceBoxController,
+    this.showSentenceBar,
   });
 
   @override
@@ -56,28 +55,29 @@ class _BoardWidgetState extends State<BoardWidget> {
   late final SentenceBoxController _sentenceController;
   Set<ParrotButtonNotifier> buttonSet = {};
   late final ValueNotifier<BoardMode> _boardMode;
-  late final ValueNotifier<Obf> _currentObfNotfier;
-  Obf get currentObf => _currentObfNotfier.value;
-  set currentObf(Obf obf) => _currentObfNotfier.value = obf;
+  Obf get currentObf => history.currentBoard;
+  set currentObf(Obf obf) => history.push(obf);
 
   late final BoardHistoryStack history;
+  bool get showSentenceBar =>
+      widget.showSentenceBar ??
+      widget.project.settings?.showSentenceBar ??
+      true;
   @override
   void initState() {
     _boardMode = widget.boardMode ?? ValueNotifier(BoardMode.normalMode);
-    _currentObfNotfier = widget.currentObfNotfier ??
-        ValueNotifier(
-          widget.project.root ??
-              Obf(
-                locale: "en",
-                name: defaultBoardName,
-                id: defaultID,
-              ),
+
+    Obf currentBoard = widget.project.root ??
+        Obf(
+          locale: "en",
+          name: defaultBoardName,
+          id: defaultID,
         );
 
     history = widget.history ??
         BoardHistoryStack(
           maxHistorySize: historySize,
-          currentBoard: _currentObfNotfier.value,
+          currentBoard: currentBoard,
         );
 
     _sentenceController = widget.sentenceBoxController ??
@@ -91,7 +91,7 @@ class _BoardWidgetState extends State<BoardWidget> {
               return ParrotButton(
                 controller: obj,
                 restorableButtonDiff: widget.restorableButtonDiff,
-                currentBoard: _currentObfNotfier.value,
+                currentBoard: history.currentBoard,
                 popupHistory: widget.popupHistory,
               );
             }
@@ -108,11 +108,8 @@ class _BoardWidgetState extends State<BoardWidget> {
     _updateGridSettingsFromBoardMode();
     _boardMode.addListener(_updateGridSettingsFromBoardMode);
 
-    _currentObfNotfier.addListener(() {
-      if (_boardMode.value != BoardMode.normalMode) {
-        _updateButtonPositionsInObf(history.currentBoard);
-      }
-      history.push(currentObf);
+    history.beforeChange = _updateObfData;
+    history.addListener(() {
       widget.restoreStream?.updateHistory(history.toIdList());
       _gridNotfier.setData(_getButtonsFromObf(currentObf));
     });
@@ -144,7 +141,20 @@ class _BoardWidgetState extends State<BoardWidget> {
       );
     }
 
+    history.addListener(() {
+      _gridNotfier.backgroundColorNotifier.value =
+          history.currentBoard.boardColor.toColor();
+    });
+    _gridNotfier.backgroundColorNotifier.value =
+        history.currentBoard.boardColor.toColor();
+
     super.initState();
+  }
+
+  void _updateObfData() {
+    if (_boardMode.value != BoardMode.normalMode) {
+      _updateButtonPositionsInObf(currentObf);
+    }
   }
 
   ParrotButtonNotifier? findNotifierById(String id) {
@@ -167,7 +177,7 @@ class _BoardWidgetState extends State<BoardWidget> {
           button,
           widget.eventHandler,
           restorableButtonDiff: widget.restorableButtonDiff,
-          obf: _currentObfNotfier.value,
+          obf: history.currentBoard,
         );
     mode.onPressedOverride(_gridNotfier, widget.eventHandler);
 
@@ -373,8 +383,8 @@ class _BoardWidgetState extends State<BoardWidget> {
     if (widget.sentenceBoxController == null) {
       _sentenceController.dispose();
     }
-    if (widget.currentObfNotfier == null) {
-      _currentObfNotfier.dispose();
+    if (widget.history == null) {
+      history.dispose();
     }
 
     super.dispose();
@@ -418,15 +428,16 @@ class _BoardWidgetState extends State<BoardWidget> {
       valueListenable: _boardMode,
       builder: (context, inBuilderMode, _) {
         List<Flexible> children = [
-          if (widget.showSentenceBar)
+          if (showSentenceBar)
             Flexible(
               flex: 2,
               child: SentenceBar(
                 sentenceBoxController: _sentenceController,
                 goBack: () {
-                  history.pop();
-                  _currentObfNotfier.value = history.currentBoard;
-                  widget.restoreStream?.updateHistory(history.toIdList());
+                  if (history.length > 1) {
+                    history.pop();
+                    widget.restoreStream?.updateHistory(history.toIdList());
+                  }
                 },
               ),
             ),

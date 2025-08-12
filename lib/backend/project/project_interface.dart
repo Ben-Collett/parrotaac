@@ -13,7 +13,7 @@ mixin AACProject {
 
   //TODO: I can in the future add an overrde enum, and allow for a safe override if the checksum of the original files is the same as it is now
   ///returns the path wrote to
-  Future<String> write({String? path});
+  Future<String> write();
 
   ///this method when overridden should always override displayData.name
   Future<bool> rename(String name);

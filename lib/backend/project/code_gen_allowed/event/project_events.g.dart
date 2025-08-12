@@ -199,3 +199,17 @@ Map<String, dynamic> _$SwapButtonsToJson(SwapButtons instance) =>
       'newRow': instance.newRow,
       'newCol': instance.newCol,
     };
+
+ChangeBoardColor _$ChangeBoardColorFromJson(Map<String, dynamic> json) =>
+    ChangeBoardColor(
+      boardId: json['boardId'] as String,
+      originalColor: json['originalColor'] as String,
+      newColor: json['newColor'] as String,
+    );
+
+Map<String, dynamic> _$ChangeBoardColorToJson(ChangeBoardColor instance) =>
+    <String, dynamic>{
+      'boardId': instance.boardId,
+      'originalColor': instance.originalColor,
+      'newColor': instance.newColor,
+    };

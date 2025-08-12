@@ -1,13 +1,17 @@
 import 'package:flutter/widgets.dart';
 import 'package:openboard_wrapper/button_data.dart';
+import 'package:openboard_wrapper/color_data.dart';
 import 'package:openboard_wrapper/grid_data.dart';
 import 'package:openboard_wrapper/image_data.dart';
 import 'package:openboard_wrapper/obf.dart';
 import 'package:openboard_wrapper/sound_data.dart';
 import 'package:parrotaac/backend/event_stack.dart';
+import 'package:parrotaac/backend/history_stack.dart';
 import 'package:parrotaac/backend/project/code_gen_allowed/event/project_events.dart';
 import 'package:parrotaac/backend/project/parrot_project.dart';
 import 'package:parrotaac/extensions/button_data_extensions.dart';
+import 'package:parrotaac/extensions/color_extensions.dart';
+import 'package:parrotaac/extensions/obf_extensions.dart';
 import 'package:parrotaac/ui/board_modes.dart';
 import 'package:parrotaac/ui/util_widgets/draggable_grid.dart';
 
@@ -20,7 +24,7 @@ class ProjectEventHandler {
   final GridNotfier gridNotfier;
   bool gridNeedsUpdate = false;
   bool autoUpdateUi = true;
-  final ValueNotifier<Obf> currentObf;
+  final BoardHistoryStack boardHistory;
 
   final ValueNotifier<BoardMode> modeNotifier;
 
@@ -39,12 +43,12 @@ class ProjectEventHandler {
         restoreStream?.updateRedoStack(history.redoList);
       });
 
-  Obf get _obf => currentObf.value;
+  Obf get _obf => boardHistory.currentBoard;
 
   ProjectEventHandler({
     required this.project,
     required this.gridNotfier,
-    required this.currentObf,
+    required this.boardHistory,
     required this.canUndo,
     required this.canRedo,
     required this.modeNotifier,
@@ -77,7 +81,7 @@ class ProjectEventHandler {
     if (event.returnToBoardId != null) {
       Obf? board = pfi(event.returnToBoardId!);
       if (board != null) {
-        currentObf.value = board;
+        boardHistory.push(board);
       }
     }
 
@@ -166,6 +170,10 @@ class ProjectEventHandler {
         );
       case AddBoard event:
         _addBoard(event.id, event.name, event.rowCount, event.colCount);
+      case ChangeBoardColor event:
+        Obf? board = pfi(event.boardId);
+        assert(board != null, "can't change color of null board");
+        _changeBoardColor(event.newColor, board!, updateUi: updateUi);
       case RemoveBoard event:
         _removeBoard(pfi(event.id)!);
       case RestoreBoard _:
@@ -240,10 +248,10 @@ class ProjectEventHandler {
     board.grid.setButtonData(row: newRow, col: newCol, data: b1);
   }
 
-  void addRow() => execute(AddRow(id: currentObf.value.id));
+  void addRow() => execute(AddRow(id: boardHistory.currentBoard.id));
 
   void _addRow({Obf? board, bool updateUi = true}) {
-    board = board ?? currentObf.value;
+    board = board ?? boardHistory.currentBoard;
     if (board == _obf) {
       if (updateUi) {
         gridNotfier.addRow();
@@ -258,7 +266,7 @@ class ProjectEventHandler {
   void removeRow(int row) => execute(RemoveRow(id: _obf.id, row: row));
 
   void _removeRow(int? row, {Obf? board, bool updateUi = true}) {
-    board = board ?? currentObf.value;
+    board = board ?? boardHistory.currentBoard;
     row = row ?? (board.grid.numberOfRows - 1);
     if (board == _obf) {
       if (updateUi) {
@@ -273,7 +281,7 @@ class ProjectEventHandler {
 
   void addCol() => execute(AddColumn(id: _obf.id));
   void _addCol({Obf? board, bool updateUi = true}) {
-    board = board ?? currentObf.value;
+    board = board ?? boardHistory.currentBoard;
     if (board == _obf) {
       if (updateUi) {
         gridNotfier.addColumn();
@@ -286,7 +294,7 @@ class ProjectEventHandler {
 
   void removeCol(int col) => execute(RemoveColumn(id: _obf.id, col: col));
   void _removeCol(int? col, {Obf? board, bool updateUi = true}) {
-    board = board ?? currentObf.value;
+    board = board ?? boardHistory.currentBoard;
     col = col ?? (board.grid.numberOfColumns - 1);
     if (board == _obf) {
       if (updateUi) {
@@ -297,6 +305,22 @@ class ProjectEventHandler {
       }
     }
     board.grid.removeCol(col);
+  }
+
+  void changeBoardColor(Obf board, Color oldColor, Color newColor) => execute(
+        ChangeBoardColor(
+          boardId: board.id,
+          originalColor:
+              ColorDataCovertor.fromColorToColorData(oldColor).toString(),
+          newColor: ColorDataCovertor.fromColorToColorData(newColor).toString(),
+        ),
+        updateUi: false,
+      );
+  void _changeBoardColor(String newColor, Obf board, {required bool updateUi}) {
+    board.boardColor = ColorData.fromString(newColor);
+    if (updateUi) {
+      gridNotfier.backgroundColorNotifier.value = board.boardColor.toColor();
+    }
   }
 
   ///should only be called if history.getLastRemovedButton is not null, i.e. there has been a button removed to recover
@@ -311,7 +335,7 @@ class ProjectEventHandler {
   }
 
   void removeButton(int row, int col, {Obf? board}) {
-    board = board ?? currentObf.value;
+    board = board ?? boardHistory.currentBoard;
     execute(
       RemoveButton(
         boardId: board.id,
@@ -365,7 +389,7 @@ class ProjectEventHandler {
   }
 
   void _removeButton(int row, int col, {Obf? board, bool updateUi = true}) {
-    board = board ?? currentObf.value;
+    board = board ?? boardHistory.currentBoard;
     if (board == _obf) {
       if (updateUi) {
         gridNotfier.removeAt(row, col);
@@ -380,7 +404,7 @@ class ProjectEventHandler {
         AddButton(
           row: row,
           col: col,
-          boardId: currentObf.value.id,
+          boardId: boardHistory.currentBoard.id,
           imageData: button.image?.toJson(),
           soundData: button.sound?.toJson(),
           buttonData: button.toJson(),
@@ -396,7 +420,7 @@ class ProjectEventHandler {
     SoundData? soundData,
     bool updateUi = true,
   }) {
-    board = board ?? currentObf.value;
+    board = board ?? boardHistory.currentBoard;
     button.image = button.image ?? imageData;
     button.sound = button.sound ?? soundData;
     if (board == _obf) {
@@ -484,11 +508,11 @@ class ProjectEventHandler {
     return ParrotButtonNotifier(
       data: bd,
       goToLinkedBoard: (obf) {
-        currentObf.value = obf;
+        boardHistory.push(obf);
       },
       goHome: () {
         if (project.root != null) {
-          currentObf.value = project.root!;
+          boardHistory.push(project.root!);
         }
       },
       project: project,

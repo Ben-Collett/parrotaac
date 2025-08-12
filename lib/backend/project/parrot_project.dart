@@ -8,6 +8,7 @@ import 'package:openboard_wrapper/obf.dart';
 import 'package:openboard_wrapper/sound_data.dart';
 import 'package:parrotaac/backend/project/board/parrot_board.dart';
 import 'package:parrotaac/backend/project/manifest_utils.dart';
+import 'package:parrotaac/backend/project/project_settings.dart';
 import 'package:parrotaac/backend/project/temp_files.dart';
 import 'package:parrotaac/file_utils.dart';
 import 'package:parrotaac/utils.dart';
@@ -21,9 +22,17 @@ final SvgPicture logo = SvgPicture.asset("assets/images/logo/white_bg.svg");
 
 class ParrotProject extends Obz with AACProject {
   String path;
+  ProjectSettings? settings;
+
   @override
   String Function(String)? get sanatizeFilePathForManifest =>
       (path) => Platform.isWindows ? windowsPathToPosix(path) : path;
+
+  File get manifestFile {
+    File file = File(p.join(path, 'manifest.json'));
+    file.createSync(recursive: true);
+    return file;
+  }
 
   ///only rewrite the boards that have actually updated, can be disabled for testing
   static const bool optimizedSaves = true;
@@ -50,12 +59,13 @@ class ParrotProject extends Obz with AACProject {
         p.basenameWithoutExtension(path);
   }
 
-  ParrotProject({super.boards, required String name, required this.path})
+  ParrotProject(
+      {super.boards, required String name, required this.path, this.settings})
       : super() {
     manifestExtendedProperties[nameKey] = name;
   }
 
-  ParrotProject.fromDirectory(Directory dir)
+  ParrotProject.fromDirectory(Directory dir, {this.settings})
       : path = dir.path,
         super.fromDirectory(dir) {
     Map<String, dynamic> manifest = manifestJson;
@@ -162,17 +172,16 @@ class ParrotProject extends Obz with AACProject {
   ///returns whether or not the rename was successful.
   ///renames the project directory to the new basename, if a  project directory exist
   @override
-  Future<bool> rename(String name, {Directory? projectDirectory}) async {
+  Future<bool> rename(String name) async {
     String originalName = name;
     manifestExtendedProperties[nameKey] = name;
-    Directory? projectDirOptional =
-        projectDirectory ?? await getProjectDir(name);
-    if (projectDirectory?.existsSync() ?? false) {
-      Directory projectDir =
-          projectDirOptional!; //?? false provides null safety
+    Directory projectDirectory = Directory(path);
+
+    if (projectDirectory.existsSync()) {
       try {
-        String parentPath = p.dirname(projectDir.path);
-        projectDir.renameSync(p.join(parentPath, baseName));
+        String parentPath = p.dirname(projectDirectory.path);
+        //TODO: i need to update the poroject path and what not
+        await projectDirectory.rename(p.join(parentPath, baseName));
       } catch (e) {
         manifestExtendedProperties[nameKey] = originalName;
         return false;
@@ -182,20 +191,11 @@ class ParrotProject extends Obz with AACProject {
     return true;
   }
 
-  ///writes to targetDirectoryPath by default. This behavior is overridden by the optional [path] parameter.
   ///this will override any matching files in the directory and leave the other files be
   @override
-  Future<String> write({String? path}) async {
-    Directory dir;
-    if (path == null) {
-      Directory? temp = await getProjectDir(baseName);
-      dir = temp ?? await _asDirectory;
-    } else {
-      dir = Directory(path);
-    }
-    File manifest = File(p.join(dir.path, 'manifest.json'));
-    manifest.createSync(
-        recursive: true); // should create dir as well as the manifest
+  Future<String> write() async {
+    Directory dir = Directory(path);
+    File manifest = manifestFile; // should create dir as well as the manifest
     _setBoardPaths();
     await _writeBoards(dir);
     manifest.writeAsStringSync(manifestString);
@@ -224,14 +224,6 @@ class ParrotProject extends Obz with AACProject {
       String pathToWrite = fullPath(board);
       await board.writeTo(pathToWrite);
     }
-  }
-
-  ///returns a Future with a directory object set to the the path of the project, this method does not create that directory, nor does it write a any data to it.
-  Future<Directory> get _asDirectory {
-    Directory maptToDir(String path) => Directory(path);
-    return projectTargetDirectory
-        .then((target) => p.join(target, baseName))
-        .then(maptToDir);
   }
 
   factory ParrotProject.fromObz(Obz obz, String name, String path) {

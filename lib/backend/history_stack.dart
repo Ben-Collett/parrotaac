@@ -1,31 +1,38 @@
 import 'dart:collection';
 
+import 'package:flutter/cupertino.dart';
 import 'package:openboard_wrapper/obf.dart';
 
 ///A stack that will start removing old elements if it passes maxHistorySize
 //TODO: I will need to handle if a board is deleted
-class BoardHistoryStack {
+class BoardHistoryStack extends ChangeNotifier {
   final int? maxHistorySize;
   final Queue<Obf> _queue;
+  VoidCallback? beforeChange;
 
-  Obf get currentBoard {
-    Obf head = _queue.removeLast();
-    _queue.add(head);
-    return head;
-  }
+  int get length => _queue.length;
+
+  Obf get currentBoard => _queue.last;
+
+  Obf? get currentBoardOrNull => _queue.lastOrNull;
 
   BoardHistoryStack({
     required this.maxHistorySize,
-    required Obf currentBoard,
-  }) : _queue = Queue.of([currentBoard]);
+    required Obf? currentBoard,
+    this.beforeChange,
+  }) : _queue = Queue.of([if (currentBoard != null) currentBoard]);
 
   BoardHistoryStack.fromNonEmptyList(
     List<Obf> boards, {
     required this.maxHistorySize,
+    this.beforeChange,
   }) : _queue = Queue.from(boards);
 
   Obf pop() {
-    return _queue.removeLast();
+    beforeChange?.call();
+    Obf top = _queue.removeLast();
+    notifyListeners();
+    return top;
   }
 
   List<String> toIdList() {
@@ -39,9 +46,11 @@ class BoardHistoryStack {
     if (obf == currentBoard) {
       return;
     }
+    beforeChange?.call();
     if (_queue.length + 1 == maxHistorySize) {
       _queue.removeFirst();
     }
     _queue.addLast(obf);
+    notifyListeners();
   }
 }

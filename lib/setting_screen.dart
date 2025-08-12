@@ -1,90 +1,279 @@
 import 'package:flutter/material.dart';
-import 'package:parrotaac/restorative_navigator.dart';
+import 'package:openboard_wrapper/obf.dart';
+import 'package:parrotaac/backend/project/parrot_project.dart';
+import 'package:parrotaac/ui/settings/defaults.dart';
+import 'package:parrotaac/ui/settings/settings_themed_appbar.dart';
+import 'package:parrotaac/ui/util_widgets/setting_util_widgets.dart';
 
-class SettingsScreen extends StatelessWidget {
-  const SettingsScreen({super.key});
+const _padding = 16.0;
+const _wideScreenSize = 600;
+
+class SettingsScreen extends StatefulWidget {
+  final Obf? board;
+  final ParrotProject? project;
+  const SettingsScreen({
+    super.key,
+    this.board,
+    this.project,
+  });
+  @override
+  State<SettingsScreen> createState() => _SettingsScreenState();
+}
+
+class _SettingsScreenState extends State<SettingsScreen> {
+  late _Category selectedCategory;
+
+  late final List<_Category> categories;
+
+  @override
+  void initState() {
+    categories = [
+      //if (widget.board != null) Category(label: "Board", settingOptions: []),
+      if (widget.project != null) _ProjectCategory(widget.project!),
+      SettingsOptionsCategory(
+        "General",
+        [
+          _ToggleOption("Enable Feature X"),
+          _DropdownOption(
+            "TTS Voice",
+            ["english", "spanish", "french"],
+          )
+        ],
+      ),
+      SettingsOptionsCategory("Admin", [
+        _DropdownOption(
+          "Admin-Lock",
+          ["None", "Math"],
+        ),
+      ]),
+      SettingsOptionsCategory("Appearance", [
+        _ColorChangeOption("Appbar Color", defaultAppbarColor),
+      ]),
+      SettingsOptionsCategory(
+        "About",
+        [
+          _SubtitleOption(
+            "Version",
+            "1.0.0",
+          ),
+          _NavigatableOption("License")
+        ],
+      ),
+    ];
+    selectedCategory = categories[0];
+    super.initState();
+  }
 
   @override
   Widget build(BuildContext context) {
+    final isWideScreen = MediaQuery.of(context).size.width >= _wideScreenSize;
+
     return Scaffold(
-      appBar: AppBar(
-        title: const Text('Settings'),
-        backgroundColor: Colors.grey[900],
-        leading: IconButton(
-          icon: Icon(Icons.arrow_back),
-          onPressed: () => RestorativeNavigator().pop(context),
+      appBar: SettingsThemedAppbar(
+        title: Text("Settings"),
+      ),
+      body: isWideScreen ? _splitView() : _expandableTilesView(),
+    );
+  }
+
+  Widget _splitView() {
+    return Row(
+      children: [
+        Flexible(
+          flex: 2,
+          child: ListView(
+            children: categories.map((category) {
+              return ListTile(
+                selected: category == selectedCategory,
+                title: Text(category.label),
+                onTap: () => setState(() {
+                  selectedCategory = category;
+                }),
+              );
+            }).toList(),
+          ),
         ),
-        elevation: 0,
-      ),
-      body: ListView(
-        padding: const EdgeInsets.all(0),
-        children: <Widget>[
-          _buildSettingsGroup(
-            title: 'General Settings',
-            children: [
-              _buildSwitchListTile('Enable Notifications', true),
-              _buildSwitchListTile('Enable Dark Mode', false),
-            ],
-          ),
-          _buildSettingsGroup(
-            title: 'Privacy & Security',
-            children: [
-              _buildSwitchListTile('Enable Face ID', false),
-              _buildSwitchListTile('Location Services', true),
-            ],
-          ),
-          _buildSettingsGroup(
-            title: 'Account',
-            children: [
-              _buildSwitchListTile('Login with Email', false),
-              _buildSwitchListTile('Enable Two-Factor Authentication', false),
-            ],
-          ),
-        ],
-      ),
+        const VerticalDivider(width: 1),
+        Flexible(
+          flex: 5,
+          child: selectedCategory.content,
+        ),
+      ],
     );
   }
 
-  Widget _buildSettingsGroup(
-      {required String title, required List<Widget> children}) {
-    return Container(
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: const BorderRadius.vertical(top: Radius.circular(10)),
-        boxShadow: [BoxShadow(color: Colors.grey.shade300, blurRadius: 5)],
-      ),
-      margin: const EdgeInsets.symmetric(vertical: 10, horizontal: 15),
+  Widget _expandableTilesView() {
+    return ListView(
+      children: categories.map((category) {
+        return ExpansionTile(
+          title: Text(category.label),
+          children: [category.content],
+        );
+      }).toList(),
+    );
+  }
+}
+
+class _Category {
+  final String label;
+
+  const _Category({
+    required this.label,
+  });
+
+  Widget get content => Placeholder();
+}
+
+class SettingsOptionsCategory extends _Category {
+  final List<_SettingsOption> _settingOptions;
+  SettingsOptionsCategory(String label, this._settingOptions)
+      : super(label: label);
+
+  @override
+  Widget get content {
+    Widget toWidget(_SettingsOption option) => option.asWidget;
+    return Padding(
+      padding: const EdgeInsets.all(_padding),
       child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Padding(
-            padding: const EdgeInsets.all(16.0),
-            child: Text(
-              title,
-              style: TextStyle(
-                fontWeight: FontWeight.bold,
-                fontSize: 16,
-                color: Colors.grey[800],
-              ),
-            ),
-          ),
-          ...children, // Add the individual toggle switches
-        ],
+        children: _settingOptions.map(toWidget).toList(),
       ),
     );
   }
+}
 
-  Widget _buildSwitchListTile(String title, bool value) {
-    return SwitchListTile(
-      title: Text(title),
-      value: value,
-      onChanged: (bool value) {
-        // Handle the toggle value change here
-        print('$title enabled: $value');
+class _ProjectCategory extends _Category {
+  final ParrotProject project;
+  _ProjectCategory(this.project)
+      : assert(
+          project.settings != null,
+          "${project.name} settings are equal to null when entering the settings screen",
+        ),
+        super(label: "Project");
+
+  @override
+  Widget get content => Padding(
+        padding: const EdgeInsets.all(_padding),
+        child: Column(
+          children: [
+            _ToggleTile(
+                key: UniqueKey(),
+                label: "Show Sentence Bar",
+                onChange: (val) {
+                  project.settings?.writeShowSentenceBar(val);
+                },
+                initialValue: project.settings?.showSentenceBar ?? true)
+          ],
+        ),
+      );
+}
+
+class _ToggleTile extends StatefulWidget {
+  final String label;
+  final bool initialValue;
+  final Function(bool) onChange;
+  const _ToggleTile({
+    super.key,
+    required this.label,
+    required this.initialValue,
+    required this.onChange,
+  });
+
+  @override
+  State<_ToggleTile> createState() => _ToggleTileState();
+}
+
+class _ToggleTileState extends State<_ToggleTile> {
+  late final ValueNotifier<bool> notifier;
+  @override
+  void initState() {
+    notifier = ValueNotifier(widget.initialValue);
+    super.initState();
+  }
+
+  @override
+  void dispose() {
+    notifier.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return ValueListenableBuilder(
+      valueListenable: notifier,
+      builder: (context, value, child) {
+        return SwitchListTile(
+          title: Text(widget.label),
+          onChanged: (val) {
+            notifier.value = val;
+            widget.onChange(val);
+          },
+          value: value,
+        );
       },
-      activeColor: Colors.blue,
-      contentPadding: const EdgeInsets.symmetric(horizontal: 20),
-      tileColor: Colors.grey.shade100,
     );
   }
+}
+
+abstract class _SettingsOption {
+  String get label;
+  Widget get asWidget;
+}
+
+class _ToggleOption extends _SettingsOption {
+  @override
+  final String label;
+
+  _ToggleOption(this.label);
+  @override
+  Widget get asWidget => SettingsSwitchTile(key: UniqueKey(), label: label);
+}
+
+class _DropdownOption extends _SettingsOption {
+  @override
+  final String label;
+  final List<String> options;
+
+  _DropdownOption(this.label, this.options);
+  @override
+  Widget get asWidget => SettingsDropDown(
+        label: label,
+        key: UniqueKey(),
+        defaultValue: options.firstOrNull ?? "empty",
+        options: options,
+      );
+}
+
+class _NavigatableOption extends _SettingsOption {
+  @override
+  final String label;
+
+  _NavigatableOption(this.label);
+  @override
+  Widget get asWidget => ListTile(
+        title: Text(label),
+        trailing: Icon(Icons.arrow_forward_ios),
+      );
+}
+
+class _SubtitleOption extends _SettingsOption {
+  @override
+  final String label;
+  final String subtitle;
+
+  _SubtitleOption(this.label, this.subtitle);
+  @override
+  Widget get asWidget => ListTile(
+        title: Text(label),
+        subtitle: Text(subtitle),
+      );
+}
+
+class _ColorChangeOption extends _SettingsOption {
+  @override
+  final String label;
+  final int defaultValue;
+  _ColorChangeOption(this.label, this.defaultValue);
+  @override
+  Widget get asWidget =>
+      SettingsColorChange(label: label, defaultValue: defaultValue);
 }

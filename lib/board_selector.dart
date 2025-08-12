@@ -8,6 +8,7 @@ import 'package:parrotaac/backend/project/parrot_project.dart';
 import 'package:parrotaac/backend/project/project_interface.dart';
 import 'package:parrotaac/restorative_navigator.dart';
 import 'package:parrotaac/shared_providers/project_dir_controller.dart';
+import 'package:parrotaac/ui/settings/settings_themed_appbar.dart';
 import 'package:parrotaac/ui/util_widgets/future_controller_builder.dart';
 import 'package:parrotaac/utils.dart';
 
@@ -15,7 +16,6 @@ import 'backend/project/default_project.dart.dart';
 import 'backend/project/import_utils.dart';
 import 'backend/project/project_utils.dart';
 import 'file_utils.dart';
-import 'shared_providers/future_providers.dart';
 import 'ui/popups/loading.dart';
 import 'ui/widgets/displey_entry.dart';
 
@@ -282,7 +282,7 @@ class _ProjectSelectorState extends State<ProjectSelector> {
       ),
     );
     return Scaffold(
-      appBar: AppBar(
+      appBar: SettingsThemedAppbar(
         title: Row(
           mainAxisAlignment: MainAxisAlignment.spaceBetween,
           children: [
@@ -320,7 +320,6 @@ class _ProjectSelectorState extends State<ProjectSelector> {
             )
           ],
         ),
-        backgroundColor: Color(0xFFAFABDF),
       ),
       body: Column(
         //ensures that it looks normal when there is no data or a loading circle

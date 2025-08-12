@@ -1,11 +1,13 @@
 import 'package:dropdown_search/dropdown_search.dart';
 import 'package:flutter/material.dart';
 import 'package:openboard_wrapper/obf.dart';
+import 'package:parrotaac/backend/history_stack.dart';
 import 'package:parrotaac/backend/project/parrot_project.dart';
 import 'package:parrotaac/ui/board_screen_popup_history.dart';
 import 'package:parrotaac/ui/codgen/board_screen_popups.dart';
 import 'package:parrotaac/ui/event_handler.dart';
 import 'package:parrotaac/ui/popups/create_board.dart';
+import 'package:parrotaac/ui/settings/settings_themed_appbar.dart';
 import 'package:parrotaac/ui/util_widgets/board.dart';
 
 class BoardSelectScreen extends StatefulWidget {
@@ -27,16 +29,17 @@ class BoardSelectScreen extends StatefulWidget {
 }
 
 class _BoardSelectScreenState extends State<BoardSelectScreen> {
-  late final ValueNotifier<Obf> _currentObfNotfier;
-  set _currentObf(Obf obf) => _currentObfNotfier.value = obf;
-  Obf get _currentObf => _currentObfNotfier.value;
+  late final BoardHistoryStack _boardHistory;
+  set _currentObf(Obf obf) => _boardHistory.push(obf);
+  Obf get _currentObf => _boardHistory.currentBoard;
   @override
   void initState() {
-    _currentObfNotfier = ValueNotifier(widget.startingBoard);
-    _currentObfNotfier.addListener(() {
+    _boardHistory = BoardHistoryStack(
+        maxHistorySize: 1, currentBoard: widget.startingBoard);
+    _boardHistory.addListener(() {
       BoardScreenPopup? popup = widget.popupHistory?.topScreen;
       if (popup is SelectBoardScreen) {
-        popup.boardId = _currentObfNotfier.value.id;
+        popup.boardId = _currentObf.id;
         widget.popupHistory?.write();
       }
     });
@@ -46,7 +49,7 @@ class _BoardSelectScreenState extends State<BoardSelectScreen> {
       WidgetsBinding.instance.addPostFrameCallback(
         (_) => showCreateBoardDialog(
           context,
-          _currentObfNotfier,
+          _boardHistory,
           widget.eventHandler,
           history: widget.popupHistory,
           rowCount: popup.rowCount,
@@ -72,7 +75,7 @@ class _BoardSelectScreenState extends State<BoardSelectScreen> {
 
   @override
   void dispose() {
-    _currentObfNotfier.dispose();
+    _boardHistory.dispose();
     super.dispose();
   }
 
@@ -80,17 +83,18 @@ class _BoardSelectScreenState extends State<BoardSelectScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       //TODO: i should probably replace the back arrow with something
-      appBar: AppBar(
+      appBar: SettingsThemedAppbar(
+        leading: BackButton(),
         actions: [
           TextButton(
             onPressed: () {
               showCreateBoardDialog(
                 context,
-                _currentObfNotfier,
+                _boardHistory,
                 widget.eventHandler,
                 history: widget.popupHistory,
               );
-            }, //TODO: board createtion process
+            },
             child: Text("add board"),
           ),
           TextButton(
@@ -101,9 +105,9 @@ class _BoardSelectScreenState extends State<BoardSelectScreen> {
           ),
         ],
         centerTitle: true,
-        title: ValueListenableBuilder(
-          valueListenable: _currentObfNotfier,
-          builder: (context, value, child) {
+        title: ListenableBuilder(
+          listenable: _boardHistory,
+          builder: (context, child) {
             return DropdownSearch<Obf>(
               compareFn: (item1, item2) => item1.hashCode == item2.hashCode,
               popupProps: PopupProps.menu(
@@ -116,7 +120,7 @@ class _BoardSelectScreenState extends State<BoardSelectScreen> {
                   ),
                 ),
               ),
-              selectedItem: _currentObfNotfier.value,
+              selectedItem: _currentObf,
               items: (f, cs) => widget.project.boards.toList(),
               itemAsString: (obf) => obf.name,
               onChanged: (obf) {
@@ -132,7 +136,7 @@ class _BoardSelectScreenState extends State<BoardSelectScreen> {
         project: widget.project,
         eventHandler: widget.eventHandler,
         showSentenceBar: false,
-        currentObfNotfier: _currentObfNotfier,
+        history: _boardHistory,
       ),
     );
   }

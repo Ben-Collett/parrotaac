@@ -44,6 +44,7 @@ enum EventType {
   addButton("add_button", AddButton.fromJson),
   removeButton("remove_button", RemoveButton.fromJson),
   recoverButton("recover_button", RecoverButton.fromJson),
+  changeBoardColor("change_board_color", ChangeBoardColor.fromJson),
   swapButtons("swap_buttons", SwapButtons.fromJson);
 
   const EventType(this.asString, this.create);
@@ -443,6 +444,34 @@ class SwapButtons extends ProjectEvent {
 
   @override
   EventType get type => EventType.swapButtons;
+}
+
+@JsonSerializable()
+class ChangeBoardColor extends ProjectEvent {
+  final String boardId;
+  final String originalColor;
+  final String newColor;
+  ChangeBoardColor({
+    required this.boardId,
+    required this.originalColor,
+    required this.newColor,
+  });
+
+  @override
+  Map<String, dynamic> toJson() => _$ChangeBoardColorToJson(this);
+
+  factory ChangeBoardColor.fromJson(Map<String, dynamic> json) =>
+      _$ChangeBoardColorFromJson(json);
+
+  @override
+  EventType get type => EventType.changeBoardColor;
+
+  @override
+  ProjectEvent undoEvent() => ChangeBoardColor(
+        boardId: boardId,
+        originalColor: newColor,
+        newColor: originalColor,
+      );
 }
 
 class Undo {

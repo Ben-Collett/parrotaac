@@ -1,21 +1,27 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_svg/svg.dart';
+import 'package:parrotaac/backend/history_stack.dart';
 import 'package:parrotaac/backend/project/parrot_project.dart';
 import 'package:parrotaac/restorative_navigator.dart';
 import 'package:parrotaac/ui/event_handler.dart';
+import 'package:parrotaac/ui/util_widgets/color_popup_button.dart';
+import 'package:parrotaac/ui/util_widgets/draggable_grid.dart';
 import 'package:parrotaac/ui/util_widgets/icon_button_on_notfier.dart';
 
 import 'board_modes.dart';
 import 'board_screen_constants.dart';
 import 'popups/board_screen_popups/rename_title.dart';
 import 'popups/lock_popups/admin_lock.dart';
+import 'settings/settings_themed_appbar.dart';
 
-AppBar boardScreenAppbar({
+SettingsThemedAppbar boardScreenAppbar({
   required BuildContext context,
   required ValueNotifier boardMode,
   required TextEditingController titleController,
   required ProjectEventHandler eventHandler,
   required ParrotProject project,
+  BoardHistoryStack? boardHistory,
+  GridNotfier? grid,
   Widget? leading,
 }) {
   final addColButton = IconButton(
@@ -34,6 +40,20 @@ AppBar boardScreenAppbar({
       child: SvgPicture.asset('assets/images/add_row.svg', width: 50),
     ),
   );
+  Widget? changeGridColorButton = grid != null && boardHistory != null
+      ? ListenableBuilder(
+          listenable: boardHistory,
+          builder: (context, _) {
+            return ColorPickerPopupButton(
+                notifier: grid.backgroundColorNotifier,
+                onPressed: () => grid.hideEmptySpotWidget = true,
+                onClose: (initialColor, newColor) {
+                  grid.hideEmptySpotWidget = false;
+                  eventHandler.changeBoardColor(
+                      boardHistory.currentBoard, initialColor, newColor);
+                });
+          })
+      : null;
 
   final undoButton = IconButtonEnabledOnNotfier(
     enabledController: eventHandler.canUndo,
@@ -50,11 +70,12 @@ AppBar boardScreenAppbar({
     icon: Icon(Icons.settings),
     onPressed: () => showAdminLockPopup(
       context: context,
-      onAccept: () => RestorativeNavigator().goToSettings(context),
+      onAccept: () =>
+          RestorativeNavigator().goToSettings(context, project: project),
     ),
   );
 
-  return AppBar(
+  return SettingsThemedAppbar(
     leading: leading,
     title: Row(
       mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -121,7 +142,8 @@ AppBar boardScreenAppbar({
                   removeColButton,
                   removeRowButton,
                   addRowButton,
-                  addColButton
+                  addColButton,
+                  if (changeGridColorButton != null) changeGridColorButton,
                 ];
               } else {
                 notInNormalModeWidgets = [];
@@ -136,7 +158,6 @@ AppBar boardScreenAppbar({
             })
       ],
     ),
-    backgroundColor: Color(0xFFAFABDF),
   );
 }
 

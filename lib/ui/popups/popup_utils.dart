@@ -56,7 +56,7 @@ Widget textInput(
   );
 }
 
-Widget colorPicker(
+Widget colorPickerButton(
   String label,
   Color color,
   VoidCallback showColorChangeDialog,

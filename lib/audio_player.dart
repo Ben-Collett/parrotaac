@@ -14,6 +14,8 @@ class PreemptiveAudioPlayer {
       PreemptiveAudioPlayer._privateConstructor();
   factory PreemptiveAudioPlayer() => _internal;
   final _LinuxSupportingTts _tts = _LinuxSupportingTts();
+  Future<List<TTSVoice>> get ttsVoices => _tts.voices;
+
   final AudioPlayer _audioPlayer = AudioPlayer();
 
   ///stop count is limited to _maxStopCount and if it's passed then _stopCount will be modded, 10_000 is an arbitrary choice but should be more then enough.
@@ -101,6 +103,18 @@ class _LinuxSupportingTts {
     }
   }
 
+  Future<List<TTSVoice>> get voices async {
+    if (Platform.isLinux || Platform.isWindows || Platform.isFuchsia) {
+      return [
+        TTSVoice.fromMap({"name": "System"})
+      ];
+    }
+    //TODO: need to test on android and ios and macos
+    dynamic voices = await _tts.getVoices;
+    List<Map> voicesList = voices as List<Map>;
+    return voicesList.map(TTSVoice.fromMap).toList();
+  }
+
   Future<void> stop() async {
     if (Platform.isLinux) {
       linuxTtsProcess?.kill();
@@ -116,4 +130,11 @@ class _LinuxSupportingTts {
       await _tts.awaitSpeakCompletion(true);
     }
   }
+}
+
+class TTSVoice {
+  final Map _asMap;
+  String get name => _asMap["name"];
+  String? get locale => _asMap["locale"];
+  TTSVoice.fromMap(Map map) : _asMap = map;
 }

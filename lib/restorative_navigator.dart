@@ -1,22 +1,20 @@
+//TODO: the restorative navigator needs to handle admin authentication when restoring but not when app closes in background
 import 'dart:collection';
+
 import 'dart:io';
 
 import 'package:flutter/material.dart';
 import 'package:openboard_wrapper/obf.dart';
-import 'package:parrotaac/backend/history_stack.dart';
-import 'package:parrotaac/backend/project/code_gen_allowed/event/project_events.dart';
 import 'package:parrotaac/backend/project/parrot_project.dart';
+import 'package:parrotaac/backend/project/project_settings.dart';
 import 'package:parrotaac/backend/project_restore_write_stream.dart';
 import 'package:parrotaac/backend/quick_store.dart';
 import 'package:parrotaac/backend/state_restoration_utils.dart';
 import 'package:parrotaac/board_selector.dart';
 import 'package:parrotaac/setting_screen.dart';
-import 'package:parrotaac/ui/board_modes.dart';
 import 'package:parrotaac/ui/board_screen.dart';
-import 'package:parrotaac/ui/board_screen_popup_history.dart';
 import 'package:parrotaac/ui/popups/button_config.dart';
 import 'package:parrotaac/ui/restore_button_diff.dart';
-import 'package:parrotaac/ui/widgets/sentence_box.dart';
 
 ///singleton
 class RestorativeNavigator {
@@ -24,7 +22,7 @@ class RestorativeNavigator {
   RestorativeNavigator._privateConstructor();
 
   final List<Widget> screens = [];
-  final Queue<ProjectRestorationData> _openRestorationData = Queue();
+  bool get hasPreviousScreen => screens.isNotEmpty;
 
   static final RestorativeNavigator _instance =
       RestorativeNavigator._privateConstructor();
@@ -45,7 +43,7 @@ class RestorativeNavigator {
   }) async {
     _quickStore.pushAndWrite({_nameKey: ScreenName.settings.name});
 
-    screens.add(SettingsScreen());
+    screens.add(SettingsScreen(board: board, project: project));
     return RestorativeNavigator()._goToTopScreen(context);
   }
 
@@ -68,6 +66,8 @@ class RestorativeNavigator {
       },
     );
 
+    project.settings = await ProjectSettings.fromProject(project);
+
     screens.add(
       await _getBoardScreen(project),
     );
@@ -85,7 +85,12 @@ class RestorativeNavigator {
     await _quickStore.removeTop();
     if (screens.isNotEmpty) {
       if (screens.last is BoardScreen) {
-        await _openRestorationData.removeLast().close();
+        BoardScreen last = screens.last as BoardScreen;
+        Future.wait([
+          last.restorationData.close(),
+          if (last.project.settings != null) last.project.settings!.close(),
+          if (last.restoreStream != null) last.restoreStream!.close()
+        ]);
       }
       screens.removeAt(screens.length - 1);
     }
@@ -94,6 +99,7 @@ class RestorativeNavigator {
   }
 
   Future<void> _restore() async {
+    ParrotProject? topProject;
     for (final data in _quickStore.getAllData()) {
       if (data is Map && data['name'] is String) {
         final String name = data['name'];
@@ -107,17 +113,19 @@ class RestorativeNavigator {
           case ScreenName.projectSelector:
             screens.add(ProjectSelector());
           case ScreenName.grid:
-            screens.add(
-              await _getBoardScreen(
-                ParrotProject.fromDirectory(
-                  Directory(
-                    data['project_path'],
-                  ),
-                ),
+            topProject = ParrotProject.fromDirectory(
+              Directory(
+                data['project_path'],
               ),
             );
+            topProject.settings = await ProjectSettings.fromProject(topProject);
+            screens.add(await _getBoardScreen(topProject));
           case ScreenName.settings:
-            screens.add(SettingsScreen());
+            screens.add(
+              SettingsScreen(
+                project: topProject,
+              ),
+            );
         }
       }
     }
@@ -127,23 +135,7 @@ class RestorativeNavigator {
     ProjectRestorationData restorationData =
         await ProjectRestorationData.fromPath(project.path);
 
-    const historyMaxSize = 100;
-    BoardHistoryStack historyStack = restorationData.createBoardHistory(
-      project,
-      historyMaxSize,
-    );
-
-    List<SenteceBoxDisplayEntry> initialBoxData =
-        restorationData.getSentenceBoxData(project);
-
-    BoardMode boardMode = restorationData.currentBoardMode;
     ProjectRestoreStream stream = ProjectRestoreStream(restorationData);
-    List<ProjectEvent> initialUndo = restorationData.currentUndoStack;
-    List<ProjectEvent> initialRedo = restorationData.currentRedoStack;
-
-    final initialHistory = restorationData.currentPopupHistory;
-    final popupHistory =
-        BoardScreenPopupHistory(initialHistory, restoreSteam: stream);
 
     BoardLinkingActionMode? boardLinkingAction = BoardLinkingActionMode.values
         .where((a) => a.label == restorationData.boardLinkingActionMode)
@@ -154,18 +146,11 @@ class RestorativeNavigator {
         restoreStream: stream,
         boardLinkingAction: boardLinkingAction);
 
-    _openRestorationData.add(restorationData);
-
     return BoardScreen(
       project: project,
       restoreStream: stream,
-      initialBoxData: initialBoxData,
-      initialMode: boardMode,
-      popupHistory: popupHistory,
+      restorationData: restorationData,
       restorableButtonDiff: diff,
-      initialUndoEventStack: initialUndo,
-      initialRedoEventStack: initialRedo,
-      history: historyStack,
     );
   }
 }

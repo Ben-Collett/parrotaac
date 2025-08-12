@@ -2,11 +2,12 @@ import 'package:flutter/material.dart';
 import 'package:openboard_wrapper/button_data.dart';
 import 'package:openboard_wrapper/obf.dart';
 import 'package:parrotaac/backend/history_stack.dart';
-import 'package:parrotaac/backend/project/code_gen_allowed/event/project_events.dart';
 import 'package:parrotaac/backend/project/parrot_project.dart';
 import 'package:parrotaac/backend/project_restore_write_stream.dart';
+import 'package:parrotaac/backend/state_restoration_utils.dart';
 import 'package:parrotaac/ui/board_screen_appbar.dart';
 import 'package:parrotaac/ui/event_handler.dart';
+import 'package:parrotaac/ui/popups/lock_popups/admin_lock.dart';
 import 'package:parrotaac/ui/util_widgets/board.dart';
 import 'package:parrotaac/ui/util_widgets/draggable_grid.dart';
 import 'package:parrotaac/ui/widgets/sentence_box.dart';
@@ -19,25 +20,17 @@ import 'restore_button_diff.dart' show RestorableButtonDiff;
 class BoardScreen extends StatefulWidget {
   final ParrotProject project;
   final ProjectRestoreStream? restoreStream;
-  final BoardHistoryStack? history;
-  final BoardMode? initialMode;
-  final List<SenteceBoxDisplayEntry>? initialBoxData;
-  final List<ProjectEvent>? initialUndoEventStack;
-  final List<ProjectEvent>? initialRedoEventStack;
+  final ProjectRestorationData restorationData;
   final BoardScreenPopupHistory? popupHistory;
   final RestorableButtonDiff? restorableButtonDiff;
   //WARNING: storing the path will only work if I wait to rename a project somehow
   const BoardScreen({
     super.key,
     required this.project,
-    this.initialBoxData,
-    this.initialMode,
+    required this.restorationData,
     this.popupHistory,
     this.restoreStream,
-    this.initialUndoEventStack,
-    this.initialRedoEventStack,
     this.restorableButtonDiff,
-    this.history,
   });
 
   @override
@@ -45,37 +38,31 @@ class BoardScreen extends StatefulWidget {
 }
 
 class _BoardScreenState extends State<BoardScreen> {
-  static const String defaultBoardName = "default name";
-  static const String defaultID = "board";
   late final GridNotfier<ParrotButton> _gridNotfier;
   late final SentenceBoxController _sentenceController;
   late final ValueNotifier<BoardMode> _boardMode;
+  late final BoardHistoryStack _boardHistory;
 
   late final TextEditingController _titleController;
-  late final ValueNotifier<Obf> _currentObfNotfier;
   final ValueNotifier<bool> canUndo = ValueNotifier(false);
   final ValueNotifier<bool> canRedo = ValueNotifier(false);
 
   late final ProjectEventHandler eventHandler;
 
-  Obf get _currentObf => _currentObfNotfier.value;
-  set _currentObf(Obf obf) => _currentObfNotfier.value = obf;
+  Obf get _currentObf => _boardHistory.currentBoard;
+  set _currentObf(Obf obf) => _boardHistory.push(obf);
   @override
   void initState() {
-    _boardMode = ValueNotifier(widget.initialMode ?? BoardMode.normalMode);
-    _currentObfNotfier = ValueNotifier(
-      widget.history?.currentBoard ??
-          widget.project.root ??
-          Obf(
-            locale: "en",
-            name: defaultBoardName,
-            id: defaultID,
-          ),
-    );
+    ParrotProject project = widget.project;
+    ProjectRestorationData? restorationData = widget.restorationData;
+    _boardMode = ValueNotifier(restorationData.currentBoardMode);
+    const historySize = 1000;
+    _boardHistory = restorationData.createBoardHistory(project, historySize);
 
     _sentenceController = SentenceBoxController(
-      projectPath: widget.project.path,
-      initialData: widget.initialBoxData,
+      projectPath: project.path,
+      initialData: restorationData.getSentenceBoxData(widget.project),
+      enabled: project.settings?.showSentenceBar ?? true,
     );
 
     _sentenceController.addListener(() {
@@ -107,6 +94,8 @@ class _BoardScreenState extends State<BoardScreen> {
             newCol,
           );
         });
+
+    alreadyAuthenticated = _boardMode.value != BoardMode.normalMode;
     _boardMode.addListener(
       () => widget.restoreStream?.updateBoardMode(_boardMode.value),
     );
@@ -122,8 +111,15 @@ class _BoardScreenState extends State<BoardScreen> {
         }
       },
     );
+    _boardMode.addListener(() {
+      if (_boardMode.value == BoardMode.normalMode) {
+        alreadyAuthenticated = false;
+      } else {
+        alreadyAuthenticated = true;
+      }
+    });
 
-    _currentObfNotfier.addListener(() {
+    _boardHistory.addListener(() {
       _titleController.text = _currentObf.name;
     });
 
@@ -133,9 +129,9 @@ class _BoardScreenState extends State<BoardScreen> {
         boxController: _sentenceController,
         canUndo: canUndo,
         canRedo: canRedo,
+        boardHistory: _boardHistory,
         modeNotifier: _boardMode,
         titleController: _titleController,
-        currentObf: _currentObfNotfier,
         restoreStream: widget.restoreStream);
 
     _boardMode.addListener(() {
@@ -144,15 +140,12 @@ class _BoardScreenState extends State<BoardScreen> {
       }
     });
 
-    if (widget.initialUndoEventStack != null) {
-      eventHandler.bulkExecute(
-        widget.initialUndoEventStack!,
-        updateUi: false,
-      );
-    }
-    if (widget.initialRedoEventStack != null) {
-      eventHandler.setRedoStack(widget.initialRedoEventStack!);
-    }
+    eventHandler.bulkExecute(
+      restorationData.currentUndoStack,
+      updateUi: false,
+    );
+    eventHandler.setRedoStack(restorationData.currentRedoStack);
+
     super.initState();
   }
 
@@ -185,7 +178,7 @@ class _BoardScreenState extends State<BoardScreen> {
   }
 
   Future<void> writeToDisk() async {
-    await widget.project.write(path: widget.project.path);
+    await widget.project.write();
   }
 
   void addButtonToSentenceBox(ButtonData buttonData) {
@@ -219,7 +212,7 @@ class _BoardScreenState extends State<BoardScreen> {
     _boardMode.dispose();
     _sentenceController.dispose();
     _titleController.dispose();
-    _currentObfNotfier.dispose();
+    _boardHistory.dispose();
     super.dispose();
   }
 
@@ -245,15 +238,23 @@ class _BoardScreenState extends State<BoardScreen> {
         boardMode: _boardMode,
         titleController: _titleController,
         project: widget.project,
+        boardHistory: _boardHistory,
+        grid: _gridNotfier,
         eventHandler: eventHandler,
-        leading: IconButton(
-          icon: Icon(Icons.arrow_back),
-          onPressed: () => RestorativeNavigator().pop(context),
+        leading: BackButton(
+          onPressed: () {
+            showAdminLockPopup(
+                context: context,
+                onAccept: () {
+                  RestorativeNavigator().pop(context);
+                  alreadyAuthenticated = true;
+                });
+          },
         ),
       ),
       body: BoardWidget(
         project: widget.project,
-        history: widget.history,
+        history: _boardHistory,
         eventHandler: eventHandler,
         boardMode: _boardMode,
         restorableButtonDiff: widget.restorableButtonDiff,
@@ -261,7 +262,6 @@ class _BoardScreenState extends State<BoardScreen> {
         popupHistory: widget.popupHistory,
         restoreStream: widget.restoreStream,
         sentenceBoxController: _sentenceController,
-        currentObfNotfier: _currentObfNotfier,
       ),
     );
   }

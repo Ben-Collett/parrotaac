@@ -11,8 +11,10 @@ import 'package:openboard_wrapper/obf.dart';
 import 'package:openboard_wrapper/sound_data.dart';
 import 'package:parrotaac/audio/prefered_audio_source.dart';
 import 'package:parrotaac/audio_recorder.dart';
+import 'package:parrotaac/backend/history_stack.dart';
 import 'package:parrotaac/backend/project/parrot_project.dart';
 import 'package:parrotaac/backend/project/temp_files.dart';
+import 'package:parrotaac/backend/simple_logger.dart';
 import 'package:parrotaac/extensions/color_extensions.dart';
 import 'package:parrotaac/extensions/image_extensions.dart';
 import 'package:parrotaac/extensions/map_extensions.dart';
@@ -50,12 +52,10 @@ void showConfigExistingPopup({
     barrierDismissible: false,
     builder: (context) {
       ButtonData data = controller.data;
-      Map<String, dynamic> originalJson = controller.data.toJson();
-      final List<String> originalActions = List.of(data.actions);
+      final Map<String, dynamic> originalJson =
+          Map.unmodifiable(controller.data.toJson());
       final SoundData? originalSound = data.sound;
       final ImageData? originalImage = data.image;
-      final Obf? originalLinkedBoard = data.linkedBoard;
-      final preferredSoundType = data.preferredAudioSourceType;
       //The sentence box controller has to be null in the config screen to avoid taps in the preview being added to the sentence box
       final sentenceBoxController = controller.boxController;
       controller.boxController = null;
@@ -66,13 +66,9 @@ void showConfigExistingPopup({
         color: Colors.red,
         icon: Icon(Icons.cancel_rounded),
         onPressed: () {
-          data.actions = originalActions;
-          controller.goToLinkedBoard = goToLinkedBoard;
-          controller.data = data;
-          controller.boxController = sentenceBoxController;
-          data.sound = originalSound;
-          data.linkedBoard = originalLinkedBoard;
-          data.preferredAudioSourceType = preferredSoundType;
+          controller.setButtonData(ButtonData.decode(json: originalJson));
+          controller.setImage(originalImage);
+          controller.setSound(originalSound);
           Navigator.of(context).pop();
         },
       );
@@ -217,7 +213,7 @@ class ButtonConfigPopup extends StatefulWidget {
 class _ButtonConfigPopupState extends State<ButtonConfigPopup> {
   final TextEditingController _labelController = TextEditingController();
   final TextEditingController _voclizationController = TextEditingController();
-  late final ValueNotifier<Obf?> _lastLinkedBoard;
+  late final BoardHistoryStack _lastLinkedBoard;
   late final ValueNotifier<String?> _selectedAudioPath;
   final ValueNotifier<bool> recording = ValueNotifier(false);
   String? currentRecordingPath;
@@ -250,14 +246,15 @@ class _ButtonConfigPopupState extends State<ButtonConfigPopup> {
   @override
   void initState() {
     buttonController = widget.buttonController;
-    _lastLinkedBoard = ValueNotifier(buttonController.data.linkedBoard);
+    _lastLinkedBoard = BoardHistoryStack(
+        currentBoard: buttonController.data.linkedBoard, maxHistorySize: 1);
     _lastLinkedBoard.addListener(() {
-      Obf? board = _lastLinkedBoard.value;
+      Obf? board = _lastLinkedBoard.currentBoardOrNull;
       if (board != null) {
         widget.restorableButtonDiff
             ?.update("load_board", LinkedBoard.fromObf(board).toJson());
       }
-      buttonController.data.linkedBoard = _lastLinkedBoard.value;
+      buttonController.data.linkedBoard = _lastLinkedBoard.currentBoardOrNull;
     });
 
     buttonController.enableParrotActionModeIfDisabled();
@@ -365,7 +362,7 @@ class _ButtonConfigPopupState extends State<ButtonConfigPopup> {
       throw Exception("A project is needed to select a board");
     }
     Obf board = initialBoard ??
-        _lastLinkedBoard.value ??
+        _lastLinkedBoard.currentBoardOrNull ??
         buttonController.project!.root!;
 
     widget.popupHistory?.pushScreen(SelectBoardScreen(board.id));
@@ -382,7 +379,7 @@ class _ButtonConfigPopupState extends State<ButtonConfigPopup> {
     widget.popupHistory?.popScreen();
 
     if (newLinkedBoard != null) {
-      _lastLinkedBoard.value = newLinkedBoard;
+      _lastLinkedBoard.push(newLinkedBoard);
     }
   }
 
@@ -445,12 +442,12 @@ class _ButtonConfigPopupState extends State<ButtonConfigPopup> {
       constraints: BoxConstraints(maxWidth: width),
       child: Row(
         children: [
-          ValueListenableBuilder(
-              valueListenable: _lastLinkedBoard,
-              builder: (context, value, child) {
+          ListenableBuilder(
+              listenable: _lastLinkedBoard,
+              builder: (context, child) {
                 return Flexible(
                   child: Text(
-                    "${value?.name ?? "none"}: ",
+                    "${_lastLinkedBoard.currentBoardOrNull?.name ?? "none"}: ",
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
                   ),
@@ -742,7 +739,7 @@ class _ButtonConfigPopupState extends State<ButtonConfigPopup> {
                 });
               },
               child: Text("select image")),
-          colorPicker(
+          colorPickerButton(
             "background color",
             backgroundColor,
             () {
@@ -754,7 +751,7 @@ class _ButtonConfigPopupState extends State<ButtonConfigPopup> {
             },
           ),
           space(),
-          colorPicker(
+          colorPickerButton(
             "border color",
             borderColor,
             () {

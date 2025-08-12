@@ -6,6 +6,7 @@ import 'package:openboard_wrapper/obz.dart';
 import 'package:parrotaac/backend/project/board/parrot_board.dart';
 import 'package:parrotaac/backend/project/import_utils.dart';
 import 'package:parrotaac/backend/project/parrot_project.dart';
+import 'package:parrotaac/backend/simple_logger.dart';
 
 import 'package:path/path.dart' as p;
 import './boards/board_strings.dart';
@@ -95,16 +96,15 @@ void main() {
   test('rename no dir', () async {
     ParrotProject simpleProject = await makeSimpleProjectObject('samp');
     String name = 'name';
-    await simpleProject.rename(name, projectDirectory: Directory("bull"));
+    await simpleProject.rename(name);
     expectLater(simpleProject.name, name);
   });
   test('rename with dir', () async {
     String originalName = 'simp';
     String path = p.join(targetDir.path, originalName);
     ParrotProject simpleProject = await writeSimpleProject(path);
-    Directory dir = Directory(path);
     String name = 'name';
-    await simpleProject.rename(name, projectDirectory: dir);
+    await simpleProject.rename(name);
     String newPath = p.join(targetDir.path, name);
     Directory(newPath).deleteSync(recursive: true);
     await expectLater(simpleProject.name, name);
@@ -133,7 +133,7 @@ Future<ParrotProject> writeSimpleProject(String path) async {
   ParrotProject out = await makeSimpleProjectObject(path);
   Map<String, dynamic> json = jsonDecode(simpleManifestString);
   json['ext_name'] = p.basename(path); //TODO: find a way to not hard code name
-  await out.parseManifestJson(json).write(path: path);
+  await out.parseManifestJson(json).write();
   return out;
 }
 

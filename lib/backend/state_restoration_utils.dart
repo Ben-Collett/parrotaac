@@ -22,6 +22,7 @@ class ProjectRestorationData {
   static const _currentButtonBoardActionLinkKey = "board_link";
   static const _boardModeKey = "board_mode";
   static const _quickStoreName = "restore_data";
+  static const _showSentenceBar = "show_sentence_bar";
 
   ProjectRestorationData._(this._quickStore);
   static Future<ProjectRestorationData> fromPath(String path) async {
@@ -33,6 +34,10 @@ class ProjectRestorationData {
   Future<void> writeNewBoardHistory(List<String> boardIds) {
     return _quickStore.writeData(_boardHistoryKey, boardIds);
   }
+
+  Future<void> writeShowSentenceBar(bool value) =>
+      _quickStore.writeData(_showSentenceBar, value);
+  bool get showSentenceBar => _quickStore[_showSentenceBar] ?? true;
 
   Future<void> removeCurrentButtonData() => Future.wait([
         _quickStore.removeFromKey(_openButtonDiffKey),
@@ -130,7 +135,12 @@ class ProjectRestorationData {
 
     List<Obf> boards = boardIds.map(toBoard).nonNulls.toList();
     if (boards.isEmpty) {
-      boards.add(project.root!);
+      boards.add(project.root ??
+          Obf(
+            locale: "en",
+            name: "defaultName",
+            id: "defaultId",
+          ));
     }
 
     return BoardHistoryStack.fromNonEmptyList(

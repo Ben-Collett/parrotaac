@@ -13,6 +13,7 @@ class SentenceBoxController extends ChangeNotifier {
   String? projectPath;
   double _buttonWidth;
   double _buttonHeight;
+  bool enabled;
 
   double get buttonWidth {
     return _buttonWidth;
@@ -35,6 +36,7 @@ class SentenceBoxController extends ChangeNotifier {
   SentenceBoxController({
     double buttonWidth = 100,
     double buttonHeight = 100,
+    this.enabled = true,
     this.projectPath,
     List<SenteceBoxDisplayEntry>? initialData,
   })  : _buttonWidth = buttonWidth,
@@ -42,8 +44,10 @@ class SentenceBoxController extends ChangeNotifier {
         _dataToDisplay = initialData ?? [];
 
   void clear() {
-    _dataToDisplay.clear();
-    notifyListeners();
+    if (enabled) {
+      _dataToDisplay.clear();
+      notifyListeners();
+    }
   }
 
   void update() {
@@ -51,21 +55,27 @@ class SentenceBoxController extends ChangeNotifier {
   }
 
   void backSpace() {
-    if (_dataToDisplay.isNotEmpty) {
-      _dataToDisplay.removeLast();
+    if (enabled) {
+      if (_dataToDisplay.isNotEmpty) {
+        _dataToDisplay.removeLast();
 
-      notifyListeners();
+        notifyListeners();
+      }
     }
   }
 
   void updateData(List<SenteceBoxDisplayEntry> entries) {
-    _dataToDisplay = entries;
-    notifyListeners();
+    if (enabled) {
+      _dataToDisplay = entries;
+      notifyListeners();
+    }
   }
 
   void add(SenteceBoxDisplayEntry entry) {
-    _dataToDisplay.add(entry);
-    notifyListeners();
+    if (enabled) {
+      _dataToDisplay.add(entry);
+      notifyListeners();
+    }
   }
 
   UnmodifiableListView<SenteceBoxDisplayEntry> dataCopyView() {

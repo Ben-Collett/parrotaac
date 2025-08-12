@@ -20,6 +20,10 @@ class ProjectRestoreStream {
     _stream.sink.add(_UpdateBoardMode(mode));
   }
 
+  void updateShowSentenceBar(bool value) {
+    _stream.sink.add(_ShowSentenceBar(value));
+  }
+
   void updateProjectPopupHistory(List<BoardScreenPopup> popups) {
     _stream.sink.add(_UpdatePopups(popups));
   }
@@ -169,6 +173,15 @@ class _UpdateBoardMode extends _ProjectRestoreEvent {
   _UpdateBoardMode(this.mode);
   @override
   Future<void> update(ProjectRestorationData data) => data.writeBoardMode(mode);
+}
+
+class _ShowSentenceBar extends _ProjectRestoreEvent {
+  final bool value;
+
+  _ShowSentenceBar(this.value);
+  @override
+  Future<void> update(ProjectRestorationData data) =>
+      data.writeShowSentenceBar(value);
 }
 
 class _RemoveCurrentButtonData extends _ProjectRestoreEvent {

@@ -7,6 +7,7 @@ import 'package:openboard_wrapper/sound_data.dart';
 import 'package:parrotaac/audio/audio_source.dart';
 import 'package:parrotaac/audio/prefered_audio_source.dart';
 import 'package:parrotaac/backend/project/parrot_project.dart';
+import 'package:parrotaac/backend/simple_logger.dart';
 import 'package:parrotaac/extensions/button_data_extensions.dart';
 import 'package:parrotaac/extensions/color_extensions.dart';
 import 'package:parrotaac/extensions/image_extensions.dart';
@@ -87,6 +88,11 @@ class ParrotButtonNotifier extends ChangeNotifier {
     _data.actions = actions.map((p) => p.toString()).toList();
   }
 
+  void setButtonData(ButtonData buttonData) {
+    _data = buttonData;
+    notifyListeners();
+  }
+
   void update() {
     notifyListeners();
   }
@@ -139,7 +145,7 @@ class ParrotButtonNotifier extends ChangeNotifier {
     notifyListeners();
   }
 
-  void setImage(ImageData image) {
+  void setImage(ImageData? image) {
     data.image = image;
     notifyListeners();
   }
@@ -154,7 +160,7 @@ class ParrotButtonNotifier extends ChangeNotifier {
     notifyListeners();
   }
 
-  void setSound(SoundData sound) {
+  void setSound(SoundData? sound) {
     data.sound = sound; //doesn't need to rebuild as change is not visual
   }
 }

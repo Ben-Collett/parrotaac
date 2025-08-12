@@ -1,19 +1,28 @@
 import 'package:flutter/material.dart';
 import 'package:parrotaac/backend/project/authentication/math_problem_generator.dart';
+import 'package:parrotaac/backend/settings_utils.dart';
 import 'package:parrotaac/ui/popups/lock_popups/math_popup.dart';
+import 'package:parrotaac/ui/settings/labels.dart';
+
+bool _alreadyAuthenticated = false;
+set alreadyAuthenticated(bool value) => _alreadyAuthenticated = value;
+bool get alreadyAuthenticated => _alreadyAuthenticated;
 
 //TODO: password/biometrics
 enum LockType {
-  none,
-  mathProblem;
+  none("None"),
+  mathProblem("Math");
+
+  final String label;
+  const LockType(this.label);
 
   @override
   String toString() {
-    return name;
+    return label;
   }
 
   static LockType fromString(String string) {
-    return LockType.values.firstWhere((v) => v.name == string);
+    return LockType.values.firstWhere((v) => v.label == string);
   }
 }
 
@@ -23,12 +32,13 @@ void showAdminLockPopup({
   VoidCallback? onAccept,
   VoidCallback? onReject,
 }) {
-  const LockType defaultLockType = LockType.none;
-  final LockType realLockType = lockType ?? defaultLockType;
+  lockType ??= LockType.fromString(
+    getSetting<String>(adminLockLabel) ?? LockType.none.label,
+  );
 
-  if (realLockType == LockType.none && onAccept != null) {
+  if ((lockType == LockType.none || alreadyAuthenticated) && onAccept != null) {
     onAccept();
-  } else if (realLockType == LockType.mathProblem) {
+  } else if (lockType == LockType.mathProblem) {
     showMathAuthenticationPopup(
       context,
       getMultiplicationProblem(),

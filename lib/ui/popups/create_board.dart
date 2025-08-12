@@ -3,6 +3,7 @@ import 'package:flutter/services.dart';
 import 'package:openboard_wrapper/grid_data.dart';
 import 'package:openboard_wrapper/obf.dart';
 import 'package:openboard_wrapper/obz.dart';
+import 'package:parrotaac/backend/history_stack.dart';
 import 'package:parrotaac/ui/board_screen_constants.dart';
 import 'package:parrotaac/ui/board_screen_popup_history.dart';
 import 'package:parrotaac/ui/codgen/board_screen_popups.dart';
@@ -13,7 +14,7 @@ import 'popup_utils.dart';
 
 Future<void> showCreateBoardDialog(
   BuildContext context,
-  ValueNotifier<Obf?> currentObf,
+  BoardHistoryStack boardHistory,
   ProjectEventHandler eventHandler, {
   BoardScreenPopupHistory? history,
   int? rowCount,
@@ -28,7 +29,7 @@ Future<void> showCreateBoardDialog(
       barrierDismissible: false,
       builder: (context) {
         return CreateBoardPopup(
-          currentObf: currentObf,
+          boardHistory: boardHistory,
           eventHandler: eventHandler,
           history: history,
           initialRowCount: rowCount,
@@ -40,7 +41,7 @@ Future<void> showCreateBoardDialog(
 
 class CreateBoardPopup extends StatefulWidget {
   ///The caller must make sure that the dialog is dismissed before the notfier is disposed
-  final ValueNotifier<Obf?> currentObf;
+  final BoardHistoryStack boardHistory;
   final ProjectEventHandler eventHandler;
   final BoardScreenPopupHistory? history;
   final int? initialRowCount;
@@ -48,7 +49,7 @@ class CreateBoardPopup extends StatefulWidget {
   final String? initialName;
   const CreateBoardPopup({
     super.key,
-    required this.currentObf,
+    required this.boardHistory,
     required this.eventHandler,
     this.initialName,
     this.initialColCount,
@@ -186,7 +187,7 @@ class _CreateBoardPopupState extends State<CreateBoardPopup> {
 
         widget.eventHandler.addBoard(obf);
 
-        widget.currentObf.value = obf;
+        widget.boardHistory.push(obf);
         Navigator.of(context).pop();
       },
     );
