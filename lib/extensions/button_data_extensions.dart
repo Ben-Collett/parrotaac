@@ -46,7 +46,11 @@ extension ButtonDataExtension on ButtonData {
     }
     if (type == PreferredAudioSourceType.alternative) {
       if (sound?.data != null) {
-        return AudioByteSource.fromString(sound!.data!.data);
+        if (sound!.data!.encodingBase != 64) {
+          SimpleLogger().logError("non supported audio decoding base");
+          return null;
+        }
+        return AudioByteSource.from64Bit(sound!.data!.data);
       } else if (sound?.url != null) {
         return AudioUrlSource(sound!.url!);
       }

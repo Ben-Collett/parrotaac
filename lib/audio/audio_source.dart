@@ -25,7 +25,7 @@ class AudioUrlSource extends AudioSource {
 class AudioByteSource extends AudioSource {
   Uint8List data;
   AudioByteSource(this.data);
-  AudioByteSource.fromString(String raw) : this(Utf8Encoder().convert(raw));
+  AudioByteSource.from64Bit(String data) : this(base64Decode(data));
   @override
   String toString() {
     return "RawBytesSource($data)";
