@@ -307,7 +307,6 @@ class _ProjectSelectorState extends State<ProjectSelector> {
                         }
 
                         projectDirController.refresh();
-                        //ref.invalidate(projectDirProvider);
                       },
                     );
                   },

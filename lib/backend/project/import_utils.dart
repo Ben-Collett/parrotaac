@@ -5,7 +5,6 @@ import 'package:archive/archive_io.dart';
 import 'package:openboard_wrapper/obf.dart';
 import 'package:openboard_wrapper/obz.dart';
 import 'package:parrotaac/backend/project/project_utils.dart';
-import 'package:parrotaac/backend/simple_logger.dart';
 import 'package:parrotaac/file_utils.dart';
 import 'package:path/path.dart' as p;
 

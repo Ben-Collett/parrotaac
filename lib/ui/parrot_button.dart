@@ -3,11 +3,11 @@ import 'package:openboard_wrapper/button_data.dart';
 import 'package:openboard_wrapper/color_data.dart';
 import 'package:openboard_wrapper/image_data.dart';
 import 'package:openboard_wrapper/obf.dart';
+import 'package:openboard_wrapper/obz.dart';
 import 'package:openboard_wrapper/sound_data.dart';
 import 'package:parrotaac/audio/audio_source.dart';
 import 'package:parrotaac/audio/prefered_audio_source.dart';
 import 'package:parrotaac/backend/project/parrot_project.dart';
-import 'package:parrotaac/backend/simple_logger.dart';
 import 'package:parrotaac/extensions/button_data_extensions.dart';
 import 'package:parrotaac/extensions/color_extensions.dart';
 import 'package:parrotaac/extensions/image_extensions.dart';
@@ -124,6 +124,7 @@ class ParrotButtonNotifier extends ChangeNotifier {
   String? get projectPath => project?.path;
   SentenceBoxController? boxController;
 
+  ///must have a buttonData or a project or both
   ParrotButtonNotifier(
       {ButtonData? data,
       bool holdToConfig = false,
@@ -134,7 +135,10 @@ class ParrotButtonNotifier extends ChangeNotifier {
       this.onPressOverride,
       required this.eventHandler,
       this.onDelete})
-      : _data = data ?? ButtonData(),
+      : _data = data ??
+            ButtonData(
+              id: Obz.generateButtonId(project),
+            ),
         goToLinkedBoard = goToLinkedBoard ?? _defaultGoToLinkedBoard;
   AudioSource get audioSource {
     return _data.getSource(projectPath: projectPath);

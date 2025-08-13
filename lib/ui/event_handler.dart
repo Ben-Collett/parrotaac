@@ -11,6 +11,7 @@ import 'package:parrotaac/backend/project/code_gen_allowed/event/project_events.
 import 'package:parrotaac/backend/project/parrot_project.dart';
 import 'package:parrotaac/extensions/button_data_extensions.dart';
 import 'package:parrotaac/extensions/color_extensions.dart';
+import 'package:parrotaac/extensions/map_extensions.dart';
 import 'package:parrotaac/extensions/obf_extensions.dart';
 import 'package:parrotaac/ui/board_modes.dart';
 import 'package:parrotaac/ui/util_widgets/draggable_grid.dart';
@@ -33,6 +34,8 @@ class ProjectEventHandler {
   final SentenceBoxController boxController;
   final TextEditingController titleController;
   final ProjectRestoreStream? restoreStream;
+  Iterable<String> get updatedBoardsIds => _updatedBoardCount.keys;
+  final Map<String, int> _updatedBoardCount = {};
   late final EventHistory history = EventHistory(
       executeEvent: (e, undoing) =>
           execute(e, addToHistory: false, undoing: undoing),
@@ -83,6 +86,16 @@ class ProjectEventHandler {
       if (board != null) {
         boardHistory.push(board);
       }
+    }
+
+    if (!undoing) {
+      _updatedBoardCount.increment(event.boardToWrite);
+    } else {
+      _updatedBoardCount.decrement(event.boardToWrite);
+      _updatedBoardCount.removeKeyIfBelowThreshold(
+        key: event.boardToWrite,
+        threshold: 1,
+      );
     }
 
     switch (event) {
@@ -203,6 +216,7 @@ class ProjectEventHandler {
     restoreStream?.updateUndoStack([]);
     canUndo.value = false;
     canRedo.value = false;
+    _updatedBoardCount.clear();
     history.clear();
   }
 
@@ -373,6 +387,7 @@ class ProjectEventHandler {
       newImageJson = newImage?.toJson();
     }
 
+    _updatedBoardCount.increment(_obf.id);
     history.add(
       ConfigButton(
           boardId: _obf.id,

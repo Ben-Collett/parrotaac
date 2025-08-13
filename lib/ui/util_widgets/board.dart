@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:openboard_wrapper/button_data.dart';
 import 'package:openboard_wrapper/color_data.dart';
 import 'package:openboard_wrapper/obf.dart';
+import 'package:openboard_wrapper/obz.dart';
 import 'package:parrotaac/backend/history_stack.dart';
 import 'package:parrotaac/backend/project/parrot_project.dart';
 import 'package:parrotaac/backend/project_restore_write_stream.dart';
@@ -275,10 +276,7 @@ class _BoardWidgetState extends State<BoardWidget> {
                   notifier.onDelete = () => eventHandler.removeButton(row, col);
                   notifier.goHome = _goToRootBoard;
                   notifier.boxController = _sentenceController;
-                  notifier.data.id =
-                      eventHandler.project.generateGloballyUniqueId(
-                    prefix: "bd",
-                  );
+                  notifier.data.id = Obz.generateButtonId(widget.project);
                   notifier.data.backgroundColor =
                       notifier.data.backgroundColor ??
                           ColorData(

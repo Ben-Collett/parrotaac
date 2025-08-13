@@ -4,7 +4,10 @@ part 'project_events.g.dart';
 
 abstract class ProjectEvent {
   EventType get type;
-  String? get returnToBoardId => null;
+  String? get returnToBoardId;
+
+  ///if returnToBoardId is null this getter must be overridden
+  String get boardToWrite => returnToBoardId!;
   static ProjectEvent? decode(Map<String, dynamic> json) {
     ProjectEvent? event;
     EventType? type = EventType.fromString(json["type"]);
@@ -64,6 +67,8 @@ class AddBoard extends ProjectEvent {
   final String name;
   final int rowCount;
   final int colCount;
+  @override
+  String? get returnToBoardId => null;
 
   AddBoard({
     required this.id,
@@ -82,6 +87,9 @@ class AddBoard extends ProjectEvent {
   Map<String, dynamic> toJson() => _$AddBoardToJson(this);
   @override
   EventType get type => EventType.addBoard;
+
+  @override
+  String get boardToWrite => id;
 }
 
 @JsonSerializable()
@@ -100,11 +108,19 @@ class RemoveBoard extends ProjectEvent {
 
   @override
   EventType get type => EventType.removeBoard;
+
+  @override
+  String? get returnToBoardId => null;
+
+  @override
+  String get boardToWrite => id;
 }
 
 @JsonSerializable()
 class RestoreBoard extends ProjectEvent {
   final String id;
+  @override
+  String? get returnToBoardId => null;
   RestoreBoard(this.id);
   factory RestoreBoard.fromJson(Map<String, dynamic> json) =>
       _$RestoreBoardFromJson(json);
@@ -117,6 +133,9 @@ class RestoreBoard extends ProjectEvent {
 
   @override
   EventType get type => EventType.restoreBoard;
+
+  @override
+  String get boardToWrite => id;
 }
 
 @JsonSerializable()
@@ -451,6 +470,8 @@ class ChangeBoardColor extends ProjectEvent {
   final String boardId;
   final String originalColor;
   final String newColor;
+  @override
+  String get returnToBoardId => boardId;
   ChangeBoardColor({
     required this.boardId,
     required this.originalColor,

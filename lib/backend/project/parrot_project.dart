@@ -193,11 +193,11 @@ class ParrotProject extends Obz with AACProject {
 
   ///this will override any matching files in the directory and leave the other files be
   @override
-  Future<String> write() async {
+  Future<String> write({Set<String>? updatedBoards}) async {
     Directory dir = Directory(path);
-    File manifest = manifestFile; // should create dir as well as the manifest
+    File manifest = manifestFile; // creates dir and manifest
     _setBoardPaths();
-    await _writeBoards(dir);
+    await _writeBoards(dir, idsToWrite: updatedBoards);
     manifest.writeAsStringSync(manifestString);
     return dir.path;
   }
@@ -218,12 +218,22 @@ class ParrotProject extends Obz with AACProject {
     }
   }
 
-  Future<void> _writeBoards(Directory projectDir) async {
+  Future<void> _writeBoards(Directory projectDir,
+      {Set<String>? idsToWrite}) async {
     String fullPath(Obf obf) => p.join(projectDir.path, obf.path);
-    for (Obf board in boards) {
+    Set<Obf> boardsToWrite = _boardsToWrite(idsToWrite: idsToWrite);
+
+    List<Future> futures = [];
+    for (Obf board in boardsToWrite) {
       String pathToWrite = fullPath(board);
-      await board.writeTo(pathToWrite);
+      futures.add(board.writeTo(pathToWrite));
     }
+    await Future.wait(futures);
+  }
+
+  Set<Obf> _boardsToWrite({Set<String>? idsToWrite}) {
+    if (idsToWrite == null || !optimizedSaves) return boards;
+    return boards.where((b) => idsToWrite.contains(b.id)).toSet();
   }
 
   factory ParrotProject.fromObz(Obz obz, String name, String path) {

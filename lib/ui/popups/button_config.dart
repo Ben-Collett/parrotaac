@@ -8,13 +8,13 @@ import 'package:openboard_wrapper/button_data.dart';
 import 'package:openboard_wrapper/color_data.dart';
 import 'package:openboard_wrapper/image_data.dart';
 import 'package:openboard_wrapper/obf.dart';
+import 'package:openboard_wrapper/obz.dart';
 import 'package:openboard_wrapper/sound_data.dart';
 import 'package:parrotaac/audio/prefered_audio_source.dart';
 import 'package:parrotaac/audio_recorder.dart';
 import 'package:parrotaac/backend/history_stack.dart';
 import 'package:parrotaac/backend/project/parrot_project.dart';
 import 'package:parrotaac/backend/project/temp_files.dart';
-import 'package:parrotaac/backend/simple_logger.dart';
 import 'package:parrotaac/extensions/color_extensions.dart';
 import 'package:parrotaac/extensions/image_extensions.dart';
 import 'package:parrotaac/extensions/map_extensions.dart';
@@ -559,6 +559,7 @@ class _ButtonConfigPopupState extends State<ButtonConfigPopup> {
               SoundData(
                 duration: 0, //TODO
                 path: _selectedAudioPath.value,
+                id: Obz.generateSoundId(project),
               ),
             );
           },
@@ -612,6 +613,7 @@ class _ButtonConfigPopupState extends State<ButtonConfigPopup> {
                     _setSound(
                       SoundData(
                         duration: 0, //TODO:
+                        id: Obz.generateImageId(project),
                         path: currentRecordingPath,
                       ),
                     );
@@ -649,6 +651,7 @@ class _ButtonConfigPopupState extends State<ButtonConfigPopup> {
             widget.buttonController.data.sound = SoundData(
               duration: 0, //TODO
               path: _selectedAudioPath.value,
+              id: Obz.generateImageId(project),
             );
           }
 
@@ -728,7 +731,10 @@ class _ButtonConfigPopupState extends State<ButtonConfigPopup> {
                 lastSetTempImage =
                     File(p.join(buttonController.projectPath!, path));
 
-                ImageData image = ImageData(path: path);
+                ImageData image = ImageData(
+                  path: path,
+                  id: Obz.generateImageId(project),
+                );
 
                 widget.restorableButtonDiff?.update(
                   ButtonData.imageKey,

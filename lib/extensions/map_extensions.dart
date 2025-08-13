@@ -31,3 +31,26 @@ extension MapDiff on Map<String, dynamic> {
     return diff;
   }
 }
+
+extension IncrementAndDecrement on Map<dynamic, int> {
+  void increment(dynamic key, {int startingValue = 1}) {
+    if (this[key] == null) {
+      this[key] = startingValue;
+    } else {
+      this[key] = this[key]! + 1;
+    }
+  }
+
+  void decrement(dynamic key) {
+    if (this[key] != null) {
+      this[key] = this[key]! - 1;
+    }
+  }
+
+  void removeKeyIfBelowThreshold(
+      {required dynamic key, required int threshold}) {
+    if (this[key] != null && this[key]! < threshold) {
+      remove(key);
+    }
+  }
+}

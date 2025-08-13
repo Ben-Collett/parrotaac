@@ -43,11 +43,11 @@ class BoardHistoryStack extends ChangeNotifier {
 
   ///allows you to push boards to the history, if the same board is pushed twice in a row the second push is ignored.
   void push(Obf obf) {
-    if (obf == currentBoard) {
+    if (obf == currentBoardOrNull) {
       return;
     }
     beforeChange?.call();
-    if (_queue.length + 1 == maxHistorySize) {
+    if (maxHistorySize != null && _queue.length > maxHistorySize!) {
       _queue.removeFirst();
     }
     _queue.addLast(obf);

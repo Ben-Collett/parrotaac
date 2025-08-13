@@ -4,6 +4,7 @@ import 'package:openboard_wrapper/obf.dart';
 import 'package:parrotaac/backend/history_stack.dart';
 import 'package:parrotaac/backend/project/parrot_project.dart';
 import 'package:parrotaac/backend/project_restore_write_stream.dart';
+import 'package:parrotaac/backend/simple_logger.dart';
 import 'package:parrotaac/backend/state_restoration_utils.dart';
 import 'package:parrotaac/ui/board_screen_appbar.dart';
 import 'package:parrotaac/ui/event_handler.dart';
@@ -104,10 +105,11 @@ class _BoardScreenState extends State<BoardScreen> {
         if (_boardMode.value == BoardMode.normalMode) {
           _updateButtonPositionsInObf();
           _updateObfName();
+          Set<String> boardsToWrite = eventHandler.updatedBoardsIds.toSet();
+          eventHandler.clear();
           await _finalizeTempFiles();
-          widget.project.autoResolveAllIdCollisionsInFile();
           widget.project.deleteTempFiles();
-          await writeToDisk();
+          await writeToDisk(boardsToWrite);
         }
       },
     );
@@ -133,12 +135,6 @@ class _BoardScreenState extends State<BoardScreen> {
         modeNotifier: _boardMode,
         titleController: _titleController,
         restoreStream: widget.restoreStream);
-
-    _boardMode.addListener(() {
-      if (_boardMode.value == BoardMode.normalMode) {
-        eventHandler.clear();
-      }
-    });
 
     eventHandler.bulkExecute(
       restorationData.currentUndoStack,
@@ -177,8 +173,8 @@ class _BoardScreenState extends State<BoardScreen> {
     widget.project.updateAudioPathReferencesInProject(paths);
   }
 
-  Future<void> writeToDisk() async {
-    await widget.project.write();
+  Future<void> writeToDisk(Iterable<String> boardsToWrite) async {
+    await widget.project.write(updatedBoards: boardsToWrite.toSet());
   }
 
   void addButtonToSentenceBox(ButtonData buttonData) {

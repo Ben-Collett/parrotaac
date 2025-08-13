@@ -181,7 +181,7 @@ class _CreateBoardPopupState extends State<CreateBoardPopup> {
         Obf obf = Obf(
           locale: 'en-us',
           name: boardName,
-          id: project.generateGloballyUniqueId(prefix: 'bo'),
+          id: Obz.generateRandomBoardId(project),
           grid: GridData.empty(rowCount: rowCount, colCount: colCount),
         );
 
