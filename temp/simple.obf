@@ -1,1 +1,0 @@
-{"id":"simple","format":"open-board-0.1","locale":"en","name":"Simple Board","description_html":"This is a very basic .obf file, it contains no images or sounds, and assumes default styling.","buttons":[{"id":"1","label":"happy"},{"id":"2","label":"sad"}],"grid":{"rows":2,"columns":2,"order":[["1","2"],[null,null]]},"images":[],"sounds":[]}
