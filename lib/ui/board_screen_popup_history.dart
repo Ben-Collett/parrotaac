@@ -1,6 +1,7 @@
 import 'dart:collection';
 
 import 'package:parrotaac/backend/project_restore_write_stream.dart';
+import 'package:parrotaac/backend/simple_logger.dart';
 import 'package:parrotaac/ui/codgen/board_screen_popups.dart';
 
 class BoardScreenPopupHistory {
@@ -13,6 +14,7 @@ class BoardScreenPopupHistory {
   }) : _toRecover = Queue.from(initialHistory ?? []);
 
   void pushScreen(BoardScreenPopup popup, {bool writeHistory = true}) {
+    _logNullStreamWarning();
     _history.add(popup);
     if (writeHistory) {
       restoreSteam?.updateProjectPopupHistory(_history.toList());
@@ -20,6 +22,7 @@ class BoardScreenPopupHistory {
   }
 
   BoardScreenPopup popScreen() {
+    _logNullStreamWarning();
     final out = _history.removeLast();
     restoreSteam?.updateProjectPopupHistory(_history.toList());
     return out;
@@ -31,11 +34,19 @@ class BoardScreenPopupHistory {
   }
 
   void write() {
+    _logNullStreamWarning();
     restoreSteam?.updateProjectPopupHistory(_history.toList());
   }
 
   void recoverScreen(BoardScreenPopup popup) {
     _history.add(popup);
+  }
+
+  void _logNullStreamWarning() {
+    if (restoreSteam == null) {
+      SimpleLogger().logWarning(
+          "restore stream is null not writing popup history to disk");
+    }
   }
 
   BoardScreenPopup? removeNextToRecover() {

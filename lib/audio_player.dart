@@ -4,6 +4,7 @@ import 'dart:io';
 import 'package:audioplayers/audioplayers.dart';
 import 'package:flutter_tts/flutter_tts.dart';
 import 'package:parrotaac/audio/audio_source.dart';
+import 'package:parrotaac/backend/simple_logger.dart';
 import 'package:synchronized/synchronized.dart';
 
 ///singleton
@@ -25,6 +26,20 @@ class PreemptiveAudioPlayer {
   int _stopCount = 0;
   //note: similar  functionality to the lines above could be achieved using a time stamp but there is no real advantage to that
   final Lock _stopCountLock = Lock();
+
+  static Future<Duration> getDuration(AudioSource source) async {
+    final Source? audioSource = _getSource(source);
+    assert(audioSource != null,
+        "cant get duration from this kind of source $source");
+    AudioPlayer temp = AudioPlayer();
+    await temp.setSource(audioSource!);
+    Duration? duration = await temp.getDuration();
+    if (duration == null) {
+      SimpleLogger().logError("null duration somehow $audioSource");
+    }
+
+    return duration!;
+  }
 
   void playIterable(Iterable<AudioSource> sources) async {
     List<AudioSource> sourcesCopy = List.from(sources);
@@ -56,13 +71,22 @@ class PreemptiveAudioPlayer {
   Future<void> _play(AudioSource source) async {
     if (source is TTSSource) {
       await _tts.speak(source.value);
-    } else if (source is AudioFilePathSource) {
-      await _audioPlayer.play(DeviceFileSource(source.path));
-    } else if (source is AudioUrlSource) {
-      await _audioPlayer.play(UrlSource(source.url));
-    } else if (source is AudioByteSource) {
-      await _audioPlayer.play(BytesSource(source.data));
     }
+    Source? audioSource = _getSource(source);
+    if (audioSource != null) {
+      await _audioPlayer.play(audioSource);
+    }
+  }
+
+  static Source? _getSource(AudioSource source) {
+    if (source is AudioFilePathSource) {
+      return DeviceFileSource(source.path);
+    } else if (source is AudioUrlSource) {
+      return UrlSource(source.url);
+    } else if (source is AudioByteSource) {
+      return BytesSource(source.data);
+    }
+    return null;
   }
 
   void playFromRawData(String raw) async {

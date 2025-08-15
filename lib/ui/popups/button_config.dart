@@ -10,11 +10,14 @@ import 'package:openboard_wrapper/image_data.dart';
 import 'package:openboard_wrapper/obf.dart';
 import 'package:openboard_wrapper/obz.dart';
 import 'package:openboard_wrapper/sound_data.dart';
+import 'package:parrotaac/audio/audio_source.dart';
 import 'package:parrotaac/audio/prefered_audio_source.dart';
+import 'package:parrotaac/audio_player.dart';
 import 'package:parrotaac/audio_recorder.dart';
 import 'package:parrotaac/backend/history_stack.dart';
 import 'package:parrotaac/backend/project/parrot_project.dart';
 import 'package:parrotaac/backend/project/temp_files.dart';
+import 'package:parrotaac/backend/simple_logger.dart';
 import 'package:parrotaac/extensions/color_extensions.dart';
 import 'package:parrotaac/extensions/image_extensions.dart';
 import 'package:parrotaac/extensions/map_extensions.dart';
@@ -555,10 +558,14 @@ class _ButtonConfigPopupState extends State<ButtonConfigPopup> {
               audio,
             );
 
+            final String? path = _selectedAudioPath.value;
+            assert(path != null, "can't get duration from null path");
+
+            final Duration duration = await _getDuration(project?.path, path!);
             _setSound(
               SoundData(
-                duration: 0, //TODO
-                path: _selectedAudioPath.value,
+                duration: duration.inSeconds,
+                path: path,
                 id: Obz.generateSoundId(project),
               ),
             );
@@ -569,7 +576,7 @@ class _ButtonConfigPopupState extends State<ButtonConfigPopup> {
             valueListenable: recording,
             builder: (context, isRecording, child) {
               return TextButton(
-                onPressed: () {
+                onPressed: () async {
                   recording.value = !isRecording;
                   if (buttonController.projectPath == null) {
                     throw Exception("needs audio path for recording");
@@ -609,11 +616,17 @@ class _ButtonConfigPopupState extends State<ButtonConfigPopup> {
                         p.join(projectPath, _selectedAudioPath.value!),
                       ).deleteSync();
                     }
-                    _selectedAudioPath.value = currentRecordingPath!;
+                    assert(currentRecordingPath != null,
+                        "recording audio path can't be null");
+                    final String path = currentRecordingPath!;
+                    _selectedAudioPath.value = path;
+
+                    final duration = await _getDuration(project?.path, path);
+
                     _setSound(
                       SoundData(
-                        duration: 0, //TODO:
-                        id: Obz.generateImageId(project),
+                        duration: duration.inSeconds,
+                        id: Obz.generateSoundId(project),
                         path: currentRecordingPath,
                       ),
                     );
@@ -640,7 +653,7 @@ class _ButtonConfigPopupState extends State<ButtonConfigPopup> {
           }
           return [];
         },
-        onChange: (ptype) {
+        onChange: (ptype) async {
           widget.buttonController.data.preferredAudioSourceType = ptype;
           const tts = PreferredAudioSourceType.tts;
           const mute = PreferredAudioSourceType.mute;
@@ -648,10 +661,12 @@ class _ButtonConfigPopupState extends State<ButtonConfigPopup> {
             widget.buttonController.data.sound = null;
           } else if (ptype == PreferredAudioSourceType.file &&
               _selectedAudioPath.value != null) {
+            final String path = _selectedAudioPath.value!;
+            Duration duration = await _getDuration(project?.path, path);
             widget.buttonController.data.sound = SoundData(
-              duration: 0, //TODO
-              path: _selectedAudioPath.value,
-              id: Obz.generateImageId(project),
+              duration: duration.inSeconds,
+              path: path,
+              id: Obz.generateSoundId(project),
             );
           }
 
@@ -666,6 +681,15 @@ class _ButtonConfigPopupState extends State<ButtonConfigPopup> {
         },
       ),
     );
+  }
+
+  Future<Duration> _getDuration(String? projectPath, String path) async {
+    if (projectPath == null) {
+      SimpleLogger().logWarning("project path null setting duration to 0");
+      return Duration.zero;
+    }
+    return PreemptiveAudioPlayer.getDuration(
+        AudioFilePathSource(p.join(projectPath, path)));
   }
 
   void _setSound(SoundData sound) {

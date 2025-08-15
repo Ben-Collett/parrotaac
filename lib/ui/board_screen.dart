@@ -141,7 +141,6 @@ class _BoardScreenState extends State<BoardScreen> {
       updateUi: false,
     );
     eventHandler.setRedoStack(restorationData.currentRedoStack);
-
     super.initState();
   }
 

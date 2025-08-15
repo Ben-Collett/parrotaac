@@ -1,6 +1,7 @@
 import 'dart:async';
 import 'package:parrotaac/backend/mutex.dart';
 import 'package:parrotaac/backend/project/code_gen_allowed/event/project_events.dart';
+import 'package:parrotaac/backend/simple_logger.dart';
 import 'package:parrotaac/backend/state_restoration_utils.dart';
 import 'package:parrotaac/ui/codgen/board_screen_popups.dart';
 import 'package:parrotaac/ui/widgets/sentence_box.dart';

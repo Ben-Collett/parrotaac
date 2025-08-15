@@ -14,17 +14,18 @@ Future<XFile?> getImage() {
 }
 
 Future<XFile?> getAudioFile() async {
+  //TODO: this may cause problems on IOS and android may need to do a custom selection on those platforms
   FilePickerResult? result = await FilePicker.platform.pickFiles(
     allowMultiple: false,
-    allowedExtensions: ['mp3', 'wav'],
+    type: FileType.audio,
   );
 
   return result?.xFiles.firstOrNull;
 }
 
 Future<List<String>> getFilesPaths(List<String> extensions) async {
+  //TODO: this only works with any on linux I can try using type:FileType.custom and allowedExtensions on other OS's
   FilePickerResult? result = await FilePicker.platform.pickFiles(
-    allowedExtensions: extensions,
     allowMultiple: true,
   );
   if (result != null) {
@@ -61,7 +62,6 @@ Widget imageFromUrl(String url, {BoxFit fit = BoxFit.contain}) {
 
 Widget imageFromData(InlineData data) {
   late Uint8List bytes;
-  SimpleLogger().logDebug("imageFromData called");
   if (data.encodingBase == 64) {
     bytes = base64Decode(data.data);
   } else {

@@ -13,6 +13,7 @@ import 'package:parrotaac/backend/state_restoration_utils.dart';
 import 'package:parrotaac/board_selector.dart';
 import 'package:parrotaac/setting_screen.dart';
 import 'package:parrotaac/ui/board_screen.dart';
+import 'package:parrotaac/ui/board_screen_popup_history.dart';
 import 'package:parrotaac/ui/popups/button_config.dart';
 import 'package:parrotaac/ui/restore_button_diff.dart';
 
@@ -145,11 +146,15 @@ class RestorativeNavigator {
         changes: restorationData.openButtonDiff,
         restoreStream: stream,
         boardLinkingAction: boardLinkingAction);
+    final popupHistory = BoardScreenPopupHistory(
+        restorationData.currentPopupHistory,
+        restoreSteam: stream);
 
     return BoardScreen(
       project: project,
       restoreStream: stream,
       restorationData: restorationData,
+      popupHistory: popupHistory,
       restorableButtonDiff: diff,
     );
   }
