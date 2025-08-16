@@ -1,15 +1,16 @@
-import 'dart:collection';
 import 'dart:io';
 
 import 'package:flutter/material.dart';
-import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:parrotaac/backend/project/parrot_project.dart';
 import 'package:parrotaac/backend/project/project_interface.dart';
 import 'package:parrotaac/restorative_navigator.dart';
 import 'package:parrotaac/shared_providers/project_dir_controller.dart';
+import 'package:parrotaac/state/application_state.dart';
+import 'package:parrotaac/state/project_selector_state.dart';
 import 'package:parrotaac/ui/settings/settings_themed_appbar.dart';
 import 'package:parrotaac/ui/util_widgets/future_controller_builder.dart';
+import 'package:parrotaac/ui/util_widgets/multi_listenable_builder.dart';
 import 'package:parrotaac/utils.dart';
 
 import 'backend/project/default_project.dart.dart';
@@ -18,10 +19,6 @@ import 'backend/project/project_utils.dart';
 import 'file_utils.dart';
 import 'ui/popups/loading.dart';
 import 'ui/widgets/displey_entry.dart';
-
-final _viewTypeProvider = StateProvider((ref) => ViewType.list);
-final _selectModeProvider = StateProvider((ref) => false);
-final _searchTextProvider = StateProvider((ref) => "");
 
 List<DisplayData> _displayData(
   Iterable<Directory> dirs, {
@@ -41,8 +38,6 @@ List<DisplayEntry> _displayDataFromDirList(
   double? imageWidth,
   double? imageHeight,
   int Function(DisplayData, DisplayData)? sort,
-  Function(Directory?)? onSelect,
-  Function(Directory?)? onDeselect,
   TextStyle? textStyle,
 }) =>
     _displayData(dirs, sort: sort)
@@ -53,8 +48,6 @@ List<DisplayEntry> _displayDataFromDirList(
             viewType: viewType,
             imageWidth: imageWidth,
             selectMode: selectMode,
-            onSelect: onSelect,
-            onDeselect: onDeselect,
             imageHeight: imageHeight,
             textStyle: textStyle,
           ),
@@ -66,8 +59,6 @@ List<Widget> filteredEntries(
   double? imageWidth,
   bool selectMode = false,
   required ViewType viewType,
-  Function(Directory?)? onSelect,
-  Function(Directory?)? onDeselect,
   int Function(DisplayData, DisplayData)? sort,
   double? imageHeight,
   TextStyle? textStyle,
@@ -78,8 +69,6 @@ List<Widget> filteredEntries(
           imageHeight: imageHeight,
           selectMode: selectMode,
           sort: sort,
-          onSelect: onSelect,
-          onDeselect: onDeselect,
           viewType: viewType,
           textStyle: textStyle)
       .where((entry) => match(entry.displayName))
@@ -94,17 +83,23 @@ class ProjectSelector extends StatefulWidget {
 }
 
 class _ProjectSelectorState extends State<ProjectSelector> {
-  final selectedNotifier = SelectedNotifier();
+  final _state = _selectorState;
+
+  @override
+  void dispose() {
+    appState.disposeOfProjectSelector();
+    super.dispose();
+  }
 
   Widget _iconButtonThatIsDisabledWhenSelectedNotfierIsEmpty(
     Icon icon, {
     required VoidCallback onPressed,
   }) {
-    return ListenableBuilder(
-      listenable: selectedNotifier,
-      builder: (context, _) {
+    return ValueListenableBuilder(
+      valueListenable: _selectorState.selectedNotifier.emptyNotifier,
+      builder: (context, isEmpty, _) {
         VoidCallback? outputOnPressed;
-        if (selectedNotifier.isNotEmpty) {
+        if (!isEmpty) {
           outputOnPressed = onPressed;
         }
         return IconButton(
@@ -126,23 +121,24 @@ class _ProjectSelectorState extends State<ProjectSelector> {
         child: Row(
           mainAxisAlignment: MainAxisAlignment.spaceBetween,
           children: [
-            SearchBar(),
-            Consumer(
-              builder: (context, ref, _) {
-                bool selectMode = ref.watch(_selectModeProvider);
-
+            SearchBar(
+              textController: _state.searchTextController,
+            ),
+            ValueListenableBuilder(
+              valueListenable: _state.selectModeNotifier,
+              builder: (context, selectMode, child) {
                 String text = selectMode ? "done" : "select";
                 List<Widget> children = [];
                 void bulkDelete() {
-                  showLoadingDialog(
-                      context, "delete ${selectedNotifier.length}");
-                  for (Directory dir in selectedNotifier.values) {
+                  showLoadingDialog(context,
+                      "delete ${_selectorState.selectedNotifier.length}");
+                  for (Directory dir
+                      in _selectorState.selectedNotifier.values) {
                     dir.deleteSync(recursive: true);
                   }
 
-                  selectedNotifier.clear();
+                  _selectorState.selectedNotifier.clear();
                   projectDirController.refresh();
-                  //ref.invalidate(projectDirProvider);
                   Navigator.of(context).pop();
                   Navigator.of(context).pop();
                 }
@@ -155,7 +151,8 @@ class _ProjectSelectorState extends State<ProjectSelector> {
                         showDialog(
                           context: context,
                           builder: (context) {
-                            List<String> toRemoveNames = selectedNotifier.values
+                            List<String> toRemoveNames = _selectorState
+                                .selectedNotifier.values
                                 .map(ParrotProjectDisplayData.fromDir)
                                 .map((d) => d.name)
                                 .toList();
@@ -222,7 +219,8 @@ class _ProjectSelectorState extends State<ProjectSelector> {
                         if (context.mounted) {
                           showLoadingDialog(context, "exporting");
                         }
-                        for (Directory dir in selectedNotifier.values) {
+                        for (Directory dir
+                            in _selectorState.selectedNotifier.values) {
                           await writeDirectoryAsObz(
                             sourceDirPath: dir.path,
                             outputDirPath: exportDirPath,
@@ -243,10 +241,8 @@ class _ProjectSelectorState extends State<ProjectSelector> {
                       child: TextButton(
                         child: Text(text),
                         onPressed: () {
-                          selectedNotifier.clear();
-                          bool selectModeState = ref.read(_selectModeProvider);
-                          final notfier = _selectModeProvider.notifier;
-                          ref.read(notfier).state = !selectModeState;
+                          _selectorState.selectedNotifier.clear();
+                          _state.selectModeNotifier.value = !selectMode;
                         },
                       ),
                     ),
@@ -275,7 +271,7 @@ class _ProjectSelectorState extends State<ProjectSelector> {
         child: Row(
           mainAxisAlignment: MainAxisAlignment.spaceBetween,
           children: [
-            BoardCountText(),
+            BoardCountText(textController: _state.searchTextController),
             ViewTypeSegmantedButton(),
           ],
         ),
@@ -289,26 +285,22 @@ class _ProjectSelectorState extends State<ProjectSelector> {
             const Text('ParrotAAC'),
             Row(
               children: [
-                Consumer(
-                  builder: (context, ref, __) {
-                    return IconButton(
-                      icon: Icon(Icons.file_download_outlined),
-                      onPressed: () async {
-                        final time = DateTime.now();
-                        final toImport = await getFilesPaths(["obf", "obz"]);
-                        if (context.mounted) {
-                          showLoadingDialog(context, 'importing');
-                        }
-                        for (String path in toImport) {
-                          await import(path, lastAccessedTime: time);
-                        }
-                        if (context.mounted) {
-                          Navigator.of(context).pop();
-                        }
+                IconButton(
+                  icon: Icon(Icons.file_download_outlined),
+                  onPressed: () async {
+                    final time = DateTime.now();
+                    final toImport = await getFilesPaths(["obf", "obz"]);
+                    if (context.mounted) {
+                      showLoadingDialog(context, 'importing');
+                    }
+                    for (String path in toImport) {
+                      await import(path, lastAccessedTime: time);
+                    }
+                    if (context.mounted) {
+                      Navigator.of(context).pop();
+                    }
 
-                        projectDirController.refresh();
-                      },
-                    );
+                    projectDirController.refresh();
                   },
                 ),
                 IconButton(
@@ -327,8 +319,8 @@ class _ProjectSelectorState extends State<ProjectSelector> {
           top,
           Flexible(
             child: DisplayView(
-              onSelect: selectedNotifier.addIfNotNull,
-              onDeselect: selectedNotifier.remove,
+              searchController: _state.searchTextController,
+              viewTypeController: _state.viewTypeNotifier,
             ),
           ),
           bottom,
@@ -391,55 +383,59 @@ class _CreateProjectDialogState extends State<CreateProjectDialog> {
                 constraints: BoxConstraints(minWidth: 0, maxWidth: maxWidth),
                 child: SizedBox(
                   width: maxWidth,
-                  child: Consumer(builder: (_, ref, __) {
-                    return FutureControllerBuilder(
-                      controller: projectDirController,
-                      onData: (dirs) {
-                        final ViewType viewType = ref.watch(_viewTypeProvider);
-                        List<String> displayNames =
-                            _displayDataFromDirList(dirs!, viewType: viewType)
+                  child: ValueListenableBuilder(
+                      valueListenable: _selectorState.viewTypeNotifier,
+                      builder: (_, viewType, __) {
+                        return FutureControllerBuilder(
+                          controller: projectDirController,
+                          onData: (dirs) {
+                            List<String> displayNames = _displayDataFromDirList(
+                                    dirs!,
+                                    viewType: viewType)
                                 .map((d) => d.displayName.data)
                                 .whereType<String>()
                                 .toList();
-                        List<Widget> column = [
-                          TextFormField(
-                            controller: widget.controller,
-                            validator: (text) => validate(text, displayNames),
-                            decoration: InputDecoration(
-                              border: OutlineInputBorder(),
-                              labelText: "Project Name",
-                            ),
-                          ),
-                        ];
+                            List<Widget> column = [
+                              TextFormField(
+                                controller: widget.controller,
+                                validator: (text) =>
+                                    validate(text, displayNames),
+                                decoration: InputDecoration(
+                                  border: OutlineInputBorder(),
+                                  labelText: "Project Name",
+                                ),
+                              ),
+                            ];
 
-                        if (_image != null) {
-                          column.add(
-                            FutureBuilder(
-                              future: _image,
-                              builder: (_, snapshot) {
-                                if (snapshot.data == null) {
-                                  return SizedBox(width: 0, height: 0);
-                                }
-                                XFile data = snapshot.requireData!;
-                                return ConstrainedBox(
-                                  constraints: BoxConstraints(maxHeight: 100),
-                                  child: imageFromPath(data.path),
-                                );
-                              },
-                            ),
-                          );
-                        }
-                        column.add(TextButton(
-                          child: Text("select project image"),
-                          onPressed: () => setImage(getImage()),
-                        ));
+                            if (_image != null) {
+                              column.add(
+                                FutureBuilder(
+                                  future: _image,
+                                  builder: (_, snapshot) {
+                                    if (snapshot.data == null) {
+                                      return SizedBox(width: 0, height: 0);
+                                    }
+                                    XFile data = snapshot.requireData!;
+                                    return ConstrainedBox(
+                                      constraints:
+                                          BoxConstraints(maxHeight: 100),
+                                      child: imageFromPath(data.path),
+                                    );
+                                  },
+                                ),
+                              );
+                            }
+                            column.add(TextButton(
+                              child: Text("select project image"),
+                              onPressed: () => setImage(getImage()),
+                            ));
 
-                        return Column(
-                          children: column,
+                            return Column(
+                              children: column,
+                            );
+                          },
                         );
-                      },
-                    );
-                  }),
+                      }),
                 ),
               ),
             ],
@@ -454,45 +450,44 @@ class _CreateProjectDialogState extends State<CreateProjectDialog> {
             Navigator.of(context).pop();
           },
         ),
-        Consumer(builder: (_, ref, ___) {
-          return IconButton(
-            color: Colors.green,
-            icon: Icon(Icons.check),
-            onPressed: () async {
-              // Trigger form validation
-              if (widget.formKey.currentState!.validate()) {
-                String? imagePath;
-                if (_image != null) {
-                  XFile? image = await _image;
-                  imagePath = image?.path;
-                }
-                await writeDefaultProject(
-                  widget.controller.text,
-                  path: await determineValidProjectPath(widget.controller.text),
-                  projectImagePath: imagePath,
-                );
-                if (context.mounted) {
-                  Navigator.of(context).pop();
-                }
-
-                projectDirController.refresh();
-                //ref.invalidate(projectDirProvider);
+        IconButton(
+          color: Colors.green,
+          icon: Icon(Icons.check),
+          onPressed: () async {
+            // Trigger form validation
+            if (widget.formKey.currentState!.validate()) {
+              String? imagePath;
+              if (_image != null) {
+                XFile? image = await _image;
+                imagePath = image?.path;
               }
-            },
-          );
-        }),
+              await writeDefaultProject(
+                widget.controller.text,
+                path: await determineValidProjectPath(widget.controller.text),
+                projectImagePath: imagePath,
+              );
+              if (context.mounted) {
+                Navigator.of(context).pop();
+              }
+
+              projectDirController.refresh();
+            }
+          },
+        ),
       ],
     );
   }
 }
 
-class SearchBar extends ConsumerWidget {
+class SearchBar extends StatelessWidget {
+  final TextEditingController textController;
   const SearchBar({
     super.key,
+    required this.textController,
   });
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  Widget build(BuildContext context) {
     //TODO: I should fine a way to not have the width constant
 
     return Container(
@@ -500,163 +495,197 @@ class SearchBar extends ConsumerWidget {
       color: Colors.white,
       //could add autocomplete but it looks bad and provides little advantage
       child: TextField(
-          decoration: InputDecoration(
-              prefixIcon: Icon(Icons.search), hintText: "search..."),
-          onChanged: (text) {
-            ref.read(_searchTextProvider.notifier).state = text;
-          }),
+        decoration: InputDecoration(
+            prefixIcon: Icon(Icons.search), hintText: "search..."),
+        controller: textController,
+      ),
     );
   }
 }
 
-class BoardCountText extends ConsumerWidget {
-  const BoardCountText({super.key});
+class BoardCountText extends StatelessWidget {
+  final TextEditingController textController;
+  const BoardCountText({super.key, required this.textController});
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    String search = ref.watch(_searchTextProvider);
+  Widget build(BuildContext context) {
     return FutureControllerBuilder(
       controller: projectDirController,
-      onData: (value) => Text('${filteredEntries(
-        value!,
-        search,
-        viewType: ViewType.list,
-      ).length} boards'),
+      onData: (value) => ValueListenableBuilder(
+          valueListenable: _selectorState.searchTextController,
+          builder: (context, search, child) {
+            return Text('${filteredEntries(
+              value!,
+              search.text,
+              viewType: ViewType.list,
+            ).length} boards');
+          }),
       onLoad: const Text('calculating #of boards'),
     );
   }
 }
 
-class ViewTypeSegmantedButton extends ConsumerWidget {
+class ViewTypeSegmantedButton extends StatelessWidget {
   const ViewTypeSegmantedButton({super.key});
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  Widget build(BuildContext context) {
     //TODO: it would be nice to replace the labels with icons
     final listSegment =
         ButtonSegment(value: ViewType.list, label: Text("list"));
     const gridSegment =
         ButtonSegment(value: ViewType.grid, label: Text("grid"));
-    return SegmentedButton(
-        segments: [listSegment, gridSegment],
-        selected: {ref.watch(_viewTypeProvider)},
-        onSelectionChanged: (selected) {
-          ref.read(_viewTypeProvider.notifier).state = selected.first;
+    return ValueListenableBuilder(
+        valueListenable: _selectorState.viewTypeNotifier,
+        builder: (context, value, child) {
+          return SegmentedButton(
+              segments: [listSegment, gridSegment],
+              selected: {value},
+              onSelectionChanged: (selected) {
+                _selectorState.viewTypeNotifier.value = selected.first;
+              });
         });
   }
 }
 
-class DisplayView extends ConsumerWidget {
-  final void Function(Directory?)? onSelect;
-  final void Function(Directory?)? onDeselect;
-  int _byLastAccessedThenAlphabeticalOrder(DisplayData d1, DisplayData d2) {
-    DateTime? t1 = d1.lastAccessed;
-    DateTime? t2 = d2.lastAccessed;
-    if (d1.lastAccessed == null && d2.lastAccessed == null) {
-      return d1.name.compareTo(d2.name);
-    } else if (t1 == null) {
-      return 1;
-    } else if (t2 == null) {
-      return -1;
-    } else if (t1.isBefore(t2)) {
-      return 1;
-    } else if (t1.isAfter(t2)) {
-      return -1;
-    }
-    return d1.name.compareTo(d2.name);
-  }
-
+class DisplayView extends StatefulWidget {
+  final TextEditingController searchController;
+  final ValueNotifier<ViewType> viewTypeController;
   const DisplayView({
     super.key,
-    this.onSelect,
-    this.onDeselect,
+    required this.searchController,
+    required this.viewTypeController,
   });
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    String search = ref.watch(_searchTextProvider);
-    bool selectMode = ref.watch(_selectModeProvider);
-    Widget listView(Iterable<Directory> data) {
-      List<Widget> filtered = filteredEntries(data, search,
-          viewType: ViewType.list,
-          sort: _byLastAccessedThenAlphabeticalOrder,
-          imageWidth: 75,
-          imageHeight: 98,
-          selectMode: selectMode,
-          onSelect: onSelect,
-          onDeselect: onDeselect,
-          textStyle: TextStyle(fontSize: 50));
-      final Color borderColor = Colors.grey.withAlpha(127);
-      final double borderWidth = 1;
-      return ListView.separated(
-        key: ValueKey(0),
-        itemCount: filtered.length,
-        separatorBuilder: (_, __) => Container(),
-        itemBuilder: (_, index) => Container(
-            decoration: BoxDecoration(
-              border: Border(
-                bottom: BorderSide(color: borderColor, width: borderWidth),
-              ),
-            ),
-            child: filtered[index]),
-      );
-    }
+  State<DisplayView> createState() => _DisplayViewState();
+}
 
-    Widget gridView(Iterable<Directory> data) {
-      List<Widget> filtered = filteredEntries(data, search,
-          viewType: ViewType.grid,
-          selectMode: selectMode,
-          onSelect: onSelect,
-          onDeselect: onDeselect,
-          textStyle: TextStyle(fontSize: 45),
-          imageWidth: 170,
-          imageHeight: 250);
-      return GridView.count(
-        key: ValueKey(1),
-        crossAxisCount: 3,
-        children: filtered,
-      );
-    }
+class _DisplayViewState extends State<DisplayView> {
+  late final Listenable listenable;
+  @override
+  void initState() {
+    listenable = Listenable.merge([
+      appState.getProjectSelectorState().searchTextController,
+      appState.getProjectSelectorState().selectModeNotifier
+    ]);
+    super.initState();
+  }
 
-    final viewType = ref.watch(_viewTypeProvider);
+  @override
+  Widget build(BuildContext context) {
     return FutureControllerBuilder(
       controller: projectDirController,
-      onData: (value) => viewType == ViewType.list
-          ? listView(value!)
-          : gridView(
-              value!,
-            ),
+      onData: (data) => ValueListenableBuilder(
+        valueListenable: _selectorState.viewTypeNotifier,
+        builder: (_, viewType, __) => viewType == ViewType.list
+            ? SelectorListView(
+                data: data!,
+              )
+            : SelectorGridView(
+                data: data!,
+              ),
+      ),
     );
   }
 }
 
-class SelectedNotifier extends ChangeNotifier {
-  final Set<Directory> _values = {};
-  UnmodifiableSetView<Directory> get values => UnmodifiableSetView(_values);
-  bool get isNotEmpty => _values.isNotEmpty;
-  int get length => _values.length;
+class SelectorListView extends StatelessWidget {
+  final Function(Directory?)? onSelect;
+  final Function(Directory?)? onDeselect;
+  final Iterable<Directory> data;
 
-  ///if dir is null it won't be added
-  ///if [dir] is in the set or is null then listeners won't be notfied
-  void addIfNotNull(Directory? dir) {
-    if (dir != null) {
-      final bool setChanged = _values.add(dir);
-      if (setChanged) {
-        notifyListeners();
-      }
-    }
-  }
+  const SelectorListView({
+    super.key,
+    this.onSelect,
+    this.onDeselect,
+    required this.data,
+  });
 
-  void clear() {
-    if (_values.isNotEmpty) {
-      _values.clear();
-      notifyListeners();
-    }
-  }
-
-  void remove(Directory? dir) {
-    final bool removedSomething = _values.remove(dir);
-    if (removedSomething) {
-      notifyListeners();
-    }
+  @override
+  Widget build(BuildContext context) {
+    return MultiListenableBuilder(
+        listenables: [
+          _selectorState.searchTextController,
+          _selectorState.selectModeNotifier,
+        ],
+        builder: (context, _) {
+          List<Widget> filtered = filteredEntries(
+            data,
+            _selectorState.searchText,
+            viewType: ViewType.list,
+            sort: _byLastAccessedThenAlphabeticalOrder,
+            imageWidth: 75,
+            imageHeight: 98,
+            selectMode: _selectorState.selectMode,
+            textStyle: TextStyle(
+              fontSize: 50,
+            ),
+          );
+          final Color borderColor = Colors.grey.withAlpha(127);
+          final double borderWidth = 1;
+          return ListView.separated(
+            key: ValueKey(0),
+            itemCount: filtered.length,
+            separatorBuilder: (_, __) => Container(),
+            itemBuilder: (_, index) => Container(
+                decoration: BoxDecoration(
+                  border: Border(
+                    bottom: BorderSide(color: borderColor, width: borderWidth),
+                  ),
+                ),
+                child: filtered[index]),
+          );
+        });
   }
 }
+
+class SelectorGridView extends StatelessWidget {
+  final Iterable<Directory> data;
+
+  const SelectorGridView({
+    super.key,
+    required this.data,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return MultiListenableBuilder(
+      listenables: [
+        _selectorState.selectModeNotifier,
+        _selectorState.searchTextController
+      ],
+      builder: (context, _) {
+        List<Widget> filtered = filteredEntries(data, _selectorState.searchText,
+            viewType: ViewType.grid,
+            selectMode: _selectorState.selectMode,
+            textStyle: TextStyle(fontSize: 45),
+            imageWidth: 170,
+            imageHeight: 250);
+        return GridView.count(
+          key: ValueKey(1),
+          crossAxisCount: 3,
+          children: filtered,
+        );
+      },
+    );
+  }
+}
+
+int _byLastAccessedThenAlphabeticalOrder(DisplayData d1, DisplayData d2) {
+  DateTime? t1 = d1.lastAccessed;
+  DateTime? t2 = d2.lastAccessed;
+  if (d1.lastAccessed == null && d2.lastAccessed == null) {
+    return d1.name.compareTo(d2.name);
+  } else if (t1 == null) {
+    return 1;
+  } else if (t2 == null) {
+    return -1;
+  } else if (t1.isBefore(t2)) {
+    return 1;
+  } else if (t1.isAfter(t2)) {
+    return -1;
+  }
+  return d1.name.compareTo(d2.name);
+}
+
+ProjectSelectorState get _selectorState => appState.getProjectSelectorState();

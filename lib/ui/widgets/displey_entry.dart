@@ -1,7 +1,6 @@
 import 'dart:io';
 
 import 'package:flutter/material.dart';
-import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_slidable/flutter_slidable.dart';
 import 'package:parrotaac/backend/project/manifest_utils.dart';
 import 'package:parrotaac/backend/project/parrot_project.dart';
@@ -9,6 +8,7 @@ import 'package:parrotaac/backend/project/project_interface.dart';
 import 'package:parrotaac/file_utils.dart';
 import 'package:parrotaac/restorative_navigator.dart';
 import 'package:parrotaac/shared_providers/project_dir_controller.dart';
+import 'package:parrotaac/state/application_state.dart';
 import 'package:parrotaac/ui/popups/loading.dart';
 import 'package:parrotaac/utils.dart';
 
@@ -35,8 +35,6 @@ class DisplayEntry extends StatefulWidget {
   final DisplayData data;
   final ViewType viewType;
   final bool selectMode;
-  final void Function(Directory?)? onSelect;
-  final void Function(Directory?)? onDeselect;
 
   final double? imageWidth;
   final double? imageHeight;
@@ -62,8 +60,6 @@ class DisplayEntry extends StatefulWidget {
     required this.imageHeight,
     this.textStyle,
     this.selectMode = false,
-    this.onSelect,
-    this.onDeselect,
   });
 
   @override
@@ -112,7 +108,7 @@ class _DisplayEntryState extends State<DisplayEntry> {
     }
   }
 
-  void _openBoard(WidgetRef ref) async {
+  void _openBoard() async {
     updateAccessedTimeInManifest(widget.dir!);
     await RestorativeNavigator().openProject(
       context,
@@ -136,19 +132,25 @@ class _DisplayEntryState extends State<DisplayEntry> {
       backgroundColor = Colors.white;
     }
     List<Widget> children = [widget.image, Expanded(child: widget.displayName)];
-    void onTap(WidgetRef ref) {
+    void onTap() {
       if (widget.selectMode) {
         setState(() {
           selected = !selected;
         });
 
-        if (selected && widget.onSelect != null) {
-          widget.onSelect!(widget.dir);
-        } else if (!selected && widget.onDeselect != null) {
-          widget.onDeselect!(widget.dir);
+        if (selected) {
+          appState
+              .getProjectSelectorState()
+              .selectedNotifier
+              .addIfNotNull(widget.dir);
+        } else if (!selected) {
+          appState
+              .getProjectSelectorState()
+              .selectedNotifier
+              .remove(widget.dir);
         }
       } else {
-        _openBoard(ref);
+        _openBoard();
       }
     }
 
@@ -213,20 +215,18 @@ class _DisplayEntryState extends State<DisplayEntry> {
                                     Navigator.of(context).pop();
                                   },
                                   child: Text('no')),
-                              Consumer(
-                                builder: (context, ref, _) => TextButton(
-                                  onPressed: () {
-                                    showLoadingDialog(
-                                      context,
-                                      'deleting ${widget.displayName.data}',
-                                    );
-                                    widget.dir?.deleteSync(recursive: true);
-                                    Navigator.of(context).pop();
-                                    Navigator.of(context).pop();
-                                    projectDirController.refresh();
-                                  },
-                                  child: Text('yes'),
-                                ),
+                              TextButton(
+                                onPressed: () {
+                                  showLoadingDialog(
+                                    context,
+                                    'deleting ${widget.displayName.data}',
+                                  );
+                                  widget.dir?.deleteSync(recursive: true);
+                                  Navigator.of(context).pop();
+                                  Navigator.of(context).pop();
+                                  projectDirController.refresh();
+                                },
+                                child: Text('yes'),
                               ),
                             ],
                           ),
@@ -243,11 +243,13 @@ class _DisplayEntryState extends State<DisplayEntry> {
           )
         ],
       ),
-      child: Consumer(builder: (context, ref, _) {
-        return _button(backgroundColor, () {
-          onTap(ref);
-        }, entry);
-      }),
+      child: _button(
+        backgroundColor,
+        () {
+          onTap();
+        },
+        entry,
+      ),
     );
   }
 

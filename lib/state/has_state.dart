@@ -1,0 +1,3 @@
+mixin HasState {
+  void dispose();
+}

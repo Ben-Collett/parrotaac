@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import 'backend/quick_store.dart';
 import 'backend/settings_utils.dart';
@@ -14,7 +13,7 @@ void main() async {
       RestorativeNavigator().initialize(),
     ],
   );
-  runApp(ProviderScope(child: const MyApp()));
+  runApp(const MyApp());
 }
 
 class MyApp extends StatelessWidget {

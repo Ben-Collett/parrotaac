@@ -4,7 +4,6 @@ import 'package:openboard_wrapper/obf.dart';
 import 'package:parrotaac/backend/history_stack.dart';
 import 'package:parrotaac/backend/project/parrot_project.dart';
 import 'package:parrotaac/backend/project_restore_write_stream.dart';
-import 'package:parrotaac/backend/simple_logger.dart';
 import 'package:parrotaac/backend/state_restoration_utils.dart';
 import 'package:parrotaac/ui/board_screen_appbar.dart';
 import 'package:parrotaac/ui/event_handler.dart';
