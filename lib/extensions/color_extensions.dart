@@ -17,6 +17,13 @@ extension ColorDataCovertor on ColorData {
   }
 }
 
+extension IsColor on Color {
+  bool isBluish() {
+    if (b < r || b < g) return false;
+    return b > 2 * r; //arbitrary rule
+  }
+}
+
 ///takes a alpha that is a decimal between 0 and 1.0 and converts it to an int in the rage 0 to 255
 int _decimalColorToIntColor(double color) {
   if (color < 0 || color > 1) {

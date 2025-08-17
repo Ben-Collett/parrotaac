@@ -1,9 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:parrotaac/backend/history_stack.dart';
 import 'package:parrotaac/backend/project/parrot_project.dart';
+import 'package:parrotaac/backend/settings_utils.dart';
 import 'package:parrotaac/restorative_navigator.dart';
+import 'package:parrotaac/ui/appbar_widgets/compute_contrasting_color.dart';
 import 'package:parrotaac/ui/event_handler.dart';
 import 'package:parrotaac/ui/painters/three_squares.dart';
+import 'package:parrotaac/ui/settings/labels.dart';
 import 'package:parrotaac/ui/util_widgets/color_popup_button.dart';
 import 'package:parrotaac/ui/util_widgets/draggable_grid.dart';
 import 'package:parrotaac/ui/util_widgets/icon_button_on_notfier.dart';
@@ -27,11 +30,16 @@ SettingsThemedAppbar boardScreenAppbar({
 }) {
   const longSideLength = 50.0;
   const shortSideLength = 27.0;
+
+  //WARNING: this only works because you can't change the appbar color on the board screen you have to in settings other wise this needs moved into the SettingsThemedAppbar
+  Color foregroundColor =
+      computeContrastingColor(Color(getSetting(appBarColorLabel)));
   final addColButton = PaintedButton(
     onPressed: eventHandler.addCol,
     width: shortSideLength,
     height: longSideLength,
-    painter: ThreeSquarePainter(circleType: CircleType.add),
+    painter: ThreeSquarePainter(
+        circleType: CircleType.add, foregroundColor: foregroundColor),
   );
 
   final addRowButton = PaintedButton(
@@ -40,7 +48,8 @@ SettingsThemedAppbar boardScreenAppbar({
     height: shortSideLength,
     painter: ThreeSquarePainter(
         circleType: CircleType.add,
-        orientation: RectangleOrientation.horizontal),
+        orientation: RectangleOrientation.horizontal,
+        foregroundColor: foregroundColor),
   );
   Widget? changeGridColorButton = grid != null && boardHistory != null
       ? ListenableBuilder(
@@ -100,8 +109,10 @@ SettingsThemedAppbar boardScreenAppbar({
                         : BoardMode.deleteRowMode;
                   },
                   painter: ThreeSquarePainter(
-                      orientation: RectangleOrientation.horizontal,
-                      circleType: CircleType.subtract),
+                    orientation: RectangleOrientation.horizontal,
+                    circleType: CircleType.subtract,
+                    foregroundColor: foregroundColor,
+                  ),
                 ),
               );
               final removeColButton = Container(
@@ -116,7 +127,10 @@ SettingsThemedAppbar boardScreenAppbar({
                   },
                   height: longSideLength,
                   width: shortSideLength,
-                  painter: ThreeSquarePainter(circleType: CircleType.subtract),
+                  painter: ThreeSquarePainter(
+                    circleType: CircleType.subtract,
+                    foregroundColor: foregroundColor,
+                  ),
                 ),
               );
               IconData icon = inNormalMode ? Icons.handyman : Icons.close;

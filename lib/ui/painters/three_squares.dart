@@ -6,17 +6,19 @@ import 'package:parrotaac/extensions/canvas_extensions.dart';
 class ThreeSquarePainter extends CustomPainter {
   final RectangleOrientation orientation;
   final CircleType circleType;
+  final Color foregroundColor;
 
-  ThreeSquarePainter({
+  const ThreeSquarePainter({
     this.orientation = RectangleOrientation.vertical,
     this.circleType = CircleType.none,
+    this.foregroundColor = Colors.black,
   });
   @override
   void paint(Canvas canvas, Size size) {
     final paint = Paint()
       ..style = PaintingStyle.stroke
       ..strokeWidth = 2
-      ..color = Colors.black;
+      ..color = foregroundColor;
     double left = orientation.leftPreportion * size.width;
     double top = orientation.topPreportion * size.height;
     double width = orientation.widthPreporiton * size.width;
@@ -30,8 +32,32 @@ class ThreeSquarePainter extends CustomPainter {
     double verticalLineLength = .55 * radius;
 
     canvas.drawRect(Rect.fromLTWH(left, top, width, height), paint);
-    const numberOfLinesToDraw = 2;
 
+    _paintInsideLines(canvas, paint, top, left, width, height);
+
+    if (circleType != CircleType.none) {
+      _paintCircle(
+        canvas,
+        paint,
+        foregroundColor,
+        circleCenterX,
+        circleCenterY,
+        radius,
+        horizontalLineLength,
+        verticalLineLength,
+      );
+    }
+  }
+
+  void _paintInsideLines(
+    Canvas canvas,
+    Paint paint,
+    double top,
+    double left,
+    double width,
+    double height,
+  ) {
+    const numberOfLinesToDraw = 2;
     if (orientation == RectangleOrientation.vertical) {
       for (int i = 1; i <= numberOfLinesToDraw; i++) {
         final double y = top + height * i / (numberOfLinesToDraw + 1);
@@ -57,23 +83,12 @@ class ThreeSquarePainter extends CustomPainter {
         );
       }
     }
-
-    if (circleType != CircleType.none) {
-      _paintCircle(
-        canvas,
-        paint,
-        circleCenterX,
-        circleCenterY,
-        radius,
-        horizontalLineLength,
-        verticalLineLength,
-      );
-    }
   }
 
   void _paintCircle(
     Canvas canvas,
     Paint paint,
+    Color outlineColor,
     double centerX,
     double centerY,
     double radius,
@@ -86,7 +101,7 @@ class ThreeSquarePainter extends CustomPainter {
         centerY: centerY,
         radius: radius,
         fillColor: circleType.color,
-        outlineColor: Colors.black);
+        outlineColor: outlineColor);
 
     paint.color = Colors.white;
     paint.strokeWidth = 2;
