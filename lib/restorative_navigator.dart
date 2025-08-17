@@ -10,12 +10,13 @@ import 'package:parrotaac/backend/project/project_settings.dart';
 import 'package:parrotaac/backend/project_restore_write_stream.dart';
 import 'package:parrotaac/backend/quick_store.dart';
 import 'package:parrotaac/backend/state_restoration_utils.dart';
-import 'package:parrotaac/board_selector.dart';
 import 'package:parrotaac/setting_screen.dart';
 import 'package:parrotaac/ui/board_screen.dart';
 import 'package:parrotaac/ui/board_screen_popup_history.dart';
 import 'package:parrotaac/ui/popups/button_config.dart';
 import 'package:parrotaac/ui/restore_button_diff.dart';
+
+import 'project_selector.dart';
 
 ///singleton
 class RestorativeNavigator {

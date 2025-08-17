@@ -1,10 +1,9 @@
 import 'package:flutter/material.dart';
-import 'package:flutter_svg/svg.dart';
 import 'package:parrotaac/backend/history_stack.dart';
 import 'package:parrotaac/backend/project/parrot_project.dart';
 import 'package:parrotaac/restorative_navigator.dart';
 import 'package:parrotaac/ui/event_handler.dart';
-import 'package:parrotaac/ui/painters/add_col.dart';
+import 'package:parrotaac/ui/painters/three_squares.dart';
 import 'package:parrotaac/ui/util_widgets/color_popup_button.dart';
 import 'package:parrotaac/ui/util_widgets/draggable_grid.dart';
 import 'package:parrotaac/ui/util_widgets/icon_button_on_notfier.dart';
