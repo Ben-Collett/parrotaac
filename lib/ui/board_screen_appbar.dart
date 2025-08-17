@@ -4,9 +4,11 @@ import 'package:parrotaac/backend/history_stack.dart';
 import 'package:parrotaac/backend/project/parrot_project.dart';
 import 'package:parrotaac/restorative_navigator.dart';
 import 'package:parrotaac/ui/event_handler.dart';
+import 'package:parrotaac/ui/painters/add_col.dart';
 import 'package:parrotaac/ui/util_widgets/color_popup_button.dart';
 import 'package:parrotaac/ui/util_widgets/draggable_grid.dart';
 import 'package:parrotaac/ui/util_widgets/icon_button_on_notfier.dart';
+import 'package:parrotaac/ui/util_widgets/paint_button.dart';
 
 import 'board_modes.dart';
 import 'board_screen_constants.dart';
@@ -24,21 +26,22 @@ SettingsThemedAppbar boardScreenAppbar({
   GridNotfier? grid,
   Widget? leading,
 }) {
-  final addColButton = IconButton(
+  const longSideLength = 50.0;
+  const shortSideLength = 27.0;
+  final addColButton = PaintedButton(
     onPressed: eventHandler.addCol,
-    icon: FittedBox(
-      fit: BoxFit.contain,
-      child: SvgPicture.asset('assets/images/add_col.svg', height: 50),
-    ),
-    color:
-        boardMode.value == BoardMode.deleteRowMode ? Colors.grey : Colors.white,
+    width: shortSideLength,
+    height: longSideLength,
+    painter: ThreeSquarePainter(circleType: CircleType.add),
   );
-  final addRowButton = IconButton(
+
+  final addRowButton = PaintedButton(
     onPressed: eventHandler.addRow,
-    icon: FittedBox(
-      fit: BoxFit.contain,
-      child: SvgPicture.asset('assets/images/add_row.svg', width: 50),
-    ),
+    width: longSideLength,
+    height: shortSideLength,
+    painter: ThreeSquarePainter(
+        circleType: CircleType.add,
+        orientation: RectangleOrientation.horizontal),
   );
   Widget? changeGridColorButton = grid != null && boardHistory != null
       ? ListenableBuilder(
@@ -89,34 +92,32 @@ SettingsThemedAppbar boardScreenAppbar({
                 color: boardMode.value == BoardMode.deleteRowMode
                     ? Colors.grey
                     : Colors.transparent,
-                child: IconButton(
+                child: PaintedButton(
+                  width: longSideLength,
+                  height: shortSideLength,
                   onPressed: () {
                     boardMode.value = mode == BoardMode.deleteRowMode
                         ? BoardMode.builderMode
                         : BoardMode.deleteRowMode;
                   },
-                  icon: FittedBox(
-                    fit: BoxFit.contain,
-                    child: SvgPicture.asset('assets/images/remove_row.svg',
-                        width: 50),
-                  ),
+                  painter: ThreeSquarePainter(
+                      orientation: RectangleOrientation.horizontal,
+                      circleType: CircleType.subtract),
                 ),
               );
               final removeColButton = Container(
                 color: boardMode.value == BoardMode.deleteColMode
                     ? Colors.grey
                     : Colors.transparent,
-                child: IconButton(
+                child: PaintedButton(
                   onPressed: () {
                     boardMode.value = mode == BoardMode.deleteColMode
                         ? BoardMode.builderMode
                         : BoardMode.deleteColMode;
                   },
-                  icon: FittedBox(
-                    fit: BoxFit.contain,
-                    child: SvgPicture.asset('assets/images/remove_col.svg',
-                        height: 50),
-                  ),
+                  height: longSideLength,
+                  width: shortSideLength,
+                  painter: ThreeSquarePainter(circleType: CircleType.subtract),
                 ),
               );
               IconData icon = inNormalMode ? Icons.handyman : Icons.close;
