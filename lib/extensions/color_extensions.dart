@@ -18,9 +18,12 @@ extension ColorDataCovertor on ColorData {
 }
 
 extension IsColor on Color {
+  ///meant to return if a color is blueish, the formula is arbitrary and can change and is just an approximation.
   bool isBluish() {
-    if (b < r || b < g) return false;
-    return b > 2 * r; //arbitrary rule
+    final color = HSVColor.fromColor(this);
+    final notToDark = color.value > .2;
+    final saturatedEnough = color.saturation > .25;
+    return color.hue >= 175 && color.hue <= 260 && notToDark && saturatedEnough;
   }
 }
 

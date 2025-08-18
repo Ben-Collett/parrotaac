@@ -11,6 +11,7 @@ import 'package:parrotaac/ui/util_widgets/color_popup_button.dart';
 import 'package:parrotaac/ui/util_widgets/draggable_grid.dart';
 import 'package:parrotaac/ui/util_widgets/icon_button_on_notfier.dart';
 import 'package:parrotaac/ui/util_widgets/paint_button.dart';
+import 'package:parrotaac/ui/widgets/empty_spot.dart';
 
 import 'board_modes.dart';
 import 'board_screen_constants.dart';
@@ -56,14 +57,27 @@ SettingsThemedAppbar boardScreenAppbar({
           listenable: boardHistory,
           builder: (context, _) {
             return ColorPickerPopupButton(
-                notifier: grid.backgroundColorNotifier,
-                onPressed: () => grid.hideEmptySpotWidget = true,
-                onClose: (initialColor, newColor) {
+              notifier: grid.backgroundColorNotifier,
+              onPressed: () => grid.hideEmptySpotWidget = true,
+              onClose: (initialColor, newColor) {
+                if (initialColor == newColor) {
                   grid.hideEmptySpotWidget = false;
-                  eventHandler.changeBoardColor(
-                      boardHistory.currentBoard, initialColor, newColor);
-                });
-          })
+                  return;
+                }
+
+                grid.emptySpotWidget = EmptySpotWidget(
+                  color: EmptySpotWidget.fromBackground(newColor),
+                );
+                grid.hideEmptySpotWidget = false;
+                eventHandler.changeBoardColor(
+                  boardHistory.currentBoard,
+                  initialColor,
+                  newColor,
+                );
+              },
+            );
+          },
+        )
       : null;
 
   final undoButton = IconButtonEnabledOnNotfier(

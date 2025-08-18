@@ -17,6 +17,7 @@ import 'package:parrotaac/ui/popups/button_config.dart';
 import 'package:parrotaac/ui/restore_button_diff.dart';
 import 'package:parrotaac/ui/sentence_bar.dart';
 import 'package:parrotaac/ui/util_widgets/draggable_grid.dart';
+import 'package:parrotaac/ui/widgets/empty_spot.dart';
 import 'package:parrotaac/ui/widgets/sentence_box.dart';
 
 class BoardWidget extends StatefulWidget {
@@ -142,14 +143,20 @@ class _BoardWidgetState extends State<BoardWidget> {
       );
     }
 
-    history.addListener(() {
-      _gridNotfier.backgroundColorNotifier.value =
-          history.currentBoard.boardColor.toColor();
-    });
-    _gridNotfier.backgroundColorNotifier.value =
-        history.currentBoard.boardColor.toColor();
+    history.addListener(_updateGridNoifierColor);
+    _updateGridNoifierColor();
 
     super.initState();
+  }
+
+  void _updateGridNoifierColor() {
+    _gridNotfier.backgroundColorNotifier.value =
+        history.currentBoard.boardColor.toColor();
+    _gridNotfier.emptySpotWidget = EmptySpotWidget(
+      color: EmptySpotWidget.fromBackground(
+        _gridNotfier.backgroundColorNotifier.value,
+      ),
+    );
   }
 
   void _updateObfData() {
@@ -173,7 +180,7 @@ class _BoardWidgetState extends State<BoardWidget> {
   void _updateGridSettingsFromBoardMode() {
     BoardMode mode = _boardMode.value;
     _gridNotfier.draggable = mode.draggableButtons;
-    _gridNotfier.emptySpotWidget = mode.emptySpotWidget;
+    _gridNotfier.hideEmptySpotWidget = mode.hideEmptySpotWidget;
     _gridNotfier.toWidget = (button) => _toParrotButton(
           button,
           widget.eventHandler,
