@@ -26,7 +26,7 @@ SettingsThemedAppbar boardScreenAppbar({
   required ProjectEventHandler eventHandler,
   required ParrotProject project,
   BoardHistoryStack? boardHistory,
-  GridNotfier? grid,
+  GridNotifier? grid,
   Widget? leading,
 }) {
   const longSideLength = 50.0;

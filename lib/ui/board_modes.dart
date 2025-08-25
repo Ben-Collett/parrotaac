@@ -8,7 +8,7 @@ class BoardMode {
   final bool hideEmptySpotWidget;
   final bool configOnButtonHold;
   final bool draggableButtons;
-  final void Function(GridNotfier grid, ProjectEventHandler handler)
+  final void Function(GridNotifier grid, ProjectEventHandler handler)
       onPressedOverride;
   final String asString;
 
@@ -54,7 +54,7 @@ class BoardMode {
 }
 
 void _setGridToDefaultOnPress(
-    GridNotfier notfier, ProjectEventHandler handler) {
+    GridNotifier notfier, ProjectEventHandler handler) {
   notfier.forEach((obj) {
     if (obj is ParrotButtonNotifier) {
       obj.onPressOverride = null;
@@ -65,7 +65,7 @@ void _setGridToDefaultOnPress(
 void _setButtonToDeleteRowMode(
   Object? object,
   int row,
-  GridNotfier gridNotfier,
+  GridNotifier gridNotfier,
   ProjectEventHandler handler,
 ) {
   if (object is ParrotButtonNotifier) {
@@ -79,13 +79,13 @@ void _setButtonToDeleteRowMode(
   }
 }
 
-void _setGridToDeleteRowMode(GridNotfier grid, ProjectEventHandler handler) {
+void _setGridToDeleteRowMode(GridNotifier grid, ProjectEventHandler handler) {
   grid.forEachIndexed((obj, row, col) {
     _setButtonToDeleteRowMode(obj, row, grid, handler);
   });
 }
 
-void _setGridToDeleteColMode(GridNotfier grid, ProjectEventHandler handler) {
+void _setGridToDeleteColMode(GridNotifier grid, ProjectEventHandler handler) {
   grid.forEachIndexed((obj, row, col) {
     _setButtonToDeleteColMode(obj, col, grid, handler);
   });
@@ -94,7 +94,7 @@ void _setGridToDeleteColMode(GridNotfier grid, ProjectEventHandler handler) {
 void _setButtonToDeleteColMode(
   Object? object,
   int col,
-  GridNotfier gridNotfier,
+  GridNotifier gridNotfier,
   ProjectEventHandler handler,
 ) {
   if (object is ParrotButtonNotifier) {

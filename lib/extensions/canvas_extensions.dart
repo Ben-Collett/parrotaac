@@ -1,5 +1,7 @@
 import 'dart:ui';
 
+import 'package:parrotaac/backend/simple_logger.dart';
+
 extension CanvasExtension on Canvas {
   void paintCircle({
     required Paint paint,
@@ -26,6 +28,13 @@ extension CanvasExtension on Canvas {
     }
     paint.color = startingColor;
     paint.style = startingStyle;
+  }
+
+  void drawCenterGuildlines(Paint paint, Size size) {
+    drawLine(
+        Offset(size.width / 2, size.height), Offset(size.width / 2, 0), paint);
+    drawLine(
+        Offset(size.width, size.height / 2), Offset(0, size.height / 2), paint);
   }
 
   void paintPlusSign(

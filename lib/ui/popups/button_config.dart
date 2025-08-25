@@ -26,6 +26,7 @@ import 'package:parrotaac/ui/actions/button_actions.dart';
 import 'package:parrotaac/ui/board_screen_popup_history.dart';
 import 'package:parrotaac/ui/codgen/board_screen_popups.dart';
 import 'package:parrotaac/ui/event_handler.dart';
+import 'package:parrotaac/ui/painters/button_shapes.dart';
 import 'package:parrotaac/ui/parrot_button.dart';
 import 'package:parrotaac/ui/restore_button_diff.dart';
 import 'package:parrotaac/ui/screens/board_select.dart';
@@ -218,6 +219,7 @@ class _ButtonConfigPopupState extends State<ButtonConfigPopup> {
   final TextEditingController _voclizationController = TextEditingController();
   late final BoardHistoryStack _lastLinkedBoard;
   late final ValueNotifier<String?> _selectedAudioPath;
+  late final ValueNotifier<ParrotButtonShape> _shapeController;
   final ValueNotifier<bool> recording = ValueNotifier(false);
   String? currentRecordingPath;
   static const String recordedAudioString = "recorded_audio";
@@ -241,6 +243,7 @@ class _ButtonConfigPopupState extends State<ButtonConfigPopup> {
     recording.dispose();
     _selectedAudioPath.dispose();
     _lastLinkedBoard.dispose();
+    _shapeController.dispose();
     super.dispose();
   }
 
@@ -302,6 +305,8 @@ class _ButtonConfigPopupState extends State<ButtonConfigPopup> {
       //TODO: it may be better to not have the grid update instead
       buttonController.update(); //needed to initialize in the grid.
     });
+
+    _shapeController = ValueNotifier(buttonController.shape);
     super.initState();
   }
 
@@ -427,6 +432,36 @@ class _ButtonConfigPopupState extends State<ButtonConfigPopup> {
         onChange: _updateActions,
         totalHeight: 300,
         topBarHeight: 50,
+      ),
+    );
+  }
+
+  Widget _shapeConfig() {
+    return subsection(
+      "shape:",
+      ValueListenableBuilder(
+        valueListenable: _shapeController,
+        builder: (context, value, child) {
+          return SegmentedButton<ParrotButtonShape>(
+            segments: [
+              ButtonSegment(
+                value: ParrotButtonShape.square,
+                label: Text("button"),
+              ),
+              ButtonSegment(
+                value: ParrotButtonShape.folder,
+                label: Text("folder"),
+              ),
+            ],
+            selected: {value},
+            onSelectionChanged: (valSet) {
+              _shapeController.value = valSet.first;
+              buttonController.shape = _shapeController.value;
+              widget.restorableButtonDiff
+                  ?.update(parrotButtonShapeKey, buttonController.shape.label);
+            },
+          );
+        },
       ),
     );
   }
@@ -798,6 +833,8 @@ class _ButtonConfigPopupState extends State<ButtonConfigPopup> {
           _linkedBoard(maxWidth),
           space(),
           _audioTypeMenu(maxWidth),
+          space(),
+          _shapeConfig(),
           space(),
           _previewButton(
             "preview",

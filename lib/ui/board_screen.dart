@@ -38,7 +38,7 @@ class BoardScreen extends StatefulWidget {
 }
 
 class _BoardScreenState extends State<BoardScreen> {
-  late final GridNotfier<ParrotButton> _gridNotfier;
+  late final GridNotifier<ParrotButton> _gridNotifier;
   late final SentenceBoxController _sentenceController;
   late final ValueNotifier<BoardMode> _boardMode;
   late final BoardHistoryStack _boardHistory;
@@ -70,7 +70,7 @@ class _BoardScreenState extends State<BoardScreen> {
       widget.restoreStream?.updateSentenceBar(data);
     });
     _titleController = TextEditingController(text: _currentObf.name);
-    _gridNotfier = GridNotfier(
+    _gridNotifier = GridNotifier(
         data: [],
         toWidget: (obj) {
           if (obj is ParrotButtonNotifier) {
@@ -86,7 +86,7 @@ class _BoardScreenState extends State<BoardScreen> {
         draggable: false,
         onSwap: (oldRow, oldCol, newRow, newCol) {
           eventHandler.swapButtons(oldRow, oldCol, newRow, newCol);
-          final data = _gridNotfier.getWidget(newRow, newCol);
+          final data = _gridNotifier.getWidget(newRow, newCol);
           _updateButtonNotfierOnDelete(
             data!,
             eventHandler,
@@ -126,7 +126,7 @@ class _BoardScreenState extends State<BoardScreen> {
 
     eventHandler = ProjectEventHandler(
         project: widget.project,
-        gridNotfier: _gridNotfier,
+        gridNotfier: _gridNotifier,
         boxController: _sentenceController,
         canUndo: canUndo,
         canRedo: canRedo,
@@ -202,7 +202,7 @@ class _BoardScreenState extends State<BoardScreen> {
   @override
   void dispose() {
     _updateButtonPositionsInObf();
-    _gridNotfier.dispose();
+    _gridNotifier.dispose();
     _boardMode.dispose();
     _sentenceController.dispose();
     _titleController.dispose();
@@ -212,7 +212,7 @@ class _BoardScreenState extends State<BoardScreen> {
 
   void _updateButtonPositionsInObf() {
     List<List<ButtonData?>> order = [];
-    for (List<ParrotButton?> row in _gridNotfier.widgets) {
+    for (List<ParrotButton?> row in _gridNotifier.widgets) {
       order.add(row.map((b) => b?.buttonData).toList());
       for (ParrotButton? button in row) {
         if (button != null &&
@@ -233,7 +233,7 @@ class _BoardScreenState extends State<BoardScreen> {
         titleController: _titleController,
         project: widget.project,
         boardHistory: _boardHistory,
-        grid: _gridNotfier,
+        grid: _gridNotifier,
         eventHandler: eventHandler,
         leading: BackButton(
           onPressed: () {
@@ -252,7 +252,7 @@ class _BoardScreenState extends State<BoardScreen> {
         eventHandler: eventHandler,
         boardMode: _boardMode,
         restorableButtonDiff: widget.restorableButtonDiff,
-        gridNotfier: _gridNotfier,
+        gridNotifier: _gridNotifier,
         popupHistory: widget.popupHistory,
         restoreStream: widget.restoreStream,
         sentenceBoxController: _sentenceController,

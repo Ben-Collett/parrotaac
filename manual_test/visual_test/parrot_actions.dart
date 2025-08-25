@@ -1,7 +1,6 @@
 import 'dart:io';
 
 import 'package:flutter/material.dart';
-import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:openboard_wrapper/button_data.dart';
 import 'package:openboard_wrapper/grid_data.dart';
 import 'package:openboard_wrapper/obf.dart';
@@ -11,7 +10,7 @@ import 'package:parrotaac/ui/board_screen.dart';
 import 'package:parrotaac/ui/parrot_button.dart';
 
 void main() {
-  runApp(ProviderScope(child: const MyApp()));
+  runApp(const MyApp());
 }
 
 class MyApp extends StatelessWidget {

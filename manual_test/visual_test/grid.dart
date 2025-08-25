@@ -44,7 +44,7 @@ class MainScreen extends StatelessWidget {
       [ParrotButtonNotifier(data: bd), ParrotButtonNotifier(data: bd2)],
       [null, ParrotButtonNotifier(data: bd3)],
     ];
-    GridNotfier<ParrotButton> grid = GridNotfier<ParrotButton>(
+    GridNotifier<ParrotButton> grid = GridNotifier<ParrotButton>(
         data: data,
         toWidget: (d) {
           if (d is ParrotButtonNotifier) {

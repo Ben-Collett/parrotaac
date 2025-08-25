@@ -23,7 +23,7 @@ import 'package:parrotaac/ui/widgets/sentence_box.dart';
 class BoardWidget extends StatefulWidget {
   final ParrotProject project;
   final ValueNotifier<BoardMode>? boardMode;
-  final GridNotfier<ParrotButton>? gridNotfier;
+  final GridNotifier<ParrotButton>? gridNotifier;
   final ProjectEventHandler eventHandler;
   final SentenceBoxController? sentenceBoxController;
   final BoardHistoryStack? history;
@@ -36,7 +36,7 @@ class BoardWidget extends StatefulWidget {
     required this.project,
     required this.eventHandler,
     this.boardMode,
-    this.gridNotfier,
+    this.gridNotifier,
     this.restoreStream,
     this.popupHistory,
     this.restorableButtonDiff,
@@ -53,7 +53,7 @@ class _BoardWidgetState extends State<BoardWidget> {
   static const String defaultBoardName = "default name";
   static const String defaultID = "board";
   static const int historySize = 100;
-  late final GridNotfier<ParrotButton> _gridNotfier;
+  late final GridNotifier<ParrotButton> _gridNotfier;
   late final SentenceBoxController _sentenceController;
   Set<ParrotButtonNotifier> buttonSet = {};
   late final ValueNotifier<BoardMode> _boardMode;
@@ -85,8 +85,8 @@ class _BoardWidgetState extends State<BoardWidget> {
     _sentenceController = widget.sentenceBoxController ??
         SentenceBoxController(projectPath: widget.project.path);
 
-    _gridNotfier = widget.gridNotfier ??
-        GridNotfier(
+    _gridNotfier = widget.gridNotifier ??
+        GridNotifier(
           data: [],
           toWidget: (obj) {
             if (obj is ParrotButtonNotifier) {
@@ -378,7 +378,7 @@ class _BoardWidgetState extends State<BoardWidget> {
     _updateButtonSet();
     void disposeNotfier(n) => n.dispose;
 
-    if (widget.gridNotfier == null) {
+    if (widget.gridNotifier == null) {
       _gridNotfier.dispose();
     }
     buttonSet.forEach(disposeNotfier);
@@ -432,10 +432,12 @@ class _BoardWidgetState extends State<BoardWidget> {
     return ValueListenableBuilder(
       valueListenable: _boardMode,
       builder: (context, inBuilderMode, _) {
-        List<Flexible> children = [
+        List<Widget> children = [
           if (showSentenceBar)
-            Flexible(
-              flex: 2,
+            ConstrainedBox(
+              constraints: BoxConstraints(
+                  maxHeight:
+                      70), //TODO I should make a system where the size gives some but not as much as a flexible
               child: SentenceBar(
                 sentenceBoxController: _sentenceController,
                 goBack: () {
@@ -446,8 +448,7 @@ class _BoardWidgetState extends State<BoardWidget> {
                 },
               ),
             ),
-          Flexible(
-            flex: 25,
+          Expanded(
             child: DraggableGrid(gridNotfier: _gridNotfier),
           ),
         ];

@@ -22,7 +22,7 @@ import 'widgets/sentence_box.dart';
 
 class ProjectEventHandler {
   final ParrotProject project;
-  final GridNotfier gridNotfier;
+  final GridNotifier gridNotfier;
   bool gridNeedsUpdate = false;
   bool autoUpdateUi = true;
   final BoardHistoryStack boardHistory;
@@ -262,7 +262,8 @@ class ProjectEventHandler {
     board.grid.setButtonData(row: newRow, col: newCol, data: b1);
   }
 
-  void addRow() => execute(AddRow(id: boardHistory.currentBoard.id));
+  void addRow() =>
+      execute(AddRow(id: boardHistory.currentBoard.id), updateUi: false);
 
   void _addRow({Obf? board, bool updateUi = true}) {
     board = board ?? boardHistory.currentBoard;
@@ -293,7 +294,7 @@ class ProjectEventHandler {
     board.grid.removeRow(row);
   }
 
-  void addCol() => execute(AddColumn(id: _obf.id));
+  void addCol() => execute(AddColumn(id: _obf.id), updateUi: false);
   void _addCol({Obf? board, bool updateUi = true}) {
     board = board ?? boardHistory.currentBoard;
     if (board == _obf) {

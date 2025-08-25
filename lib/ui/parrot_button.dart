@@ -13,13 +13,16 @@ import 'package:parrotaac/extensions/color_extensions.dart';
 import 'package:parrotaac/extensions/image_extensions.dart';
 import 'package:parrotaac/ui/board_screen_popup_history.dart';
 import 'package:parrotaac/ui/event_handler.dart';
+import 'package:parrotaac/ui/painters/button_shapes.dart';
 import 'package:parrotaac/ui/popups/button_config.dart';
 import 'package:parrotaac/ui/widgets/sentence_box.dart';
 import 'actions/button_actions.dart';
 import 'restore_button_diff.dart';
 
 void Function(Obf) _defaultGoToLinkedBoard = (_) {};
-const String parrotActionMode = "ext_parrot_action_mode";
+const parrotActionMode = "ext_parrot_action_mode";
+const parrotButtonShapeKey = "ext_parrot_shape";
+const defaultButtonShape = ParrotButtonShape.square;
 
 class ParrotButtonNotifier extends ChangeNotifier {
   ButtonData _data;
@@ -42,6 +45,17 @@ class ParrotButtonNotifier extends ChangeNotifier {
 
   void prependAction(ParrotAction action) {
     _data.actions.insert(0, action.toString());
+  }
+
+  ParrotButtonShape get shape {
+    return ParrotButtonShape.fromString(
+            data.extendedProperties[parrotButtonShapeKey]) ??
+        defaultButtonShape;
+  }
+
+  set shape(ParrotButtonShape shape) {
+    data.extendedProperties[parrotButtonShapeKey] = shape.label;
+    notifyListeners();
   }
 
   Iterable<ParrotAction?> get actions {
@@ -252,16 +266,10 @@ class StatelessParrotButton extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    List<Widget> column = [];
-    if (buttonData.image != null) {
-      column.add(
-        Expanded(
-          child: buttonData.image!.toImage(projectPath: projectPath),
-        ),
-      );
-    }
+    Widget? image = buttonData.image?.toImage(projectPath: projectPath);
+    Widget? text;
     if (buttonData.label != null) {
-      column.add(Text(buttonData.label!));
+      text = Center(child: Text(buttonData.label!));
     }
 
     VoidCallback? onLongPress;
@@ -271,21 +279,24 @@ class StatelessParrotButton extends StatelessWidget {
       };
     }
 
-    return Material(
+    ParrotButtonShape shape = ParrotButtonShape.fromString(
+          buttonData.extendedProperties[parrotButtonShapeKey],
+        ) ??
+        defaultButtonShape;
+
+    Color backgroundColor =
+        buttonData.backgroundColor?.toColor() ?? Colors.white;
+    Color borderColor = buttonData.borderColor?.toColor() ?? Colors.transparent;
+
+    return ShapedButton(
       key: UniqueKey(),
-      color: buttonData.backgroundColor?.toColor() ?? Colors.white,
-      child: InkWell(
-        onTap: onTap,
-        onLongPress: onLongPress,
-        child: Container(
-          decoration: BoxDecoration(
-            border: Border.all(
-                width: 2,
-                color: buttonData.borderColor?.toColor() ?? Colors.white),
-          ),
-          child: Column(children: column),
-        ),
-      ),
+      onPressed: onTap,
+      onLongPress: onLongPress,
+      backgroundColor: backgroundColor,
+      borderColor: borderColor,
+      image: image,
+      text: text,
+      shape: shape,
     );
   }
 }

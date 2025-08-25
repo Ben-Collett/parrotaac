@@ -2,7 +2,7 @@ import 'dart:collection';
 import 'package:flutter/material.dart';
 import 'package:parrotaac/ui/painters/painted_color_box.dart';
 
-class GridNotfier<T extends Widget> extends ChangeNotifier {
+class GridNotifier<T extends Widget> extends ChangeNotifier {
   bool _draggable;
   bool get draggable => _draggable;
   T? Function(Object?)? _toWidget;
@@ -70,7 +70,7 @@ class GridNotfier<T extends Widget> extends ChangeNotifier {
   }
 
   void Function(int, int)? onEmptyPressed;
-  GridNotfier({
+  GridNotifier({
     required List<List<Object?>>
         data, //TODO: I need to make sure the list is of list<list<object?>> if they pass a list<list<child?>> then add row crashes
     bool draggable = true,
@@ -212,7 +212,7 @@ class GridNotfier<T extends Widget> extends ChangeNotifier {
 }
 
 class DraggableGrid extends StatelessWidget {
-  final GridNotfier gridNotfier;
+  final GridNotifier gridNotfier;
   const DraggableGrid({
     super.key,
     required this.gridNotfier,
@@ -302,7 +302,7 @@ class GridCell extends StatefulWidget {
   final IndexedWidget? emptyWidget;
   final int row, column;
   final double dragWidth, dragHeight;
-  final GridNotfier notfier;
+  final GridNotifier notfier;
   const GridCell(
       {super.key,
       this.child,
