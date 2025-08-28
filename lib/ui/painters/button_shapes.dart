@@ -1,6 +1,10 @@
+import 'dart:collection';
 import 'dart:math';
 
 import 'package:flutter/material.dart';
+import 'package:parrotaac/backend/value_wrapper.dart';
+import 'package:parrotaac/extensions/color_extensions.dart';
+import 'package:parrotaac/state/my_anmiation_notifier.dart';
 import 'package:parrotaac/ui/painters/path_from_points.dart';
 
 enum ParrotButtonShape {
@@ -15,7 +19,11 @@ enum ParrotButtonShape {
   const ParrotButtonShape(this.label);
 }
 
-class ShapedButton extends StatelessWidget {
+const animationDuration = Duration(milliseconds: 600);
+const animationStartThreshold =
+    .11; //start animation want 11% done, this avoids playing the animation when user just taps
+
+class ShapedButton extends StatefulWidget {
   final Widget? image;
   final Widget? text;
   final ParrotButtonShape shape;
@@ -34,30 +42,94 @@ class ShapedButton extends StatelessWidget {
       required this.borderColor});
 
   @override
+  State<ShapedButton> createState() => _ShapedButtonState();
+}
+
+class _ShapedButtonState extends State<ShapedButton>
+    with SingleTickerProviderStateMixin {
+  late final ValueWrapper<Color> _backgroundColor;
+  late final ValueWrapper<Color> _borderColor;
+  late final AnimationNotifier _repaintNotifier;
+  final Queue<Color> _backgroundColorHistory = Queue();
+  final Queue<Color> _borderColorHistory = Queue();
+  bool _mouseInside = false;
+
+  @override
+  void initState() {
+    _backgroundColor = ValueWrapper(widget.backgroundColor);
+    _borderColor = ValueWrapper(widget.borderColor);
+    _repaintNotifier =
+        AnimationNotifier(vsync: this, duration: Duration(milliseconds: 600));
+    _repaintNotifier.addListener(() {
+      if (_repaintNotifier.value == 1 && _mouseInside) {
+        widget.onLongPress?.call();
+        _repaintNotifier.reset();
+      }
+    });
+    super.initState();
+  }
+
+  @override
+  void dispose() {
+    _repaintNotifier.dispose();
+    super.dispose();
+  }
+
+  void _resetColors() {
+    _borderColorHistory.clear();
+    _borderColorHistory.clear();
+    _backgroundColor.value = widget.backgroundColor;
+    _borderColor.value = widget.borderColor;
+
+    _repaintNotifier.notify();
+  }
+
+  void _restorePreviousColors() {
+    _backgroundColor.value = _backgroundColorHistory.removeLast();
+    _borderColor.value = _borderColorHistory.removeLast();
+
+    _repaintNotifier.notify();
+  }
+
+  void _darkenButtonBy(double percent) {
+    _backgroundColorHistory.add(_backgroundColor.value);
+    _borderColorHistory.add(_borderColor.value);
+
+    _backgroundColor.value = widget.backgroundColor.darkenedBy(percent);
+    _borderColor.value = widget.borderColor.darkenedBy(percent);
+
+    _repaintNotifier.notify();
+  }
+
+  @override
   Widget build(BuildContext context) {
     return LayoutBuilder(
       builder: (context, constraints) {
         final size = Size(constraints.maxWidth, constraints.maxHeight);
         final double textHeight;
-        if (text == null) {
+        if (widget.text == null) {
           textHeight = 0;
-        } else if (image == null) {
+        } else if (widget.image == null) {
           textHeight = 1;
         } else {
           //TODO: I really need to dynamically determine this so the sentence bar look better on different size screens
           textHeight = 0.25;
         }
         final _ParrotButtonPainter painter;
-        if (shape == ParrotButtonShape.square) {
+        if (widget.shape == ParrotButtonShape.square) {
           painter = _SquareButtonPainter(
-            backgroundColor: backgroundColor,
-            borderColor: borderColor,
+            animationController: _repaintNotifier,
+            backgroundColor: _backgroundColor,
+            repaint: _repaintNotifier,
+            borderColor: _borderColor,
             textHeightPreportion: textHeight,
           );
         } else {
           painter = _FolderButtonPainter(
-            backgroundColor: backgroundColor,
-            borderColor: borderColor,
+            backgroundColor: _backgroundColor,
+            animationController: _repaintNotifier,
+            repaint: _repaintNotifier,
+            borderColor: _borderColor,
             textHeightPreportion: textHeight,
           );
         }
@@ -65,23 +137,62 @@ class ShapedButton extends StatelessWidget {
             painter.imagePaintArea(size, painter.computeBorderSize(size));
         final textRect =
             painter.textPaintArea(size, painter.computeBorderSize(size));
-        return GestureDetector(
-          onTap: onPressed,
-          onLongPress: onLongPress,
-          child: Stack(
-            children: [
-              SizedBox(
-                width: size.width,
-                height: size.height,
-                child: CustomPaint(
-                  painter: painter,
+        const tenPercent = 0.1;
+        const fifteenPercent = 0.15;
+        return MouseRegion(
+          onEnter: (_) {
+            _mouseInside = true;
+            if (widget.onPressed != null) {
+              _darkenButtonBy(tenPercent);
+            }
+          },
+          onExit: (_) {
+            _mouseInside = false;
+            if (widget.onPressed != null) {
+              _resetColors();
+            }
+          },
+          child: GestureDetector(
+            onTapDown: (details) {
+              if (widget.onPressed != null) {
+                _darkenButtonBy(fifteenPercent);
+              }
+              if (widget.onLongPress != null) {
+                _repaintNotifier.forward();
+              }
+            },
+            onTapUp: (details) async {
+              if (widget.onPressed != null) {
+                //create artificial delay so button looks darkend on press
+                await Future.delayed(Duration(milliseconds: 60));
+                _restorePreviousColors();
+                _repaintNotifier.reverse();
+                widget.onPressed?.call();
+              }
+            },
+            onLongPress: () {
+              if (widget.onPressed != null) {
+                _restorePreviousColors();
+              }
+              if (widget.onLongPress == null) {
+                widget.onPressed?.call();
+              }
+            },
+            child: Stack(
+              children: [
+                SizedBox(
+                  width: size.width,
+                  height: size.height,
+                  child: CustomPaint(
+                    painter: painter as CustomPainter,
+                  ),
                 ),
-              ),
-              if (image != null)
-                Positioned.fromRect(rect: imageRect, child: image!),
-              if (text != null)
-                Positioned.fromRect(rect: textRect, child: text!)
-            ],
+                if (widget.image != null)
+                  Positioned.fromRect(rect: imageRect, child: widget.image!),
+                if (widget.text != null)
+                  Positioned.fromRect(rect: textRect, child: widget.text!)
+              ],
+            ),
           ),
         );
       },
@@ -89,15 +200,16 @@ class ShapedButton extends StatelessWidget {
   }
 }
 
-abstract class _ParrotButtonPainter extends CustomPainter {
+//I could add a method to check if a gesture is inside the painter but for now I think the imprecsision is better for users
+mixin _ParrotButtonPainter {
   Rect imagePaintArea(Size size, double borderSize);
   Rect textPaintArea(Size size, double borderSize);
   double computeBorderSize(Size size);
 }
 
-class _FolderButtonPainter extends _ParrotButtonPainter {
-  final Color backgroundColor;
-  final Color borderColor;
+class _FolderButtonPainter extends CustomPainter with _ParrotButtonPainter {
+  final ValueWrapper<Color> backgroundColor;
+  final ValueWrapper<Color> borderColor;
   final double? textHeightPreportion;
   final double borderWidthPreportion;
   final double tabHeightPreportion;
@@ -105,9 +217,12 @@ class _FolderButtonPainter extends _ParrotButtonPainter {
   final double tabBottomWidthPreportion;
   final double imageWidthPreportion;
   final bool paintPaintAreas;
+  final AnimationController animationController;
   _FolderButtonPainter(
       {required this.backgroundColor,
       required this.borderColor,
+      required this.animationController,
+      super.repaint,
       this.borderWidthPreportion = 0.05,
       this.tabTopWidthPreportion = 0.25,
       this.tabBottomWidthPreportion = 0.3,
@@ -165,8 +280,7 @@ class _FolderButtonPainter extends _ParrotButtonPainter {
     final tabRightBottom = Offset(tabBottomWidth, tabHeight);
     final tabRightTop = Offset(tabTopWidth - shift, shift);
     final finish = Offset(0, shift);
-
-    return pathFromPoints([
+    final points = [
       topLeft,
       bottomLeft,
       bottomRight,
@@ -174,20 +288,22 @@ class _FolderButtonPainter extends _ParrotButtonPainter {
       tabRightBottom,
       tabRightTop,
       finish
-    ]);
+    ];
+
+    return pathFromPoints(points);
   }
 
   @override
   void paint(Canvas canvas, Size size) {
     final borderSize = computeBorderSize(size);
     Paint paint = Paint()
-      ..color = backgroundColor
+      ..color = backgroundColor.value
       ..strokeWidth = borderSize
       ..style = PaintingStyle.fill;
     Path path = _folderPath(size, borderSize);
     canvas.drawPath(path, paint);
-
-    paint.color = borderColor;
+    _drawAnimation(canvas, size, paint, path);
+    paint.color = borderColor.value;
     paint.style = PaintingStyle.stroke;
     canvas.drawPath(path, paint);
 
@@ -200,22 +316,38 @@ class _FolderButtonPainter extends _ParrotButtonPainter {
     }
   }
 
+  void _drawAnimation(Canvas canvas, Size size, Paint paint, Path path) {
+    paint.style = PaintingStyle.fill;
+    paint.color = Color.fromARGB(150, 255, 255, 255);
+    final scale = animationController.value;
+    if (scale < animationStartThreshold) return;
+    final matrix = Matrix4.identity()..scale(scale);
+    path = path.transform(matrix.storage);
+    path = path.shift(Offset(size.width / 2 - size.width / 2 * scale,
+        size.height / 2 - size.height / 2 * scale));
+
+    canvas.drawPath(path, paint);
+  }
+
   @override
   bool shouldRepaint(covariant CustomPainter oldDelegate) => false;
 }
 
-class _SquareButtonPainter extends _ParrotButtonPainter {
-  final Color? borderColor;
+class _SquareButtonPainter extends CustomPainter with _ParrotButtonPainter {
+  final AnimationController animationController;
+  final ValueWrapper<Color> backgroundColor;
+  final ValueWrapper<Color> borderColor;
   final double borderWidthPreportion;
   final double imageWidthPreportion;
   double? textHeightPreportion;
-  final Color backgroundColor;
   final bool paintPaintAreas;
 
   ///[textHeightPreportion] and [imageHeightPreportion] are only respected if there is an image and text.
   _SquareButtonPainter({
+    super.repaint,
     required this.backgroundColor,
-    this.borderColor,
+    required this.borderColor,
+    required this.animationController,
     this.borderWidthPreportion = .05,
     this.imageWidthPreportion = .85,
     this.textHeightPreportion,
@@ -223,10 +355,11 @@ class _SquareButtonPainter extends _ParrotButtonPainter {
   });
   @override
   void paint(Canvas canvas, Size size) {
-    Paint paint = Paint()..color = backgroundColor;
+    Paint paint = Paint()..color = backgroundColor.value;
     final double borderSize = computeBorderSize(size);
     _drawBackground(canvas, size, paint);
     _drawBorder(paint, canvas, borderSize, size);
+    _drawAnimation(canvas, size, paint);
 
     if (paintPaintAreas) {
       paint.color = Colors.green;
@@ -234,6 +367,20 @@ class _SquareButtonPainter extends _ParrotButtonPainter {
       paint.color = Colors.purple;
       canvas.drawRect(textPaintArea(size, borderSize), paint);
     }
+  }
+
+  void _drawAnimation(Canvas canvas, Size size, Paint paint) {
+    final scale = animationController.value;
+    if (scale < animationStartThreshold) return;
+    final center = Offset(size.width / 2, size.height / 2);
+    paint.color = Color.fromARGB(150, 255, 255, 255);
+    final toDraw = Rect.fromCenter(
+      center: center,
+      width: size.width * scale - computeBorderSize(size) * scale,
+      height: size.height * scale - computeBorderSize(size) * scale,
+    );
+
+    canvas.drawRect(toDraw, paint);
   }
 
   @override
@@ -275,7 +422,7 @@ class _SquareButtonPainter extends _ParrotButtonPainter {
     final startingColor = paint.color;
 
     paint.strokeWidth = borderWidth;
-    paint.color = borderColor ?? backgroundColor;
+    paint.color = borderColor.value;
     paint.style = PaintingStyle.stroke;
 
     //have to subtract one borderWidth from the width and height to offset the borders

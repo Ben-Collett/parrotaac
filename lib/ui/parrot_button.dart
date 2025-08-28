@@ -268,8 +268,23 @@ class StatelessParrotButton extends StatelessWidget {
   Widget build(BuildContext context) {
     Widget? image = buttonData.image?.toImage(projectPath: projectPath);
     Widget? text;
+    String font =
+        Theme.of(context).textTheme.bodyMedium?.fontFamily ?? "Roboto";
     if (buttonData.label != null) {
-      text = Center(child: Text(buttonData.label!));
+      //for some reason dragging changes the text style/decorations if everything is not explicitly set
+      text = Center(
+          child: Text(
+        buttonData.label!,
+        style: TextStyle(
+            color: Colors.black,
+            fontSize: 14,
+            decoration: TextDecoration.none,
+            fontFamily: font,
+            fontWeight: FontWeight.normal,
+            textBaseline: TextBaseline.alphabetic,
+            wordSpacing: .5,
+            letterSpacing: .25),
+      ));
     }
 
     VoidCallback? onLongPress;

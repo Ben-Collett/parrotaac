@@ -47,6 +47,7 @@ void showConfigExistingPopup({
   RestorableButtonDiff? restorableButtonDiff,
   bool writeHistory = true,
 }) {
+  if (!context.mounted) return;
   popupHistory?.pushScreen(
     ButtonConfig(controller.data.id),
     writeHistory: writeHistory,

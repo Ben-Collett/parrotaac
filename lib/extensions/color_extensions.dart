@@ -34,3 +34,19 @@ int _decimalColorToIntColor(double color) {
   }
   return (255 * color).toInt();
 }
+
+extension DarkenBy on Color {
+  ///factor should be in the range[0,1]
+  ///darkens by multiplying each component by 1-[factor] does not consider actual lumonicity;
+  Color darkenedBy(double factor) {
+    assert(factor <= 1, "cannot darken by more then 100%");
+    assert(factor >= 0, "cannot darken by less then 0%");
+    factor = 1 - factor;
+    return Color.from(
+      red: r * factor,
+      green: g * factor,
+      blue: b * factor,
+      alpha: a,
+    );
+  }
+}
