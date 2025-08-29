@@ -43,7 +43,10 @@ class GridNotifier<T extends Widget> extends ChangeNotifier {
   }
 
   Widget? get emptySpotWidget => _hideEmptySpotWidget ? null : _emptySpotWidget;
-  set emptySpotWidget(Widget? widget) => _emptySpotWidget = widget;
+  set emptySpotWidget(Widget? widget) {
+    _emptySpotWidget = widget;
+    notifyListeners();
+  }
 
   int get rows {
     return _data.length;

@@ -6,6 +6,7 @@ import 'package:openboard_wrapper/obz.dart';
 import 'package:parrotaac/backend/history_stack.dart';
 import 'package:parrotaac/backend/project/parrot_project.dart';
 import 'package:parrotaac/backend/project_restore_write_stream.dart';
+import 'package:parrotaac/backend/simple_logger.dart';
 import 'package:parrotaac/extensions/color_extensions.dart';
 import 'package:parrotaac/extensions/obf_extensions.dart';
 import 'package:parrotaac/ui/board_modes.dart';
@@ -144,7 +145,10 @@ class _BoardWidgetState extends State<BoardWidget> {
     }
 
     history.addListener(_updateGridNoifierColor);
-    _updateGridNoifierColor();
+
+    //has to be a post framecallback to avoid updating notifier before building with it as that causes an error.
+    WidgetsBinding.instance
+        .addPostFrameCallback((_) => _updateGridNoifierColor());
 
     super.initState();
   }

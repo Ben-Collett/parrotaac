@@ -1,13 +1,18 @@
+import 'dart:math';
+
 import 'package:flutter/material.dart';
 import 'package:openboard_wrapper/button_data.dart';
 import 'package:openboard_wrapper/obf.dart';
 import 'package:parrotaac/backend/history_stack.dart';
 import 'package:parrotaac/backend/project/parrot_project.dart';
 import 'package:parrotaac/backend/project_restore_write_stream.dart';
+import 'package:parrotaac/backend/settings_utils.dart';
 import 'package:parrotaac/backend/state_restoration_utils.dart';
 import 'package:parrotaac/ui/board_screen_appbar.dart';
+import 'package:parrotaac/ui/board_sidebar.dart';
 import 'package:parrotaac/ui/event_handler.dart';
 import 'package:parrotaac/ui/popups/lock_popups/admin_lock.dart';
+import 'package:parrotaac/ui/settings/labels.dart';
 import 'package:parrotaac/ui/util_widgets/board.dart';
 import 'package:parrotaac/ui/util_widgets/draggable_grid.dart';
 import 'package:parrotaac/ui/widgets/sentence_box.dart';
@@ -226,6 +231,8 @@ class _BoardScreenState extends State<BoardScreen> {
 
   @override
   Widget build(BuildContext context) {
+    //used to skip side bar animation when resizing vertical as it looks bad, would be better to not do this but this is easiest
+    double? prevHeight;
     return Scaffold(
       appBar: boardScreenAppbar(
         context: context,
@@ -246,16 +253,55 @@ class _BoardScreenState extends State<BoardScreen> {
           },
         ),
       ),
-      body: BoardWidget(
-        project: widget.project,
-        history: _boardHistory,
-        eventHandler: eventHandler,
-        boardMode: _boardMode,
-        restorableButtonDiff: widget.restorableButtonDiff,
-        gridNotifier: _gridNotifier,
-        popupHistory: widget.popupHistory,
-        restoreStream: widget.restoreStream,
-        sentenceBoxController: _sentenceController,
+      body: ValueListenableBuilder(
+        valueListenable: _boardMode,
+        builder: (context, value, child) {
+          bool isSidebarVisible = value != BoardMode.normalMode;
+
+          return LayoutBuilder(
+            builder: (context, constraints) {
+              final double sideBarWidth = min(constraints.maxWidth * .15, 80);
+              const duration = Duration(milliseconds: 200);
+              double sidebarTargetWidth = isSidebarVisible ? sideBarWidth : 0;
+
+              return Row(
+                children: [
+                  // Animate the BoardWidget's width
+                  Expanded(
+                    child: AnimatedContainer(
+                      duration: duration,
+                      child: BoardWidget(
+                        project: widget.project,
+                        history: _boardHistory,
+                        eventHandler: eventHandler,
+                        boardMode: _boardMode,
+                        restorableButtonDiff: widget.restorableButtonDiff,
+                        gridNotifier: _gridNotifier,
+                        popupHistory: widget.popupHistory,
+                        restoreStream: widget.restoreStream,
+                        sentenceBoxController: _sentenceController,
+                      ),
+                    ),
+                  ),
+
+                  // Animate sidebar sliding in/out
+                  AnimatedContainer(
+                    duration: duration,
+                    width: sidebarTargetWidth,
+                    child: SizedBox(
+                      height: constraints
+                          .maxHeight, //suppresses animation when height changes
+                      child: BoardSidebar(
+                        eventHandler: eventHandler,
+                        boardMode: _boardMode,
+                      ),
+                    ),
+                  ),
+                ],
+              );
+            },
+          );
+        },
       ),
     );
   }

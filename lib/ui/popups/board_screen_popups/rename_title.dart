@@ -36,6 +36,8 @@ void showRenameTitlePopup({
     if (controller.text.trim() == "") {
       controller.text = untitledBoard;
     }
-    eventHandler.renameBoard(prevName, controller.text);
+    if (prevName != controller.text) {
+      eventHandler.renameBoard(prevName, controller.text);
+    }
   });
 }

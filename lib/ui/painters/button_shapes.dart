@@ -59,7 +59,7 @@ class _ShapedButtonState extends State<ShapedButton>
     _backgroundColor = ValueWrapper(widget.backgroundColor);
     _borderColor = ValueWrapper(widget.borderColor);
     _repaintNotifier =
-        AnimationNotifier(vsync: this, duration: Duration(milliseconds: 600));
+        AnimationNotifier(vsync: this, duration: animationDuration);
     _repaintNotifier.addListener(() {
       if (_repaintNotifier.value == 1 && _mouseInside) {
         widget.onLongPress?.call();

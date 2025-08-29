@@ -35,23 +35,7 @@ SettingsThemedAppbar boardScreenAppbar({
   //WARNING: this only works because you can't change the appbar color on the board screen you have to in settings other wise this needs moved into the SettingsThemedAppbar
   Color foregroundColor =
       computeContrastingColor(Color(getSetting(appBarColorLabel)));
-  final addColButton = PaintedButton(
-    onPressed: eventHandler.addCol,
-    width: shortSideLength,
-    height: longSideLength,
-    painter: ThreeSquarePainter(
-        circleType: CircleType.add, foregroundColor: foregroundColor),
-  );
 
-  final addRowButton = PaintedButton(
-    onPressed: eventHandler.addRow,
-    width: longSideLength,
-    height: shortSideLength,
-    painter: ThreeSquarePainter(
-        circleType: CircleType.add,
-        orientation: RectangleOrientation.horizontal,
-        foregroundColor: foregroundColor),
-  );
   Widget? changeGridColorButton = grid != null && boardHistory != null
       ? ListenableBuilder(
           listenable: boardHistory,
@@ -102,90 +86,44 @@ SettingsThemedAppbar boardScreenAppbar({
 
   return SettingsThemedAppbar(
     leading: leading,
-    title: Row(
-      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-      children: [
-        Flexible(child: _getTitle(boardMode, titleController, eventHandler)),
-        ValueListenableBuilder(
-            valueListenable: boardMode,
-            builder: (context, mode, _) {
-              bool inNormalMode = mode == BoardMode.normalMode;
-              final removeRowButton = Container(
-                color: boardMode.value == BoardMode.deleteRowMode
-                    ? Colors.grey
-                    : Colors.transparent,
-                child: PaintedButton(
-                  width: longSideLength,
-                  height: shortSideLength,
-                  onPressed: () {
-                    boardMode.value = mode == BoardMode.deleteRowMode
-                        ? BoardMode.builderMode
-                        : BoardMode.deleteRowMode;
-                  },
-                  painter: ThreeSquarePainter(
-                    orientation: RectangleOrientation.horizontal,
-                    circleType: CircleType.subtract,
-                    foregroundColor: foregroundColor,
-                  ),
-                ),
-              );
-              final removeColButton = Container(
-                color: boardMode.value == BoardMode.deleteColMode
-                    ? Colors.grey
-                    : Colors.transparent,
-                child: PaintedButton(
-                  onPressed: () {
-                    boardMode.value = mode == BoardMode.deleteColMode
-                        ? BoardMode.builderMode
-                        : BoardMode.deleteColMode;
-                  },
-                  height: longSideLength,
-                  width: shortSideLength,
-                  painter: ThreeSquarePainter(
-                    circleType: CircleType.subtract,
-                    foregroundColor: foregroundColor,
-                  ),
-                ),
-              );
-              IconData icon = inNormalMode ? Icons.handyman : Icons.close;
-              final builderModeButton = IconButton(
-                  icon: Icon(icon),
-                  onPressed: () {
-                    if (inNormalMode) {
-                      showAdminLockPopup(
-                          context: context,
-                          onAccept: () {
-                            boardMode.value = BoardMode.builderMode;
-                          });
-                    } else {
-                      boardMode.value = BoardMode.normalMode;
-                    }
-                  });
+    title: ValueListenableBuilder(
+        valueListenable: boardMode,
+        builder: (context, mode, child) {
+          bool inNormalMode = mode == BoardMode.normalMode;
+          IconData icon = inNormalMode ? Icons.handyman : Icons.close;
+          final builderModeButton = IconButton(
+              icon: Icon(icon),
+              onPressed: () {
+                if (inNormalMode) {
+                  showAdminLockPopup(
+                      context: context,
+                      onAccept: () {
+                        boardMode.value = BoardMode.builderMode;
+                      });
+                } else {
+                  boardMode.value = BoardMode.normalMode;
+                }
+              });
 
-              final List<Widget> notInNormalModeWidgets;
-              if (!inNormalMode) {
-                notInNormalModeWidgets = [
-                  undoButton,
-                  redoButton,
-                  removeColButton,
-                  removeRowButton,
-                  addRowButton,
-                  addColButton,
-                  if (changeGridColorButton != null) changeGridColorButton,
-                ];
-              } else {
-                notInNormalModeWidgets = [];
-              }
-              return Row(
+          return Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Flexible(
+                  child: _getTitle(boardMode, titleController, eventHandler)),
+              if (!inNormalMode)
+                Flexible(
+                    child: Row(
+                  children: [undoButton, redoButton],
+                )),
+              Row(
                 children: [
-                  ...notInNormalModeWidgets,
                   builderModeButton,
                   settingsButton,
                 ],
-              );
-            })
-      ],
-    ),
+              )
+            ],
+          );
+        }),
   );
 }
 
@@ -220,7 +158,7 @@ Widget _getTitle(
             bool editButtonShouldBeShown = mode != BoardMode.normalMode;
             return Row(
               children: [
-                Flexible(child: Text(title)),
+                Flexible(flex: 2, child: Text(title)),
                 if (editButtonShouldBeShown) editButton()
               ],
             );
