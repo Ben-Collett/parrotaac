@@ -129,7 +129,6 @@ class _BoardScreenState extends State<BoardScreen> {
         showSideBar.value = false;
       }
     });
-    print(restorationData.showSideBar);
 
     showSideBar = ValueNotifier(
       restorationData.showSideBar ?? _boardMode.value != BoardMode.normalMode,
@@ -137,8 +136,6 @@ class _BoardScreenState extends State<BoardScreen> {
 
     showSideBar.addListener(() {
       widget.restoreStream?.updateShowSideBar(showSideBar.value);
-
-      print(restorationData.showSideBar);
     });
 
     _boardHistory.addListener(() {

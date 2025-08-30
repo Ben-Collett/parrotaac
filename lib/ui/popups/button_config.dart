@@ -74,6 +74,8 @@ void showConfigExistingPopup({
           controller.setButtonData(ButtonData.decode(json: originalJson));
           controller.setImage(originalImage);
           controller.setSound(originalSound);
+          controller.boxController = sentenceBoxController;
+          controller.goToLinkedBoard = goToLinkedBoard;
           Navigator.of(context).pop();
         },
       );
