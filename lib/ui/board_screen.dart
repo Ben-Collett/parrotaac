@@ -6,13 +6,11 @@ import 'package:openboard_wrapper/obf.dart';
 import 'package:parrotaac/backend/history_stack.dart';
 import 'package:parrotaac/backend/project/parrot_project.dart';
 import 'package:parrotaac/backend/project_restore_write_stream.dart';
-import 'package:parrotaac/backend/settings_utils.dart';
 import 'package:parrotaac/backend/state_restoration_utils.dart';
 import 'package:parrotaac/ui/board_screen_appbar.dart';
 import 'package:parrotaac/ui/board_sidebar.dart';
 import 'package:parrotaac/ui/event_handler.dart';
 import 'package:parrotaac/ui/popups/lock_popups/admin_lock.dart';
-import 'package:parrotaac/ui/settings/labels.dart';
 import 'package:parrotaac/ui/util_widgets/board.dart';
 import 'package:parrotaac/ui/util_widgets/draggable_grid.dart';
 import 'package:parrotaac/ui/widgets/sentence_box.dart';
@@ -46,6 +44,7 @@ class _BoardScreenState extends State<BoardScreen> {
   late final GridNotifier<ParrotButton> _gridNotifier;
   late final SentenceBoxController _sentenceController;
   late final ValueNotifier<BoardMode> _boardMode;
+  late final ValueNotifier<bool> showSideBar;
   late final BoardHistoryStack _boardHistory;
 
   late final TextEditingController _titleController;
@@ -123,6 +122,23 @@ class _BoardScreenState extends State<BoardScreen> {
       } else {
         alreadyAuthenticated = true;
       }
+    });
+
+    _boardMode.addListener(() {
+      if (_boardMode.value == BoardMode.normalMode) {
+        showSideBar.value = false;
+      }
+    });
+    print(restorationData.showSideBar);
+
+    showSideBar = ValueNotifier(
+      restorationData.showSideBar ?? _boardMode.value != BoardMode.normalMode,
+    );
+
+    showSideBar.addListener(() {
+      widget.restoreStream?.updateShowSideBar(showSideBar.value);
+
+      print(restorationData.showSideBar);
     });
 
     _boardHistory.addListener(() {
@@ -231,13 +247,12 @@ class _BoardScreenState extends State<BoardScreen> {
 
   @override
   Widget build(BuildContext context) {
-    //used to skip side bar animation when resizing vertical as it looks bad, would be better to not do this but this is easiest
-    double? prevHeight;
     return Scaffold(
       appBar: boardScreenAppbar(
         context: context,
         boardMode: _boardMode,
         titleController: _titleController,
+        showSideBar: showSideBar,
         project: widget.project,
         boardHistory: _boardHistory,
         grid: _gridNotifier,
@@ -254,10 +269,8 @@ class _BoardScreenState extends State<BoardScreen> {
         ),
       ),
       body: ValueListenableBuilder(
-        valueListenable: _boardMode,
-        builder: (context, value, child) {
-          bool isSidebarVisible = value != BoardMode.normalMode;
-
+        valueListenable: showSideBar,
+        builder: (context, isSidebarVisible, child) {
           return LayoutBuilder(
             builder: (context, constraints) {
               final double sideBarWidth = min(constraints.maxWidth * .15, 80);

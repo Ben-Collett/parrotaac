@@ -1,7 +1,6 @@
 import 'dart:async';
 import 'package:parrotaac/backend/mutex.dart';
 import 'package:parrotaac/backend/project/code_gen_allowed/event/project_events.dart';
-import 'package:parrotaac/backend/simple_logger.dart';
 import 'package:parrotaac/backend/state_restoration_utils.dart';
 import 'package:parrotaac/ui/codgen/board_screen_popups.dart';
 import 'package:parrotaac/ui/widgets/sentence_box.dart';
@@ -23,6 +22,10 @@ class ProjectRestoreStream {
 
   void updateShowSentenceBar(bool value) {
     _stream.sink.add(_ShowSentenceBar(value));
+  }
+
+  void updateShowSideBar(bool value) {
+    _stream.sink.add(_ShowSideBar(value));
   }
 
   void updateProjectPopupHistory(List<BoardScreenPopup> popups) {
@@ -183,6 +186,15 @@ class _ShowSentenceBar extends _ProjectRestoreEvent {
   @override
   Future<void> update(ProjectRestorationData data) =>
       data.writeShowSentenceBar(value);
+}
+
+class _ShowSideBar extends _ProjectRestoreEvent {
+  final bool value;
+  _ShowSideBar(this.value);
+
+  @override
+  Future<void> update(ProjectRestorationData data) =>
+      data.writeShowSideBar(value);
 }
 
 class _RemoveCurrentButtonData extends _ProjectRestoreEvent {

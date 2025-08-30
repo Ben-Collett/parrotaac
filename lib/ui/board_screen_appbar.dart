@@ -5,12 +5,10 @@ import 'package:parrotaac/backend/settings_utils.dart';
 import 'package:parrotaac/restorative_navigator.dart';
 import 'package:parrotaac/ui/appbar_widgets/compute_contrasting_color.dart';
 import 'package:parrotaac/ui/event_handler.dart';
-import 'package:parrotaac/ui/painters/three_squares.dart';
 import 'package:parrotaac/ui/settings/labels.dart';
 import 'package:parrotaac/ui/util_widgets/color_popup_button.dart';
 import 'package:parrotaac/ui/util_widgets/draggable_grid.dart';
 import 'package:parrotaac/ui/util_widgets/icon_button_on_notfier.dart';
-import 'package:parrotaac/ui/util_widgets/paint_button.dart';
 import 'package:parrotaac/ui/widgets/empty_spot.dart';
 
 import 'board_modes.dart';
@@ -25,17 +23,11 @@ SettingsThemedAppbar boardScreenAppbar({
   required TextEditingController titleController,
   required ProjectEventHandler eventHandler,
   required ParrotProject project,
+  required ValueNotifier<bool> showSideBar,
   BoardHistoryStack? boardHistory,
   GridNotifier? grid,
   Widget? leading,
 }) {
-  const longSideLength = 50.0;
-  const shortSideLength = 27.0;
-
-  //WARNING: this only works because you can't change the appbar color on the board screen you have to in settings other wise this needs moved into the SettingsThemedAppbar
-  Color foregroundColor =
-      computeContrastingColor(Color(getSetting(appBarColorLabel)));
-
   Widget? changeGridColorButton = grid != null && boardHistory != null
       ? ListenableBuilder(
           listenable: boardHistory,
@@ -84,6 +76,8 @@ SettingsThemedAppbar boardScreenAppbar({
     ),
   );
 
+  final showSideBarButton = ShowSideBarButton(showSideBar: showSideBar);
+
   return SettingsThemedAppbar(
     leading: leading,
     title: ValueListenableBuilder(
@@ -99,6 +93,7 @@ SettingsThemedAppbar boardScreenAppbar({
                       context: context,
                       onAccept: () {
                         boardMode.value = BoardMode.builderMode;
+                        showSideBar.value = true;
                       });
                 } else {
                   boardMode.value = BoardMode.normalMode;
@@ -117,6 +112,8 @@ SettingsThemedAppbar boardScreenAppbar({
                 )),
               Row(
                 children: [
+                  if (!inNormalMode) changeGridColorButton!,
+                  if (!inNormalMode) showSideBarButton,
                   builderModeButton,
                   settingsButton,
                 ],
@@ -165,4 +162,35 @@ Widget _getTitle(
           });
     },
   );
+}
+
+class ShowSideBarButton extends StatelessWidget {
+  final ValueNotifier<bool> showSideBar;
+  const ShowSideBarButton({super.key, required this.showSideBar});
+
+  @override
+  Widget build(BuildContext context) {
+    return SizedBox(
+      width: 75,
+      child: ValueListenableBuilder(
+          valueListenable: showSideBar,
+          builder: (context, val, child) {
+            final message = val ? "hide sidebar" : "show sidebar";
+            return TextButton(
+              onPressed: () => showSideBar.value = !val,
+              child: Text(
+                message,
+                textAlign: TextAlign.center,
+                style: TextStyle(
+                  color: computeContrastingColor(
+                    Color(
+                      getSetting(appBarColorLabel),
+                    ),
+                  ),
+                ),
+              ),
+            );
+          }),
+    );
+  }
 }

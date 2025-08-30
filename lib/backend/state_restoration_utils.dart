@@ -23,6 +23,7 @@ class ProjectRestorationData {
   static const _boardModeKey = "board_mode";
   static const _quickStoreName = "restore_data";
   static const _showSentenceBar = "show_sentence_bar";
+  static const _showSideBar = "show_side_bar";
 
   ProjectRestorationData._(this._quickStore);
   static Future<ProjectRestorationData> fromPath(String path) async {
@@ -38,6 +39,10 @@ class ProjectRestorationData {
   Future<void> writeShowSentenceBar(bool value) =>
       _quickStore.writeData(_showSentenceBar, value);
   bool get showSentenceBar => _quickStore[_showSentenceBar] ?? true;
+
+  Future<void> writeShowSideBar(bool value) =>
+      _quickStore.writeData(_showSideBar, value);
+  bool? get showSideBar => _quickStore[_showSideBar];
 
   Future<void> removeCurrentButtonData() => Future.wait([
         _quickStore.removeFromKey(_openButtonDiffKey),

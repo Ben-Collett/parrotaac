@@ -405,3 +405,4 @@ class IndexedWidget {
     return row == other.row && column == other.column && widget == other.widget;
   }
 }
+
