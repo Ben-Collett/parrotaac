@@ -14,6 +14,7 @@ import 'package:parrotaac/ui/popups/lock_popups/admin_lock.dart';
 import 'package:parrotaac/ui/util_widgets/board.dart';
 import 'package:parrotaac/ui/util_widgets/draggable_grid.dart';
 import 'package:parrotaac/ui/widgets/sentence_box.dart';
+import 'package:parrotaac/utils.dart';
 import '../restorative_navigator.dart';
 import 'board_modes.dart';
 import 'board_screen_popup_history.dart';
@@ -260,6 +261,7 @@ class _BoardScreenState extends State<BoardScreen> {
                 context: context,
                 onAccept: () {
                   RestorativeNavigator().pop(context);
+                  clearImageFromDataCache();
                   alreadyAuthenticated = true;
                 });
           },

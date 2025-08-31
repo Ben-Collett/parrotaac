@@ -8,7 +8,9 @@ import 'package:flutter_svg/flutter_svg.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:openboard_wrapper/_utils.dart';
 import 'package:parrotaac/backend/simple_logger.dart';
+import 'package:parrotaac/ui/util_widgets/cached_image.dart';
 
+final Map<InlineData, Widget> _imageFromDataCache = {};
 Future<XFile?> getImage() {
   return ImagePicker().pickImage(source: ImageSource.gallery);
 }
@@ -49,28 +51,31 @@ Widget imageFromPath(String path, {BoxFit fit = BoxFit.contain}) {
 }
 
 Widget imageFromUrl(String url, {BoxFit fit = BoxFit.contain}) {
-  if (url.endsWith('.svg')) {
-    return FittedBox(
-      fit: fit,
-      child: SvgPicture.network(
-        url,
-      ),
-    );
-  }
-  return Image.network(url, fit: fit);
+  return CachedImage(
+    url: url,
+    fit: fit,
+  );
 }
 
 Widget imageFromData(InlineData data) {
-  late Uint8List bytes;
-  if (data.encodingBase == 64) {
-    bytes = base64Decode(data.data);
-  } else {
-    SimpleLogger().logError("unsupported encoding base");
-    return Container();
-  }
+  if (!_imageFromDataCache.containsKey(data)) {
+    late Uint8List bytes;
+    if (data.encodingBase == 64) {
+      bytes = base64Decode(data.data);
+    } else {
+      SimpleLogger().logError("unsupported encoding base");
+      return Container();
+    }
 
-  if (data.dataType.contains("svg")) {
-    return SvgPicture.memory(bytes);
+    if (data.dataType.contains("svg")) {
+      _imageFromDataCache[data] = SvgPicture.memory(bytes);
+    } else {
+      _imageFromDataCache[data] = Image.memory(bytes);
+    }
   }
-  return Image.memory(bytes);
+  return _imageFromDataCache[data]!;
+}
+
+void clearImageFromDataCache() {
+  _imageFromDataCache.clear();
 }
