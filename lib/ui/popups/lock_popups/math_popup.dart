@@ -8,7 +8,10 @@ import 'package:parrotaac/backend/project/authentication/math_problem_generator.
 import 'package:parrotaac/extensions/string.dart';
 import 'package:parrotaac/extensions/text_editing_controller.dart';
 
-void showMathAuthenticationPopup(
+import 'admin_authentication_states.dart';
+
+///onAccept and onReject is the preferred way to access the dialog. but it does return if the user was successfully authenticated
+Future<AdminAuthenticationState> showMathAuthenticationPopup(
   BuildContext context,
   MathProblem problem, {
   VoidCallback? onAccept,
@@ -19,7 +22,7 @@ void showMathAuthenticationPopup(
   const double textBarMaxHeight = 65;
   const double questionFontSize = 35;
 
-  showDialog(
+  return showDialog<AdminAuthenticationState>(
     context: context,
     builder: (context) {
       return MathProblemDialog(
@@ -31,7 +34,13 @@ void showMathAuthenticationPopup(
         mathProblem: problem,
       );
     },
-  );
+  ).then((val) {
+    assert(
+      val != null,
+      "something went wrong with the math authentication, value was null",
+    );
+    return val ?? AdminAuthenticationState.canceled;
+  });
 }
 
 class MathProblemDialog extends StatefulWidget {
@@ -98,12 +107,12 @@ class _MathProblemDialogState extends State<MathProblemDialog> {
 
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (_accepted) {
-        Navigator.of(context).pop();
+        Navigator.of(context).pop(AdminAuthenticationState.accepted);
         widget.onAccept?.call();
       }
 
       if (_rejected) {
-        Navigator.of(context).pop();
+        Navigator.of(context).pop(AdminAuthenticationState.rejected);
         widget.onReject?.call();
       }
     });
@@ -160,7 +169,10 @@ class _MathProblemDialogState extends State<MathProblemDialog> {
               style: TextStyle(fontSize: 18),
             ),
             IconButton(
-                onPressed: Navigator.of(context).pop, icon: Icon(Icons.close))
+              onPressed: () =>
+                  Navigator.of(context).pop(AdminAuthenticationState.canceled),
+              icon: Icon(Icons.close),
+            )
           ],
         ),
         content: SingleChildScrollView(

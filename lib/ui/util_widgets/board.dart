@@ -6,7 +6,6 @@ import 'package:openboard_wrapper/obz.dart';
 import 'package:parrotaac/backend/history_stack.dart';
 import 'package:parrotaac/backend/project/parrot_project.dart';
 import 'package:parrotaac/backend/project_restore_write_stream.dart';
-import 'package:parrotaac/backend/simple_logger.dart';
 import 'package:parrotaac/extensions/color_extensions.dart';
 import 'package:parrotaac/extensions/obf_extensions.dart';
 import 'package:parrotaac/ui/board_modes.dart';

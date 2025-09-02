@@ -8,7 +8,7 @@ import 'package:parrotaac/backend/project/parrot_project.dart';
 import 'package:parrotaac/backend/project/project_settings.dart';
 import 'package:parrotaac/backend/project_restore_write_stream.dart';
 import 'package:parrotaac/backend/quick_store.dart';
-import 'package:parrotaac/backend/settings_utils.dart';
+import 'package:parrotaac/backend/simple_logger.dart';
 import 'package:parrotaac/backend/state_restoration_utils.dart';
 import 'package:parrotaac/setting_screen.dart';
 import 'package:parrotaac/ui/board_modes.dart';
@@ -18,13 +18,12 @@ import 'package:parrotaac/ui/popups/button_config.dart';
 import 'package:parrotaac/ui/popups/lock_popups/admin_authentication_states.dart';
 import 'package:parrotaac/ui/popups/lock_popups/admin_lock.dart';
 import 'package:parrotaac/ui/restore_button_diff.dart';
-import 'package:parrotaac/ui/settings/labels.dart';
 
 import 'project_selector.dart';
 
 ///singleton
 class RestorativeNavigator {
-  bool fullyInitialized = false;
+  bool _fullyInitialized = false;
 
   ///the index of the last widget that can be displayed without admin privlages
   ///should only be used directly after _restore
@@ -33,7 +32,7 @@ class RestorativeNavigator {
   RestorativeNavigator._privateConstructor();
 
   List<Widget> screens = [];
-  bool get hasPreviousScreen => screens.length > 1;
+  bool get hasPreviousScreen => screens.isNotEmpty;
 
   static final RestorativeNavigator _instance =
       RestorativeNavigator._privateConstructor();
@@ -81,13 +80,12 @@ class RestorativeNavigator {
   }
 
   Future<dynamic> goToTopScreen(BuildContext context) async {
-    if (!fullyInitialized) {
-      final alreadyFinished = screens.length - 1 == _lastNonAdmin;
-      if (!alreadyFinished && !await _authenticated(context)) {
-        screens = screens.sublist(0, _lastNonAdmin + 1);
+    if (!_fullyInitialized) {
+      if (!await _authenticated(context)) {
+        screens = screens.sublist(0, _lastNonAdmin);
         await _updateQuckStore();
       }
-      fullyInitialized = true;
+      _fullyInitialized = true;
       if (screens.length - 1 == _lastNonAdmin) {
         return;
       }
@@ -105,13 +103,7 @@ class RestorativeNavigator {
 
   ///should only be called after _restore
   Widget getLastNonAdminScreen() {
-    if (alreadyAuthenticated ||
-        LockType.fromString(
-              getSetting<String>(adminLockLabel) ?? LockType.none.label,
-            ) ==
-            LockType.none) {
-      return screens.last;
-    }
+    if (screens.isEmpty) return ProjectSelector();
     return screens[_lastNonAdmin];
   }
 
@@ -214,14 +206,11 @@ class RestorativeNavigator {
         counter++;
       }
     }
-    if (screens.firstOrNull is! ProjectSelector) {
+    _lastNonAdmin--;
+    SimpleLogger().logDebug(_lastNonAdmin);
+    SimpleLogger().logDebug(screens.length - 1);
+    if (screens.isEmpty) {
       screens.insert(0, ProjectSelector());
-    } else {
-      _lastNonAdmin--;
-    }
-
-    if (alreadyAuthenticated) {
-      fullyInitialized = true;
     }
   }
 

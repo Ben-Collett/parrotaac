@@ -55,6 +55,10 @@ class IndexedQuickstore {
     return _box.add(data);
   }
 
+  Future<void> clear() {
+    return _box.clear();
+  }
+
   dynamic peek() {
     return _box.getAt(_box.length - 1);
   }

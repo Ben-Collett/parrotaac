@@ -4,7 +4,10 @@ import 'package:parrotaac/backend/history_stack.dart';
 import 'package:parrotaac/backend/project/code_gen_allowed/event/project_events.dart';
 import 'package:parrotaac/backend/project_restore_write_stream.dart';
 import 'package:parrotaac/backend/quick_store.dart';
+import 'package:parrotaac/project_selector.dart';
+import 'package:parrotaac/setting_screen.dart';
 import 'package:parrotaac/ui/board_modes.dart';
+import 'package:parrotaac/ui/board_screen.dart';
 import 'package:parrotaac/ui/codgen/board_screen_popups.dart';
 import 'package:parrotaac/ui/widgets/sentence_box.dart';
 
@@ -192,10 +195,17 @@ class ProjectRestorationData {
 }
 
 enum ScreenName {
-  grid("grid"),
-  settings("settings"),
-  projectSelector("project_selector");
+  grid("grid", BoardScreen),
+  settings("settings", SettingsScreen),
+  projectSelector("project_selector", ProjectSelector);
 
   final String name;
-  const ScreenName(this.name);
+  final Type widgetType;
+  static ScreenName? screenNameFromType(dynamic object) {
+    return values
+        .where((val) => object.runtimeType == val.widgetType)
+        .firstOrNull;
+  }
+
+  const ScreenName(this.name, this.widgetType);
 }

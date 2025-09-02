@@ -1,11 +1,17 @@
 import 'package:flutter/material.dart';
+import 'package:parrotaac/backend/global_restoration_data.dart';
 import 'package:parrotaac/backend/project/authentication/math_problem_generator.dart';
 import 'package:parrotaac/backend/settings_utils.dart';
+import 'package:parrotaac/ui/popups/lock_popups/admin_authentication_states.dart';
 import 'package:parrotaac/ui/popups/lock_popups/math_popup.dart';
 import 'package:parrotaac/ui/settings/labels.dart';
 
 bool _alreadyAuthenticated = false;
-set alreadyAuthenticated(bool value) => _alreadyAuthenticated = value;
+set alreadyAuthenticated(bool value) {
+  wasAuthenticated = value;
+  _alreadyAuthenticated = value;
+}
+
 bool get alreadyAuthenticated => _alreadyAuthenticated;
 
 //TODO: password/biometrics
@@ -26,7 +32,7 @@ enum LockType {
   }
 }
 
-void showAdminLockPopup({
+Future<AdminAuthenticationState> showAdminLockPopup({
   required BuildContext context,
   LockType? lockType,
   VoidCallback? onAccept,
@@ -36,14 +42,23 @@ void showAdminLockPopup({
     getSetting<String>(adminLockLabel) ?? LockType.none.label,
   );
 
-  if ((lockType == LockType.none || alreadyAuthenticated) && onAccept != null) {
-    onAccept();
+  myAccept() {
+    alreadyAuthenticated = true;
+    onAccept?.call();
+  }
+
+  if (lockType == LockType.none || alreadyAuthenticated) {
+    myAccept();
+    return Future.value(AdminAuthenticationState.accepted);
   } else if (lockType == LockType.mathProblem) {
-    showMathAuthenticationPopup(
+    return showMathAuthenticationPopup(
       context,
       getMultiplicationProblem(),
-      onAccept: onAccept,
+      onAccept: myAccept,
       onReject: onReject,
     );
+  } else {
+    assert(false, "ended up in showAdminLockPopup guard clause somehow");
+    return Future.value(AdminAuthenticationState.canceled);
   }
 }

@@ -27,6 +27,9 @@ class BoardScreen extends StatefulWidget {
   final ProjectRestorationData restorationData;
   final BoardScreenPopupHistory? popupHistory;
   final RestorableButtonDiff? restorableButtonDiff;
+
+  bool get isInNormalMode =>
+      restorationData.currentBoardMode == BoardMode.normalMode;
   //WARNING: storing the path will only work if I wait to rename a project somehow
   const BoardScreen({
     super.key,

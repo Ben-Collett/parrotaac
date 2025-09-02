@@ -8,6 +8,7 @@ import 'package:parrotaac/restorative_navigator.dart';
 import 'package:parrotaac/shared_providers/project_dir_controller.dart';
 import 'package:parrotaac/state/application_state.dart';
 import 'package:parrotaac/state/project_selector_state.dart';
+import 'package:parrotaac/ui/popups/lock_popups/admin_lock.dart';
 import 'package:parrotaac/ui/settings/settings_themed_appbar.dart';
 import 'package:parrotaac/ui/util_widgets/future_controller_builder.dart';
 import 'package:parrotaac/ui/util_widgets/multi_listenable_builder.dart';
@@ -129,108 +130,29 @@ class _ProjectSelectorState extends State<ProjectSelector> {
               builder: (context, selectMode, child) {
                 String text = selectMode ? "done" : "select";
                 List<Widget> children = [];
-                void bulkDelete() {
-                  showLoadingDialog(context,
-                      "delete ${_selectorState.selectedNotifier.length}");
-                  for (Directory dir
-                      in _selectorState.selectedNotifier.values) {
-                    dir.deleteSync(recursive: true);
-                  }
-
-                  _selectorState.selectedNotifier.clear();
-                  projectDirController.refresh();
-                  Navigator.of(context).pop();
-                  Navigator.of(context).pop();
-                }
 
                 if (selectMode) {
                   children.add(
                     _iconButtonThatIsDisabledWhenSelectedNotfierIsEmpty(
                       Icon(Icons.delete),
                       onPressed: () {
-                        showDialog(
+                        showAdminLockPopup(
                           context: context,
-                          builder: (context) {
-                            List<String> toRemoveNames = _selectorState
-                                .selectedNotifier.values
-                                .map(ParrotProjectDisplayData.fromDir)
-                                .map((d) => d.name)
-                                .toList();
-
-                            return AlertDialog(
-                              content: SingleChildScrollView(
-                                child: Column(
-                                  crossAxisAlignment: CrossAxisAlignment.center,
-                                  children: [
-                                    Text(
-                                        "are you sure you want to delete the following:"),
-                                    SingleChildScrollView(
-                                      child: Column(
-                                        children: toRemoveNames
-                                            .map(
-                                              (n) => Text(n,
-                                                  maxLines: 1,
-                                                  overflow:
-                                                      TextOverflow.ellipsis),
-                                            )
-                                            .map(
-                                              (n) => ConstrainedBox(
-                                                constraints: BoxConstraints(
-                                                  maxWidth: 220,
-                                                ),
-                                                child: n,
-                                              ),
-                                            )
-                                            .toList(),
-                                      ),
-                                    ),
-                                    Row(
-                                      children: [
-                                        TextButton(
-                                          onPressed: bulkDelete,
-                                          style: TextButton.styleFrom(
-                                            backgroundColor: Colors.red,
-                                          ),
-                                          child: Text("yes"),
-                                        ),
-                                        TextButton(
-                                          onPressed: Navigator.of(context).pop,
-                                          style: TextButton.styleFrom(
-                                              backgroundColor: Colors.green),
-                                          child: Text("no"),
-                                        ),
-                                      ],
-                                    )
-                                  ],
-                                ),
-                              ),
-                            );
-                          },
+                          onAccept: () => _showBulkDeleteDialog(context),
                         );
                       },
                     ),
                   );
                   children.add(
                     _iconButtonThatIsDisabledWhenSelectedNotfierIsEmpty(
-                        Icon(Icons.folder), onPressed: () async {
-                      final String? exportDirPath =
-                          await getUserSelectedDirectory();
-                      if (exportDirPath != null) {
-                        if (context.mounted) {
-                          showLoadingDialog(context, "exporting");
-                        }
-                        for (Directory dir
-                            in _selectorState.selectedNotifier.values) {
-                          await writeDirectoryAsObz(
-                            sourceDirPath: dir.path,
-                            outputDirPath: exportDirPath,
-                          );
-                        }
-                        if (context.mounted) {
-                          Navigator.of(context).pop();
-                        }
-                      }
-                    }),
+                      Icon(Icons.folder),
+                      onPressed: () {
+                        showAdminLockPopup(
+                          context: context,
+                          onAccept: () => _bulkExport(context),
+                        );
+                      },
+                    ),
                   );
                 }
 
@@ -249,7 +171,10 @@ class _ProjectSelectorState extends State<ProjectSelector> {
                     Container(
                       color: Colors.orangeAccent,
                       child: TextButton(
-                        onPressed: () => _showCreateProjectDialog(context),
+                        onPressed: () => showAdminLockPopup(
+                          context: context,
+                          onAccept: () => _showCreateProjectDialog(context),
+                        ),
                         child: Text("create project"),
                       ),
                     ),
@@ -689,3 +614,93 @@ int _byLastAccessedThenAlphabeticalOrder(DisplayData d1, DisplayData d2) {
 }
 
 ProjectSelectorState get _selectorState => appState.getProjectSelectorState();
+
+void _showBulkDeleteDialog(BuildContext context) {
+  showDialog(
+    context: context,
+    builder: (context) {
+      List<String> toRemoveNames = _selectorState.selectedNotifier.values
+          .map(ParrotProjectDisplayData.fromDir)
+          .map((d) => d.name)
+          .toList();
+
+      return AlertDialog(
+        content: SingleChildScrollView(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.center,
+            children: [
+              Text("are you sure you want to delete the following:"),
+              SingleChildScrollView(
+                child: Column(
+                  children: toRemoveNames
+                      .map(
+                        (n) => Text(n,
+                            maxLines: 1, overflow: TextOverflow.ellipsis),
+                      )
+                      .map(
+                        (n) => ConstrainedBox(
+                          constraints: BoxConstraints(
+                            maxWidth: 220,
+                          ),
+                          child: n,
+                        ),
+                      )
+                      .toList(),
+                ),
+              ),
+              Row(
+                children: [
+                  TextButton(
+                    onPressed: () {
+                      _bulkDelete(context);
+                      Navigator.of(context).pop();
+                    },
+                    style: TextButton.styleFrom(
+                      backgroundColor: Colors.red,
+                    ),
+                    child: Text("yes"),
+                  ),
+                  TextButton(
+                    onPressed: Navigator.of(context).pop,
+                    style: TextButton.styleFrom(backgroundColor: Colors.green),
+                    child: Text("no"),
+                  ),
+                ],
+              )
+            ],
+          ),
+        ),
+      );
+    },
+  );
+}
+
+void _bulkDelete(BuildContext context) {
+  showLoadingDialog(
+      context, "delete ${_selectorState.selectedNotifier.length}");
+  for (Directory dir in _selectorState.selectedNotifier.values) {
+    dir.deleteSync(recursive: true);
+  }
+
+  _selectorState.selectedNotifier.clear();
+  projectDirController.refresh();
+  Navigator.of(context).pop();
+}
+
+void _bulkExport(BuildContext context) async {
+  final String? exportDirPath = await getUserSelectedDirectory();
+  if (exportDirPath != null) {
+    if (context.mounted) {
+      showLoadingDialog(context, "exporting");
+    }
+    for (Directory dir in _selectorState.selectedNotifier.values) {
+      await writeDirectoryAsObz(
+        sourceDirPath: dir.path,
+        outputDirPath: exportDirPath,
+      );
+    }
+    if (context.mounted) {
+      Navigator.of(context).pop();
+    }
+  }
+}

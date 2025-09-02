@@ -10,6 +10,7 @@ import 'package:parrotaac/restorative_navigator.dart';
 import 'package:parrotaac/shared_providers/project_dir_controller.dart';
 import 'package:parrotaac/state/application_state.dart';
 import 'package:parrotaac/ui/popups/loading.dart';
+import 'package:parrotaac/ui/popups/lock_popups/admin_lock.dart';
 import 'package:parrotaac/utils.dart';
 
 enum ViewType { grid, list }
@@ -172,20 +173,11 @@ class _DisplayEntryState extends State<DisplayEntry> {
         motion: const StretchMotion(),
         children: [
           SlidableAction(
-            onPressed: (_) async {
-              final String? exportDirPath = await getUserSelectedDirectory();
-              if (exportDirPath != null && widget.dir != null) {
-                if (context.mounted) {
-                  showLoadingDialog(context, "exporting");
-                }
-                await writeDirectoryAsObz(
-                  sourceDirPath: widget.dir!.path,
-                  outputDirPath: exportDirPath,
-                );
-                if (context.mounted) {
-                  Navigator.of(context).pop();
-                }
-              }
+            onPressed: (_) {
+              showAdminLockPopup(
+                context: context,
+                onAccept: () => showExportDialog(context, widget.dir),
+              );
             },
             icon: Icons.folder,
             backgroundColor: Colors.lightBlue,
@@ -193,48 +185,10 @@ class _DisplayEntryState extends State<DisplayEntry> {
           ),
           SlidableAction(
             onPressed: (_) {
-              showDialog(
+              showAdminLockPopup(
                 context: context,
-                builder: (context) {
-                  return AlertDialog(
-                    content: SingleChildScrollView(
-                      child: Column(
-                        children: [
-                          Text(
-                            "are you sure you want to delete ${widget.displayName.data}?:",
-                          ),
-                          ConstrainedBox(
-                            constraints: BoxConstraints(maxHeight: 35),
-                            child: Container(),
-                          ),
-                          Row(
-                            mainAxisAlignment: MainAxisAlignment.end,
-                            children: [
-                              TextButton(
-                                  onPressed: () {
-                                    Navigator.of(context).pop();
-                                  },
-                                  child: Text('no')),
-                              TextButton(
-                                onPressed: () {
-                                  showLoadingDialog(
-                                    context,
-                                    'deleting ${widget.displayName.data}',
-                                  );
-                                  widget.dir?.deleteSync(recursive: true);
-                                  Navigator.of(context).pop();
-                                  Navigator.of(context).pop();
-                                  projectDirController.refresh();
-                                },
-                                child: Text('yes'),
-                              ),
-                            ],
-                          ),
-                        ],
-                      ),
-                    ),
-                  );
-                },
+                onAccept: () => showDeleteDialog(
+                    context, widget.displayName.data, widget.dir),
               );
             },
             icon: Icons.delete,
@@ -280,6 +234,71 @@ class _DisplayEntryState extends State<DisplayEntry> {
           );
         },
       );
+    }
+  }
+}
+
+void showDeleteDialog(
+  BuildContext context,
+  String? displayName,
+  Directory? dir,
+) =>
+    showDialog(
+      context: context,
+      builder: (context) {
+        return AlertDialog(
+          content: SingleChildScrollView(
+            child: Column(
+              children: [
+                Text(
+                  "are you sure you want to delete $displayName:",
+                ),
+                ConstrainedBox(
+                  constraints: BoxConstraints(maxHeight: 35),
+                  child: Container(),
+                ),
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.end,
+                  children: [
+                    TextButton(
+                        onPressed: () {
+                          Navigator.of(context).pop();
+                        },
+                        child: Text('no')),
+                    TextButton(
+                      onPressed: () {
+                        showLoadingDialog(
+                          context,
+                          'deleting $displayName',
+                        );
+                        dir?.deleteSync(recursive: true);
+                        Navigator.of(context).pop();
+                        Navigator.of(context).pop();
+                        projectDirController.refresh();
+                      },
+                      child: Text('yes'),
+                    ),
+                  ],
+                ),
+              ],
+            ),
+          ),
+        );
+      },
+    );
+
+void showExportDialog(BuildContext context, Directory? dir) async {
+  final String? exportDirPath = await getUserSelectedDirectory();
+  if (exportDirPath != null && dir != null) {
+    if (context.mounted) {
+      showLoadingDialog(context, "exporting");
+    }
+    await writeDirectoryAsObz(
+      sourceDirPath: dir.path,
+      outputDirPath: exportDirPath,
+    );
+    if (context.mounted) {
+      Navigator.of(context).pop();
     }
   }
 }
