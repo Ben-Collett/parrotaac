@@ -1,5 +1,17 @@
 import 'package:json_annotation/json_annotation.dart';
+import 'package:openboard_wrapper/button_data.dart';
+import 'package:openboard_wrapper/color_data.dart';
+import 'package:openboard_wrapper/grid_data.dart';
+import 'package:openboard_wrapper/image_data.dart';
+import 'package:openboard_wrapper/obf.dart';
+import 'package:openboard_wrapper/sound_data.dart';
 import 'package:parrotaac/backend/map_utils.dart';
+import 'package:parrotaac/backend/simple_logger.dart';
+import 'package:parrotaac/extensions/button_data_extensions.dart';
+import 'package:parrotaac/extensions/color_extensions.dart';
+import 'package:parrotaac/extensions/obf_extensions.dart';
+import 'package:parrotaac/ui/event_handler.dart';
+import 'package:parrotaac/ui/parrot_button.dart';
 part 'project_events.g.dart';
 
 abstract class ProjectEvent {
@@ -19,12 +31,10 @@ abstract class ProjectEvent {
     return event;
   }
 
+  void execute(ProjectEventHandler handler);
+
   Map<String, dynamic> encode() {
-    return {
-      "version": 1,
-      "type": type.asString,
-      "content": toJson(),
-    };
+    return {"version": 1, "type": type.asString, "content": toJson()};
   }
 
   Map<String, dynamic> toJson();
@@ -56,9 +66,9 @@ enum EventType {
   final Function(Map<String, dynamic>) create;
 
   static EventType? fromString(String? type) => EventType.values.firstWhere(
-        (e) => e.asString == type,
-        orElse: () => throw ArgumentError('Unknown event type: $type'),
-      );
+    (e) => e.asString == type,
+    orElse: () => throw ArgumentError('Unknown event type: $type'),
+  );
 }
 
 @JsonSerializable()
@@ -90,6 +100,18 @@ class AddBoard extends ProjectEvent {
 
   @override
   String get boardToWrite => id;
+
+  @override
+  void execute(ProjectEventHandler handler) {
+    Obf board = Obf(locale: 'en-us', name: name, id: id);
+    List<List<ButtonData?>> order = List.generate(
+      rowCount,
+      (_) => List<ButtonData?>.filled(colCount, null, growable: true),
+      growable: true,
+    );
+    board.grid = GridData(order: order);
+    handler.project.addBoard(board);
+  }
 }
 
 @JsonSerializable()
@@ -114,6 +136,17 @@ class RemoveBoard extends ProjectEvent {
 
   @override
   String get boardToWrite => id;
+
+  @override
+  void execute(ProjectEventHandler handler) {
+    Obf? board = handler.project.findBoardById(id);
+    if (board == null) {
+      SimpleLogger().logWarning("removing non existent board");
+      return;
+    }
+    handler.project.removeBoard(board);
+    handler.history.addRemoveBoard(board);
+  }
 }
 
 @JsonSerializable()
@@ -136,6 +169,11 @@ class RestoreBoard extends ProjectEvent {
 
   @override
   String get boardToWrite => id;
+
+  @override
+  void execute(ProjectEventHandler handler) {
+    handler.restoreBoard();
+  }
 }
 
 @JsonSerializable()
@@ -182,26 +220,62 @@ class ConfigButton extends ProjectEvent {
 
   @override
   EventType get type => EventType.configButton;
+
+  @override
+  void execute(ProjectEventHandler handler) {
+    final board = handler.project.findBoardById(boardId);
+    final button = board?.findButtonById(buttonId);
+    SoundData? sound;
+    if (newSound != null) {
+      sound = SoundData.decode(newSound!);
+    }
+    ImageData? image;
+    if (newImage != null) {
+      image = ImageData.decodeJson(newImage!);
+    }
+
+    button?.merge(diff, project: handler.project);
+    button?.image = image;
+    button?.sound = sound;
+    if (board == handler.currentBoard && handler.autoUpdateUi) {
+      handler.gridNotfier.forEach((obj) {
+        if (obj is ParrotButtonNotifier && obj.data.id == button?.id) {
+          obj.update();
+        }
+      });
+    }
+  }
 }
 
 @JsonSerializable()
 class AddColumn extends ProjectEvent {
   final String id;
-  final int? col;
   @override
   String? get returnToBoardId => id;
 
-  AddColumn({this.col, required this.id});
+  AddColumn({required this.id});
   factory AddColumn.fromJson(Map<String, dynamic> json) =>
       _$AddColumnFromJson(json);
 
   @override
-  ProjectEvent undoEvent() => RemoveColumn(id: id, col: col);
+  ProjectEvent undoEvent() => RemoveColumn(id: id);
 
   @override
   Map<String, dynamic> toJson() => _$AddColumnToJson(this);
   @override
   EventType get type => EventType.addColumn;
+
+  @override
+  void execute(ProjectEventHandler handler) {
+    Obf board = handler.project.findBoardById(id) ?? handler.currentBoard;
+    if (board == handler.currentBoard) {
+      if (handler.autoUpdateUi) {
+        handler.gridNotfier.addColumn();
+        handler.updateOnPressed();
+      }
+    }
+    board.grid.addColumnToTheRight();
+  }
 }
 
 @JsonSerializable()
@@ -226,6 +300,15 @@ class RenameBoard extends ProjectEvent {
 
   @override
   EventType get type => EventType.renameBoard;
+
+  @override
+  void execute(ProjectEventHandler handler) {
+    Obf board = handler.project.findBoardById(id) ?? handler.currentBoard;
+    board.name = name;
+    if (handler.autoUpdateUi && board == handler.currentBoard) {
+      handler.titleController.text = board.name;
+    }
+  }
 }
 
 @JsonSerializable()
@@ -250,6 +333,23 @@ class RemoveColumn extends ProjectEvent {
 
   @override
   EventType get type => EventType.removeCol;
+
+  @override
+  void execute(ProjectEventHandler handler) {
+    Obf board = handler.project.findBoardById(id) ?? handler.currentBoard;
+    int column = col ?? (board.grid.numberOfColumns - 1);
+
+    List<ButtonData?> removedCol = board.grid.getCol(column);
+    handler.history.addRemovedRowOrCol(removedCol);
+
+    if (board == handler.currentBoard) {
+      if (handler.autoUpdateUi) {
+        handler.gridNotfier.removeCol(column);
+        handler.updateOnPressed();
+      }
+    }
+    board.grid.removeCol(column);
+  }
 }
 
 @JsonSerializable()
@@ -274,26 +374,42 @@ class RecoverColumn extends ProjectEvent {
 
   @override
   EventType get type => EventType.recoverCol;
+
+  @override
+  void execute(ProjectEventHandler handler) {
+    handler.recoverCol(col);
+  }
 }
 
 @JsonSerializable()
 class AddRow extends ProjectEvent {
   final String id;
-  final int? row;
   @override
   String? get returnToBoardId => id;
 
-  AddRow({this.row, required this.id});
+  AddRow({required this.id});
   factory AddRow.fromJson(Map<String, dynamic> json) => _$AddRowFromJson(json);
 
   @override
   Map<String, dynamic> toJson() => _$AddRowToJson(this);
 
   @override
-  ProjectEvent undoEvent() => RemoveRow(id: id, row: row);
+  ProjectEvent undoEvent() => RemoveRow(id: id);
 
   @override
   EventType get type => EventType.addRow;
+
+  @override
+  void execute(ProjectEventHandler handler) {
+    Obf board = handler.fromIdOrCurrent(id);
+    if (board == handler.currentBoard) {
+      if (handler.autoUpdateUi) {
+        handler.gridNotfier.addRow();
+      }
+    }
+
+    board.grid.addRowToTheBottom();
+  }
 }
 
 @JsonSerializable()
@@ -320,14 +436,41 @@ class AddButton extends ProjectEvent {
   @override
   Map<String, dynamic> toJson() => _$AddButtonToJson(this);
   @override
-  ProjectEvent undoEvent() => RemoveButton(
-        boardId: boardId,
-        row: row,
-        col: col,
-      );
+  ProjectEvent undoEvent() =>
+      RemoveButton(boardId: boardId, row: row, col: col);
 
   @override
   EventType get type => EventType.addButton;
+
+  @override
+  void execute(ProjectEventHandler handler) {
+    ImageData? image;
+    if (imageData != null) {
+      image = ImageData.decodeJson(imageData!);
+    }
+    SoundData? sound;
+    if (soundData != null) {
+      sound = SoundData.decode(soundData!);
+    }
+
+    Obf? board = handler.project.findBoardById(boardId);
+    assert(board != null, "can't add to null board");
+    ButtonData button = ButtonData.decode(json: buttonData);
+
+    button.image = button.image ?? image;
+    button.sound = button.sound ?? sound;
+    if (board == handler.currentBoard) {
+      if (handler.autoUpdateUi) {
+        handler.gridNotfier.setWidget(
+          row: row,
+          col: col,
+          data: handler.makeButtonNotifier(button, row, col),
+        );
+      }
+    }
+    board?.grid.setButtonData(row: row, col: col, data: button);
+    board?.buttons.add(button);
+  }
 }
 
 @JsonSerializable()
@@ -337,11 +480,7 @@ class RemoveButton extends ProjectEvent {
   final int col;
   @override
   String? get returnToBoardId => boardId;
-  RemoveButton({
-    required this.boardId,
-    required this.row,
-    required this.col,
-  });
+  RemoveButton({required this.boardId, required this.row, required this.col});
 
   factory RemoveButton.fromJson(Map<String, dynamic> json) =>
       _$RemoveButtonFromJson(json);
@@ -349,14 +488,21 @@ class RemoveButton extends ProjectEvent {
   Map<String, dynamic> toJson() => _$RemoveButtonToJson(this);
 
   @override
-  ProjectEvent undoEvent() => RecoverButton(
-        row: row,
-        col: col,
-        boardId: boardId,
-      );
+  ProjectEvent undoEvent() =>
+      RecoverButton(row: row, col: col, boardId: boardId);
 
   @override
   EventType get type => EventType.removeButton;
+
+  @override
+  void execute(ProjectEventHandler handler) {
+    Obf board = handler.fromIdOrCurrent(boardId);
+    handler.history.addToRemovedButtons(board.grid.getButtonData(row, col)!);
+    if (board == handler.currentBoard && handler.autoUpdateUi) {
+      handler.gridNotfier.removeAt(row, col);
+    }
+    board.grid.setButtonData(row: row, col: col, data: null);
+  }
 }
 
 @JsonSerializable()
@@ -366,11 +512,7 @@ class RecoverButton extends ProjectEvent {
   final String boardId;
   @override
   String? get returnToBoardId => boardId;
-  RecoverButton({
-    required this.boardId,
-    required this.row,
-    required this.col,
-  });
+  RecoverButton({required this.boardId, required this.row, required this.col});
 
   factory RecoverButton.fromJson(Map<String, dynamic> json) =>
       _$RecoverButtonFromJson(json);
@@ -385,6 +527,11 @@ class RecoverButton extends ProjectEvent {
 
   @override
   EventType get type => EventType.recoverButton;
+
+  @override
+  void execute(ProjectEventHandler handler) {
+    handler.recoverButton(row, col);
+  }
 }
 
 @JsonSerializable()
@@ -393,10 +540,7 @@ class RemoveRow extends ProjectEvent {
   final int? row;
   @override
   String? get returnToBoardId => id;
-  RemoveRow({
-    required this.id,
-    this.row,
-  });
+  RemoveRow({required this.id, this.row});
 
   factory RemoveRow.fromJson(Map<String, dynamic> json) =>
       _$RemoveRowFromJson(json);
@@ -408,6 +552,22 @@ class RemoveRow extends ProjectEvent {
   Map<String, dynamic> toJson() => _$RemoveRowToJson(this);
   @override
   EventType get type => EventType.removeRow;
+
+  @override
+  void execute(ProjectEventHandler handler) {
+    Obf board = handler.fromIdOrCurrent(id);
+    int toRemove = row ?? (board.grid.numberOfRows - 1);
+
+    List<ButtonData?> removedRow = board.grid.getRow(toRemove);
+    handler.history.addRemovedRowOrCol(removedRow);
+    if (board == handler.currentBoard) {
+      if (handler.autoUpdateUi) {
+        handler.gridNotfier.removeRow(toRemove);
+        handler.updateOnPressed();
+      }
+    }
+    board.grid.removeRow(toRemove);
+  }
 }
 
 @JsonSerializable()
@@ -416,10 +576,7 @@ class RecoverRow extends ProjectEvent {
   final int? row;
   @override
   String? get returnToBoardId => id;
-  RecoverRow({
-    required this.id,
-    this.row,
-  });
+  RecoverRow({required this.id, this.row});
 
   factory RecoverRow.fromJson(Map<String, dynamic> json) =>
       _$RecoverRowFromJson(json);
@@ -430,6 +587,11 @@ class RecoverRow extends ProjectEvent {
 
   @override
   EventType get type => EventType.recoverRow;
+
+  @override
+  void execute(ProjectEventHandler handler) {
+    handler.recoverRow(row);
+  }
 }
 
 @JsonSerializable()
@@ -449,11 +611,12 @@ class SwapButtons extends ProjectEvent {
 
   @override
   ProjectEvent undoEvent() => SwapButtons(
-      boardId: boardId,
-      oldRow: newRow,
-      newRow: oldRow,
-      oldCol: newCol,
-      newCol: oldCol);
+    boardId: boardId,
+    oldRow: newRow,
+    newRow: oldRow,
+    oldCol: newCol,
+    newCol: oldCol,
+  );
 
   factory SwapButtons.fromJson(Map<String, dynamic> json) =>
       _$SwapButtonsFromJson(json);
@@ -463,6 +626,24 @@ class SwapButtons extends ProjectEvent {
 
   @override
   EventType get type => EventType.swapButtons;
+
+  @override
+  void execute(ProjectEventHandler handler) {
+    Obf board = handler.fromIdOrCurrent(boardId);
+    if (board == handler.currentBoard) {
+      if (handler.autoUpdateUi) {
+        handler.gridNotfier.swap(oldRow, oldCol, newRow, newCol);
+      }
+    }
+
+    ButtonData? b1 = board.grid.getButtonData(oldRow, oldCol);
+    board.grid.setButtonData(
+      row: oldRow,
+      col: oldCol,
+      data: board.grid.getButtonData(newRow, newCol),
+    );
+    board.grid.setButtonData(row: newRow, col: newCol, data: b1);
+  }
 }
 
 @JsonSerializable()
@@ -489,18 +670,18 @@ class ChangeBoardColor extends ProjectEvent {
 
   @override
   ProjectEvent undoEvent() => ChangeBoardColor(
-        boardId: boardId,
-        originalColor: newColor,
-        newColor: originalColor,
-      );
-}
+    boardId: boardId,
+    originalColor: newColor,
+    newColor: originalColor,
+  );
 
-class Undo {
-  Undo();
-  Map<String, dynamic> toJson() => {};
-}
-
-class Redo {
-  Redo();
-  Map<String, dynamic> toJson() => {};
+  @override
+  void execute(ProjectEventHandler handler) {
+    Obf board = handler.fromIdOrCurrent(boardId);
+    board.boardColor = ColorData.fromString(newColor);
+    if (handler.autoUpdateUi) {
+      handler.gridNotfier.backgroundColorNotifier.value = board.boardColor
+          .toColor();
+    }
+  }
 }
