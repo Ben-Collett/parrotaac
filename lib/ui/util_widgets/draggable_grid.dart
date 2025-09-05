@@ -9,7 +9,15 @@ class GridNotifier<T extends Widget> extends ChangeNotifier {
   T? Function(Object?)? get toWidget => _toWidget;
   ValueNotifier<Color> backgroundColorNotifier = ValueNotifier(Colors.white);
 
+  List<Widget>? _widgetListCache;
+  void _invalidateWidgetListCache() {
+    _widgetListCache = null;
+  }
+
   void Function(int oldRow, int oldCol, int newRow, int newCol)? onSwap;
+
+  ///this is exclusively used by the grid, and means that only one grid notfier can exist per grid if it want's to be  draggable.
+  ValueNotifier<Size> childSize = ValueNotifier(Size.zero);
 
   set toWidget(T? Function(Object?)? toWid) {
     _toWidget = toWid;
@@ -39,12 +47,14 @@ class GridNotifier<T extends Widget> extends ChangeNotifier {
   bool _hideEmptySpotWidget = false;
   set hideEmptySpotWidget(bool value) {
     _hideEmptySpotWidget = value;
+    _invalidateWidgetListCache();
     notifyListeners();
   }
 
   Widget? get emptySpotWidget => _hideEmptySpotWidget ? null : _emptySpotWidget;
   set emptySpotWidget(Widget? widget) {
     _emptySpotWidget = widget;
+    _invalidateWidgetListCache();
     notifyListeners();
   }
 
@@ -58,37 +68,34 @@ class GridNotifier<T extends Widget> extends ChangeNotifier {
 
   UnmodifiableListView<UnmodifiableListView<T?>> get widgets {
     return UnmodifiableListView(
-      _data.map(
-        (list) => UnmodifiableListView(list.map(toWidget!)),
-      ),
+      _data.map((list) => UnmodifiableListView(list.map(toWidget!))),
     );
   }
 
   UnmodifiableListView<UnmodifiableListView<Object?>> get data {
     return UnmodifiableListView(
-      _data.map(
-        (list) => UnmodifiableListView(list),
-      ),
+      _data.map((list) => UnmodifiableListView(list)),
     );
   }
 
   void Function(int, int)? onEmptyPressed;
   GridNotifier({
     required List<List<Object?>>
-        data, //TODO: I need to make sure the list is of list<list<object?>> if they pass a list<list<child?>> then add row crashes
+    data, //TODO: I need to make sure the list is of list<list<object?>> if they pass a list<list<child?>> then add row crashes
     bool draggable = true,
     T? Function(Object?)? toWidget,
     this.onEmptyPressed,
     this.onSwap,
-  })  : _data = data,
-        _draggable = draggable,
-        _toWidget = toWidget;
+  }) : _data = data,
+       _draggable = draggable,
+       _toWidget = toWidget;
   void addRow() {
     if (rows == 0) {
       _data.add([null]);
     } else {
       _data.add(List.generate(columns, (_) => null));
     }
+    _invalidateWidgetListCache();
     notifyListeners();
   }
 
@@ -96,30 +103,34 @@ class GridNotifier<T extends Widget> extends ChangeNotifier {
     final Object? old = _data[oldRow][oldCol];
     _data[oldRow][oldCol] = _data[newRow][newCol];
     _data[newRow][newCol] = old;
+
+    _invalidateWidgetListCache();
     notifyListeners();
   }
 
   void insertColumn(int colIndex, List<Object?> column) {
-    assert(_data.isEmpty || column.length == _data.length,
-        "Column length must match number of rows");
+    assert(
+      _data.isEmpty || column.length == _data.length,
+      "Column length must match number of rows",
+    );
 
     for (int row = 0; row < column.length; row++) {
       _data[row].insert(colIndex, column[row]);
     }
 
+    _invalidateWidgetListCache();
     notifyListeners();
   }
 
   void insertRow(int rowIndex, List<Object?> row) {
     List<Object?> newRow = List<Object?>.from(row);
     _data.insert(rowIndex, newRow);
+
+    _invalidateWidgetListCache();
     notifyListeners();
   }
 
-  void forEach(
-    void Function(Object?) callback, {
-    bool notify = false,
-  }) {
+  void forEach(void Function(Object?) callback, {bool notify = false}) {
     for (List<Object?> row in _data) {
       for (Object? obj in row) {
         callback(obj);
@@ -152,16 +163,22 @@ class GridNotifier<T extends Widget> extends ChangeNotifier {
         row.add(null);
       }
     }
+    _invalidateWidgetListCache();
+
     notifyListeners();
   }
 
   void removeAt(int row, int col) {
     _data[row][col] = null;
+
+    _invalidateWidgetListCache();
     notifyListeners();
   }
 
   void removeRow(int row) {
     _data.removeAt(row);
+
+    _invalidateWidgetListCache();
     notifyListeners();
   }
 
@@ -169,11 +186,15 @@ class GridNotifier<T extends Widget> extends ChangeNotifier {
     for (List<Object?> row in _data) {
       row.removeAt(col);
     }
+
+    _invalidateWidgetListCache();
     notifyListeners();
   }
 
   void setWidget({required int row, required int col, Object? data}) {
     _data[row][col] = data;
+
+    _invalidateWidgetListCache();
     notifyListeners();
   }
 
@@ -181,8 +202,24 @@ class GridNotifier<T extends Widget> extends ChangeNotifier {
     return widgets[row][column];
   }
 
+  List<Widget> get widgetList {
+    if (_widgetListCache != null) return _widgetListCache!;
+    List<Widget> out = [];
+    for (int row = 0; row < data.length; row++) {
+      for (int col = 0; col < data[row].length; col++) {
+        final val = _data[row][col];
+        out.add(GridCell(Cell(row, col, val), this));
+      }
+    }
+
+    _widgetListCache = out;
+
+    return out;
+  }
+
   void setData(List<List<Object?>> data) {
     _data = data;
+    _invalidateWidgetListCache();
     notifyListeners();
   }
 
@@ -192,6 +229,7 @@ class GridNotifier<T extends Widget> extends ChangeNotifier {
     required int newRow,
     required int newCol,
   }) {
+    _invalidateWidgetListCache();
     final old = _data[oldRow][oldCol];
     _data[oldRow][oldCol] = _data[newRow][newCol];
     _data[newRow][newCol] = old;
@@ -216,193 +254,134 @@ class GridNotifier<T extends Widget> extends ChangeNotifier {
 
 class DraggableGrid extends StatelessWidget {
   final GridNotifier gridNotfier;
-  const DraggableGrid({
-    super.key,
-    required this.gridNotfier,
-  });
-
-  List<List<IndexedWidget?>> indexedWidgetsToGrid(Set<IndexedWidget> widgets) {
-    List<List<IndexedWidget?>> out = List.generate(
-        gridNotfier.rows, (_) => List.filled(gridNotfier.columns, null));
-    for (IndexedWidget widget in widgets) {
-      out[widget.row][widget.column] = widget;
-    }
-
-    return out;
-  }
+  const DraggableGrid({super.key, required this.gridNotfier});
 
   @override
   Widget build(BuildContext context) {
-    //TODO:I should add a way for the user to make buttons bigger possible using a layoutbuider inside a container then allowng them to define widths and heights for each in the notfier. or thats a terrible idea
-    //WARNING: while being dragged size won't change with window size changes, this will in all likelihood effect no one except possible linux users using tiling window mangers, i.e. the only way I can think to actually do this
-    //if the grid adds a row or column mid drag the size won't change, again shouldn't happen and debatable if we should have it change when it does
     return CustomPaint(
       painter: ColorBoxPainter(
         colorNotifier: gridNotfier.backgroundColorNotifier,
       ),
       child: ListenableBuilder(
-          listenable: gridNotfier,
-          builder: (context, _) {
-            return LayoutBuilder(
-              builder: (context, constraints) {
-                final double height = constraints.maxHeight / gridNotfier.rows;
-                final double width = constraints.maxWidth / gridNotfier.columns;
-                List<List<Widget?>> widgets = gridNotfier.widgets;
-                List<List<Widget>> toDisplay = [];
-                for (int i = 0; i < widgets.length; i++) {
-                  toDisplay.add([]);
-                  for (int j = 0; j < widgets[0].length; j++) {
-                    Widget? val = widgets[i][j];
-                    if (val != null) {
-                      toDisplay.last.add(
-                        Expanded(
-                          key: UniqueKey(),
-                          child: GridCell(
-                            row: i,
-                            column: j,
-                            dragHeight: height,
-                            dragWidth: width,
-                            child:
-                                IndexedWidget(row: i, column: j, widget: val),
-                            notfier: gridNotfier,
-                          ),
-                        ),
-                      );
-                    } else {
-                      toDisplay.last.add(
-                        Expanded(
-                          key: UniqueKey(),
-                          child: GridCell(
-                              row: i,
-                              column: j,
-                              emptyWidget: IndexedWidget(
-                                row: i,
-                                column: j,
-                                widget: gridNotfier.emptySpotWidget,
-                              ),
-                              dragWidth: width,
-                              dragHeight: height,
-                              notfier: gridNotfier),
-                        ),
-                      );
-                    }
-                  }
-                }
-                List<Widget> rows = [];
-                for (List<Widget> row in toDisplay) {
-                  rows.add(Expanded(child: Row(children: row)));
-                }
-                return SafeArea(child: Column(children: rows));
-              },
-            );
-          }),
+        listenable: gridNotfier,
+        builder: (context, _) {
+          final children = gridNotfier.widgetList;
+          return Flow(delegate: GridDelegate(gridNotfier), children: children);
+        },
+      ),
     );
   }
 }
 
+class GridDelegate extends FlowDelegate {
+  final GridNotifier notifier;
+  final int rowCount;
+  final int colCount;
+  GridDelegate(this.notifier)
+    : rowCount = notifier.rows,
+      colCount = notifier.columns;
+
+  @override
+  void paintChildren(FlowPaintingContext context) {
+    final size = context.size;
+    final colCount = notifier.columns;
+    final rowCount = notifier.rows;
+    final childSize = Size(size.width / colCount, size.height / rowCount);
+
+    int childIndex = 0;
+    for (int r = 0; r < rowCount; r++) {
+      for (int c = 0; c < colCount; c++) {
+        final x = c * childSize.width;
+        final y = r * childSize.height;
+
+        context.paintChild(
+          childIndex,
+          transform: Matrix4.identity()..translate(x, y),
+        );
+
+        childIndex++;
+      }
+    }
+  }
+
+  @override
+  BoxConstraints getConstraintsForChild(int i, BoxConstraints constraints) {
+    final maxWidth = constraints.maxWidth / notifier.columns;
+    final maxHeight = constraints.maxHeight / notifier.rows;
+
+    notifier.childSize.value = Size(maxWidth, maxHeight);
+
+    return BoxConstraints.tightFor(width: maxWidth, height: maxHeight);
+  }
+
+  @override
+  bool shouldRepaint(covariant FlowDelegate oldDelegate) {
+    oldDelegate = oldDelegate as GridDelegate;
+    return oldDelegate.rowCount != rowCount || oldDelegate.colCount != colCount;
+  }
+}
+
 class GridCell extends StatefulWidget {
-  final IndexedWidget? child;
-  final IndexedWidget? emptyWidget;
-  final int row, column;
-  final double dragWidth, dragHeight;
-  final GridNotifier notfier;
-  const GridCell(
-      {super.key,
-      this.child,
-      this.emptyWidget,
-      required this.dragWidth,
-      required this.dragHeight,
-      required this.row,
-      required this.column,
-      required this.notfier});
+  final Cell value;
+  final GridNotifier gridNotifier;
+
+  const GridCell(this.value, this.gridNotifier, {super.key});
 
   @override
   State<GridCell> createState() => _GridCellState();
 }
 
 class _GridCellState extends State<GridCell> {
-  IndexedWidget? currentWidget;
-  IndexedWidget? emptyWidget;
-  @override
-  void initState() {
-    currentWidget = widget.child;
-    emptyWidget = widget.emptyWidget;
-    super.initState();
-  }
-
   @override
   Widget build(BuildContext context) {
-    Widget tempEmptyWidget = emptyWidget?.widget ?? Container();
+    Widget child;
 
-    if (widget.notfier.onEmptyPressed != null && emptyWidget != null) {
-      tempEmptyWidget = InkWell(
-        onTap: () {
-          int row = emptyWidget!.row;
-          int col = emptyWidget!.column;
-          widget.notfier.onEmptyPressed!(row, col);
-        },
-        child: tempEmptyWidget,
-      );
-    }
-    return DragTarget(
-      builder: (BuildContext context, List<IndexedWidget?> candidateData,
-          List<dynamic> rejectedData) {
-        if (currentWidget != null) {
-          if (widget.notfier.draggable) {
-            return Draggable<IndexedWidget>(
-              feedback: SizedBox(
-                width: widget.dragWidth,
-                height: widget.dragHeight,
-                child: currentWidget!.widget,
+    if (widget.value.value == null &&
+        widget.gridNotifier.emptySpotWidget != null) {
+      child = DragTarget<Cell>(
+        builder: (context, List<Cell?> acceptData, List<Object?> rejectData) =>
+            Listener(
+              onPointerDown: (_) => widget.gridNotifier.onEmptyPressed?.call(
+                widget.value.row,
+                widget.value.col,
               ),
-              data: currentWidget,
-              childWhenDragging: Container(color: Colors.grey),
-              child: currentWidget!.widget,
-            );
-          }
-          return currentWidget!.widget;
-        }
-        return InkWell(child: tempEmptyWidget);
-      },
-      onAcceptWithDetails: (d) {
-        setState(() {
-          var data = d.data;
-          if (data is IndexedWidget) {
-            widget.notfier.move(
-                oldRow: data.row,
-                oldCol: data.column,
-                newRow: widget.row,
-                newCol: widget.column);
+              child: widget.gridNotifier.emptySpotWidget!,
+            ),
+        onAcceptWithDetails: (d) => widget.gridNotifier.move(
+          oldRow: d.data.row,
+          oldCol: d.data.col,
+          newRow: widget.value.row,
+          newCol: widget.value.col,
+        ),
+      );
+    } else if (widget.value.value != null &&
+        widget.gridNotifier.toWidget != null &&
+        widget.gridNotifier.draggable) {
+      final currentWidget = widget.gridNotifier.toWidget!(widget.value.value)!;
+      child = Draggable<Cell>(
+        data: Cell(widget.value.row, widget.value.col, widget.value),
+        //WARNING: resizing will not update
+        feedback: SizedBox(
+          width: widget.gridNotifier.childSize.value.width,
+          height: widget.gridNotifier.childSize.value.height,
+          child: currentWidget,
+        ),
+        childWhenDragging: ColoredBox(color: Colors.grey),
+        child: currentWidget,
+      );
+    } else if (widget.value.value != null &&
+        widget.gridNotifier.toWidget != null) {
+      child = widget.gridNotifier.toWidget!(widget.value.value)!;
+    } else {
+      child = Container();
+    }
 
-            currentWidget = data;
-          }
-        });
-      },
-      onWillAcceptWithDetails: (_) => currentWidget == null,
-    );
+    return child;
   }
 }
 
-class IndexedWidget {
-  int row, column;
-  Widget? _widget;
-  Widget get widget {
-    return _widget ?? Container();
-  }
-
-  set widget(Widget widget) {
-    _widget = widget;
-  }
-
-  IndexedWidget({this.row = 0, this.column = 0, Widget? widget})
-      : _widget = widget;
-
-  @override
-  int get hashCode => Object.hash(row, column, widget);
-  @override
-  bool operator ==(Object other) {
-    if (other is! IndexedWidget) return false;
-    return row == other.row && column == other.column && widget == other.widget;
-  }
+class Cell {
+  int row, col;
+  Object? value;
+  Cell(this.row, this.col, this.value);
 }
-
