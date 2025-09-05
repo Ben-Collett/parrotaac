@@ -79,47 +79,41 @@ class _BoardScreenState extends State<BoardScreen> {
     });
     _titleController = TextEditingController(text: _currentObf.name);
     _gridNotifier = GridNotifier(
-        data: [],
-        toWidget: (obj) {
-          if (obj is ParrotButtonNotifier) {
-            return ParrotButton(
-              controller: obj,
-              currentBoard: _currentObf,
-              restorableButtonDiff: widget.restorableButtonDiff,
-              popupHistory: widget.popupHistory,
-            );
-          }
-          return null;
-        },
-        draggable: false,
-        onSwap: (oldRow, oldCol, newRow, newCol) {
-          eventHandler.swapButtons(oldRow, oldCol, newRow, newCol);
-          final data = _gridNotifier.getWidget(newRow, newCol);
-          _updateButtonNotfierOnDelete(
-            data!,
-            eventHandler,
-            newRow,
-            newCol,
+      data: [],
+      toWidget: (obj) {
+        if (obj is ParrotButtonNotifier) {
+          return ParrotButton(
+            controller: obj,
+            currentBoard: _currentObf,
+            restorableButtonDiff: widget.restorableButtonDiff,
+            popupHistory: widget.popupHistory,
           );
-        });
+        }
+        return null;
+      },
+      draggable: false,
+      onSwap: (oldRow, oldCol, newRow, newCol) {
+        eventHandler.swapButtons(oldRow, oldCol, newRow, newCol);
+        final data = _gridNotifier.getWidget(newRow, newCol);
+        _updateButtonNotfierOnDelete(data!, eventHandler, newRow, newCol);
+      },
+    );
 
     alreadyAuthenticated = _boardMode.value != BoardMode.normalMode;
     _boardMode.addListener(
       () => widget.restoreStream?.updateBoardMode(_boardMode.value),
     );
-    _boardMode.addListener(
-      () async {
-        if (_boardMode.value == BoardMode.normalMode) {
-          _updateButtonPositionsInObf();
-          _updateObfName();
-          Set<String> boardsToWrite = eventHandler.updatedBoardsIds.toSet();
-          eventHandler.clear();
-          await _finalizeTempFiles();
-          widget.project.deleteTempFiles();
-          await writeToDisk(boardsToWrite);
-        }
-      },
-    );
+    _boardMode.addListener(() async {
+      if (_boardMode.value == BoardMode.normalMode) {
+        _updateButtonPositionsInObf();
+        _updateObfName();
+        Set<String> boardsToWrite = eventHandler.updatedBoardsIds.toSet();
+        eventHandler.clear();
+        await _finalizeTempFiles();
+        widget.project.deleteTempFiles();
+        await writeToDisk(boardsToWrite);
+      }
+    });
     _boardMode.addListener(() {
       if (_boardMode.value == BoardMode.normalMode) {
         alreadyAuthenticated = false;
@@ -147,26 +141,35 @@ class _BoardScreenState extends State<BoardScreen> {
     });
 
     eventHandler = ProjectEventHandler(
-        project: widget.project,
-        gridNotfier: _gridNotifier,
-        boxController: _sentenceController,
-        canUndo: canUndo,
-        canRedo: canRedo,
-        boardHistory: _boardHistory,
-        modeNotifier: _boardMode,
-        titleController: _titleController,
-        restoreStream: widget.restoreStream);
-
-    eventHandler.bulkExecute(
-      restorationData.currentUndoStack,
-      updateUi: false,
+      project: widget.project,
+      gridNotfier: _gridNotifier,
+      boxController: _sentenceController,
+      canUndo: canUndo,
+      canRedo: canRedo,
+      boardHistory: _boardHistory,
+      modeNotifier: _boardMode,
+      titleController: _titleController,
+      restoreStream: widget.restoreStream,
     );
-    eventHandler.setRedoStack(restorationData.currentRedoStack);
+
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      eventHandler.bulkExecute(
+        restorationData.currentUndoStack,
+        updateUi: false,
+      );
+
+      eventHandler.setRedoStack(restorationData.currentRedoStack);
+    });
+
     super.initState();
   }
 
   void _updateButtonNotfierOnDelete(
-      Object data, ProjectEventHandler eventHandler, int row, int col) {
+    Object data,
+    ProjectEventHandler eventHandler,
+    int row,
+    int col,
+  ) {
     if (data is ParrotButtonNotifier) {
       data.onDelete = () {
         eventHandler.removeButton(row, col);
@@ -180,15 +183,15 @@ class _BoardScreenState extends State<BoardScreen> {
   }
 
   Future<void> _finalizeTempImages() async {
-    Map<String, String> paths =
-        await widget.project.mapTempImageToPermantSpot();
+    Map<String, String> paths = await widget.project
+        .mapTempImageToPermantSpot();
     await widget.project.moveFiles(paths);
     widget.project.updateImagePathReferencesInProject(paths);
   }
 
   Future<void> _finalizeTempAudioFiles() async {
-    Map<String, String> paths =
-        await widget.project.mapTempAudioToPermantSpot();
+    Map<String, String> paths = await widget.project
+        .mapTempAudioToPermantSpot();
     await widget.project.moveFiles(paths);
     widget.project.updateAudioPathReferencesInProject(paths);
   }
@@ -199,10 +202,7 @@ class _BoardScreenState extends State<BoardScreen> {
 
   void addButtonToSentenceBox(ButtonData buttonData) {
     _sentenceController.add(
-      SenteceBoxDisplayEntry(
-        data: buttonData,
-        board: _currentObf,
-      ),
+      SenteceBoxDisplayEntry(data: buttonData, board: _currentObf),
     );
   }
 
@@ -261,12 +261,13 @@ class _BoardScreenState extends State<BoardScreen> {
         leading: BackButton(
           onPressed: () {
             showAdminLockPopup(
-                context: context,
-                onAccept: () {
-                  RestorativeNavigator().pop(context);
-                  clearImageFromDataCache();
-                  alreadyAuthenticated = true;
-                });
+              context: context,
+              onAccept: () {
+                RestorativeNavigator().pop(context);
+                clearImageFromDataCache();
+                alreadyAuthenticated = true;
+              },
+            );
           },
         ),
       ),
