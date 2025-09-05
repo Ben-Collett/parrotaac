@@ -1,5 +1,6 @@
 import 'dart:collection';
 import 'package:flutter/material.dart';
+import 'package:parrotaac/backend/value_wrapper.dart';
 import 'package:parrotaac/ui/painters/painted_color_box.dart';
 
 class GridNotifier<T extends Widget> extends ChangeNotifier {
@@ -17,7 +18,7 @@ class GridNotifier<T extends Widget> extends ChangeNotifier {
   void Function(int oldRow, int oldCol, int newRow, int newCol)? onSwap;
 
   ///this is exclusively used by the grid, and means that only one grid notfier can exist per grid if it want's to be  draggable.
-  ValueNotifier<Size> childSize = ValueNotifier(Size.zero);
+  ValueWrapper<Size> childSize = ValueWrapper(Size.zero);
 
   set toWidget(T? Function(Object?)? toWid) {
     _toWidget = toWid;
@@ -277,6 +278,7 @@ class GridDelegate extends FlowDelegate {
   final GridNotifier notifier;
   final int rowCount;
   final int colCount;
+
   GridDelegate(this.notifier)
     : rowCount = notifier.rows,
       colCount = notifier.columns;
@@ -284,34 +286,69 @@ class GridDelegate extends FlowDelegate {
   @override
   void paintChildren(FlowPaintingContext context) {
     final size = context.size;
-    final colCount = notifier.columns;
-    final rowCount = notifier.rows;
-    final childSize = Size(size.width / colCount, size.height / rowCount);
+    final dpr = WidgetsBinding.instance.window.devicePixelRatio;
+
+    // total physical pixels
+    final totalPhysW = (size.width * dpr).round();
+    final totalPhysH = (size.height * dpr).round();
+
+    final basePhysW = totalPhysW ~/ colCount;
+    final remW = totalPhysW - basePhysW * colCount; // leftover physical pixels
+
+    final basePhysH = totalPhysH ~/ rowCount;
+    final remH = totalPhysH - basePhysH * rowCount;
 
     int childIndex = 0;
+    double y = 0.0;
+
     for (int r = 0; r < rowCount; r++) {
+      final physH = basePhysH + (r < remH ? 1 : 0);
+      final logicalH = physH / dpr;
+
+      double x = 0.0;
       for (int c = 0; c < colCount; c++) {
-        final x = c * childSize.width;
-        final y = r * childSize.height;
+        final physW = basePhysW + (c < remW ? 1 : 0);
+        final logicalW = physW / dpr;
 
         context.paintChild(
           childIndex,
           transform: Matrix4.identity()..translate(x, y),
         );
 
+        x += logicalW;
         childIndex++;
       }
+
+      y += logicalH;
     }
   }
 
   @override
   BoxConstraints getConstraintsForChild(int i, BoxConstraints constraints) {
-    final maxWidth = constraints.maxWidth / notifier.columns;
-    final maxHeight = constraints.maxHeight / notifier.rows;
+    final dpr =
+        WidgetsBinding.instance.platformDispatcher.views.first.devicePixelRatio;
+    final totalPhysW = (constraints.maxWidth * dpr).round();
+    final totalPhysH = (constraints.maxHeight * dpr).round();
 
-    notifier.childSize.value = Size(maxWidth, maxHeight);
+    final basePhysW = totalPhysW ~/ colCount;
+    final remW = totalPhysW - basePhysW * colCount;
 
-    return BoxConstraints.tightFor(width: maxWidth, height: maxHeight);
+    final basePhysH = totalPhysH ~/ rowCount;
+    final remH = totalPhysH - basePhysH * rowCount;
+
+    final col = i % colCount;
+    final row = i ~/ colCount;
+
+    final physW = basePhysW + (col < remW ? 1 : 0);
+    final physH = basePhysH + (row < remH ? 1 : 0);
+
+    final logicalW = physW / dpr;
+    final logicalH = physH / dpr;
+
+    // update notifier with the actual (logical) child size for this index
+    notifier.childSize.value = Size(logicalW, logicalH);
+
+    return BoxConstraints.tightFor(width: logicalW, height: logicalH);
   }
 
   @override
@@ -361,9 +398,8 @@ class _GridCellState extends State<GridCell> {
       child = Draggable<Cell>(
         data: Cell(widget.value.row, widget.value.col, widget.value),
         //WARNING: resizing will not update
-        feedback: SizedBox(
-          width: widget.gridNotifier.childSize.value.width,
-          height: widget.gridNotifier.childSize.value.height,
+        feedback: ValueWrapperSizedBox(
+          size: widget.gridNotifier.childSize,
           child: currentWidget,
         ),
         childWhenDragging: ColoredBox(color: Colors.grey),
@@ -377,6 +413,25 @@ class _GridCellState extends State<GridCell> {
     }
 
     return child;
+  }
+}
+
+class ValueWrapperSizedBox extends StatelessWidget {
+  final Widget child;
+  final ValueWrapper<Size> size;
+  const ValueWrapperSizedBox({
+    super.key,
+    required this.size,
+    required this.child,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return SizedBox(
+      width: size.value.width,
+      height: size.value.height,
+      child: child,
+    );
   }
 }
 
