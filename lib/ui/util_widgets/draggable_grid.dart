@@ -267,19 +267,22 @@ class DraggableGrid extends StatelessWidget {
         listenable: gridNotfier,
         builder: (context, _) {
           final children = gridNotfier.widgetList;
-          return Flow(delegate: GridDelegate(gridNotfier), children: children);
+          return Flow(
+            delegate: GridFlowDelegate(gridNotfier),
+            children: children,
+          );
         },
       ),
     );
   }
 }
 
-class GridDelegate extends FlowDelegate {
+class GridFlowDelegate extends FlowDelegate {
   final GridNotifier notifier;
   final int rowCount;
   final int colCount;
 
-  GridDelegate(this.notifier)
+  GridFlowDelegate(this.notifier)
     : rowCount = notifier.rows,
       colCount = notifier.columns;
 
@@ -353,7 +356,7 @@ class GridDelegate extends FlowDelegate {
 
   @override
   bool shouldRepaint(covariant FlowDelegate oldDelegate) {
-    oldDelegate = oldDelegate as GridDelegate;
+    oldDelegate = oldDelegate as GridFlowDelegate;
     return oldDelegate.rowCount != rowCount || oldDelegate.colCount != colCount;
   }
 }

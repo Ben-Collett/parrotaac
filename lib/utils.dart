@@ -4,13 +4,16 @@ import 'dart:typed_data';
 
 import 'package:file_picker/file_picker.dart';
 import 'package:flutter/widgets.dart';
+import 'package:flutter_cache_manager/flutter_cache_manager.dart';
 import 'package:flutter_svg/flutter_svg.dart';
+import 'package:http/http.dart' as http;
 import 'package:image_picker/image_picker.dart';
 import 'package:openboard_wrapper/_utils.dart';
+import 'package:parrotaac/backend/caching.dart';
 import 'package:parrotaac/backend/simple_logger.dart';
 import 'package:parrotaac/ui/util_widgets/cached_image.dart';
 
-final Map<InlineData, Widget> _imageFromDataCache = {};
+final MemoryCache _imageFromDataCache = MemoryCache(maxEntries: 20);
 Future<XFile?> getImage() {
   return ImagePicker().pickImage(source: ImageSource.gallery);
 }
@@ -37,24 +40,40 @@ Future<List<String>> getFilesPaths(List<String> extensions) async {
 }
 
 Future<String?> getUserSelectedDirectory() async {
-  String? result = await FilePicker.platform
-      .getDirectoryPath(dialogTitle: "select folder to export to");
+  String? result = await FilePicker.platform.getDirectoryPath(
+    dialogTitle: "select folder to export to",
+  );
   return result;
 }
 
 Widget imageFromPath(String path, {BoxFit fit = BoxFit.contain}) {
   File file = File(path);
   if (path.endsWith('.svg')) {
-    return FittedBox(fit: fit, child: SvgPicture.file(file, fit: fit));
+    return FittedBox(fit: fit, child: SvgFromFile(file));
   }
   return Image.file(file, fit: fit);
 }
 
-Widget imageFromUrl(String url, {BoxFit fit = BoxFit.contain}) {
-  return CachedImage(
-    url: url,
-    fit: fit,
-  );
+Widget imageFromUrl(
+  String url, {
+  BoxFit fit = BoxFit.contain,
+  bool useKey = false,
+}) {
+  return CachedImage(url: url, fit: fit, key: useKey ? ValueKey(url) : null);
+}
+
+Future<Widget> futureImageFromUrl(String url, BuildContext context) {
+  if (url.endsWith(".svg")) {
+    return DefaultCacheManager()
+        .getSingleFile(url)
+        .then((file) => file.readAsString())
+        .then(sanitizeSvg)
+        .then(SvgPicture.string);
+  }
+  return DefaultCacheManager().getSingleFile(url).then((file) {
+    if (context.mounted) precacheImage(FileImage(file), context);
+    return Image.file(file, fit: BoxFit.contain);
+  });
 }
 
 Widget imageFromData(InlineData data) {
@@ -74,8 +93,4 @@ Widget imageFromData(InlineData data) {
     }
   }
   return _imageFromDataCache[data]!;
-}
-
-void clearImageFromDataCache() {
-  _imageFromDataCache.clear();
 }

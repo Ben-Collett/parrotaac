@@ -9,7 +9,7 @@ class ProjectSelectorState implements HasState {
   final viewTypeNotifier = ValueNotifier(ViewType.list);
   final selectModeNotifier = ValueNotifier(false);
   final searchTextController = TextEditingController();
-  final selectedNotifier = SelectedNotifier();
+  final selectedNotifier = _SelectedNotifier();
 
   ViewType get viewType => viewTypeNotifier.value;
   bool get selectMode => selectModeNotifier.value;
@@ -24,7 +24,7 @@ class ProjectSelectorState implements HasState {
   }
 }
 
-class SelectedNotifier extends ChangeNotifier {
+class _SelectedNotifier extends ChangeNotifier {
   final Set<Directory> _values = {};
 
   ValueNotifier<bool> emptyNotifier = ValueNotifier(true);

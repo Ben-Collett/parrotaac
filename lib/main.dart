@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:parrotaac/backend/global_restoration_data.dart';
 import 'package:parrotaac/backend/is_computer.dart';
+import 'package:parrotaac/backend/server/server_utils.dart';
 import 'package:parrotaac/ui/popups/lock_popups/admin_lock.dart';
 import 'package:parrotaac/ui/settings/labels.dart';
 
@@ -12,12 +13,7 @@ void main() async {
   await initializeQuickStorePluggins();
 
   //must be called before RestorativeNavigator().initialize()
-  await Future.wait(
-    [
-      initializeGlobalRestorationData(),
-      initializeSettings(),
-    ],
-  );
+  await Future.wait([initializeGlobalRestorationData(), initializeSettings()]);
 
   await RestorativeNavigator().initialize();
 
@@ -32,10 +28,7 @@ class MyApp extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return MaterialApp(
-      title: 'Parrot AAC',
-      home: MainScreen(),
-    );
+    return MaterialApp(title: 'Parrot AAC', home: MainScreen());
   }
 }
 
@@ -52,7 +45,8 @@ class _MainScreenState extends State<MainScreen> {
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (alreadyAuthenticated ||
           LockType.fromString(
-                  getSetting<String>(adminLockLabel) ?? LockType.none.label) ==
+                getSetting<String>(adminLockLabel) ?? LockType.none.label,
+              ) ==
               LockType.none) {
         RestorativeNavigator().fullyInitialized = true;
         return;

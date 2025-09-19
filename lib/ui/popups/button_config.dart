@@ -18,6 +18,7 @@ import 'package:parrotaac/backend/history_stack.dart';
 import 'package:parrotaac/backend/project/parrot_project.dart';
 import 'package:parrotaac/backend/project/temp_files.dart';
 import 'package:parrotaac/backend/simple_logger.dart';
+import 'package:parrotaac/backend/symbol_sets/symbol_set.dart';
 import 'package:parrotaac/extensions/color_extensions.dart';
 import 'package:parrotaac/extensions/image_extensions.dart';
 import 'package:parrotaac/extensions/map_extensions.dart';
@@ -28,10 +29,12 @@ import 'package:parrotaac/ui/codgen/board_screen_popups.dart';
 import 'package:parrotaac/ui/event_handler.dart';
 import 'package:parrotaac/ui/painters/button_shapes.dart';
 import 'package:parrotaac/ui/parrot_button.dart';
+import 'package:parrotaac/ui/popups/search_open_symbol.dart';
 import 'package:parrotaac/ui/restore_button_diff.dart';
 import 'package:parrotaac/ui/screens/board_select.dart';
 import 'package:parrotaac/ui/util_widgets/action_modifier.dart';
 import 'package:parrotaac/ui/util_widgets/segmented_button_menu.dart';
+import 'package:parrotaac/ui/util_widgets/simple_future_builder.dart';
 import 'package:parrotaac/utils.dart';
 import 'package:parrotaac/extensions/button_data_extensions.dart';
 import 'package:path/path.dart' as p;
@@ -57,8 +60,9 @@ void showConfigExistingPopup({
     barrierDismissible: false,
     builder: (context) {
       ButtonData data = controller.data;
-      final Map<String, dynamic> originalJson =
-          Map.unmodifiable(controller.data.toJson());
+      final Map<String, dynamic> originalJson = Map.unmodifiable(
+        controller.data.toJson(),
+      );
       final SoundData? originalSound = data.sound;
       final ImageData? originalImage = data.image;
       //The sentence box controller has to be null in the config screen to avoid taps in the preview being added to the sentence box
@@ -88,10 +92,11 @@ void showConfigExistingPopup({
           controller.goToLinkedBoard = goToLinkedBoard;
           Navigator.of(context).pop();
           final Map<String, dynamic> currentJson = controller.data.toJson();
-          final Map<String, dynamic> diff =
-              originalJson.valuesThatAreDifferent(currentJson);
-          final Map<String, dynamic> undoDiff =
-              currentJson.valuesThatAreDifferent(originalJson);
+          final Map<String, dynamic> diff = originalJson.valuesThatAreDifferent(
+            currentJson,
+          );
+          final Map<String, dynamic> undoDiff = currentJson
+              .valuesThatAreDifferent(originalJson);
 
           //WARNING: mapEquals only works if there are no nested structures
           bool soundChanged = !mapEquals(
@@ -130,12 +135,7 @@ void showConfigExistingPopup({
 
       List<Widget> actions = [];
 
-      Row row = Row(
-        children: [
-          cancelButton,
-          acceptButton,
-        ],
-      );
+      Row row = Row(children: [cancelButton, acceptButton]);
       if (controller.onDelete != null) {
         row = Row(
           mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -146,8 +146,10 @@ void showConfigExistingPopup({
       actions.add(acceptButton);
 
       if (restorableButtonDiff != null) {
-        restorableButtonDiff.apply(controller.data,
-            project: controller.project);
+        restorableButtonDiff.apply(
+          controller.data,
+          project: controller.project,
+        );
       }
 
       return AlertDialog(
@@ -256,12 +258,16 @@ class _ButtonConfigPopupState extends State<ButtonConfigPopup> {
   void initState() {
     buttonController = widget.buttonController;
     _lastLinkedBoard = BoardHistoryStack(
-        currentBoard: buttonController.data.linkedBoard, maxHistorySize: 1);
+      currentBoard: buttonController.data.linkedBoard,
+      maxHistorySize: 1,
+    );
     _lastLinkedBoard.addListener(() {
       Obf? board = _lastLinkedBoard.currentBoardOrNull;
       if (board != null) {
-        widget.restorableButtonDiff
-            ?.update("load_board", LinkedBoard.fromObf(board).toJson());
+        widget.restorableButtonDiff?.update(
+          "load_board",
+          LinkedBoard.fromObf(board).toJson(),
+        );
       }
       buttonController.data.linkedBoard = _lastLinkedBoard.currentBoardOrNull;
     });
@@ -270,13 +276,11 @@ class _ButtonConfigPopupState extends State<ButtonConfigPopup> {
     _selectedAudioPath = ValueNotifier(buttonController.data.sound?.path);
     _labelController.text = buttonController.data.label ?? "";
     _voclizationController.text = buttonController.data.voclization ?? "";
-    _labelController.addListener(
-      () {
-        final text = _labelController.text;
-        buttonController.setLabel(text);
-        widget.restorableButtonDiff?.update(ButtonData.labelKey, text);
-      },
-    );
+    _labelController.addListener(() {
+      final text = _labelController.text;
+      buttonController.setLabel(text);
+      widget.restorableButtonDiff?.update(ButtonData.labelKey, text);
+    });
     _voclizationController.addListener(() {
       if (_voclizationController.text.trim() == "") {
         buttonController.data.voclization = null;
@@ -338,29 +342,31 @@ class _ButtonConfigPopupState extends State<ButtonConfigPopup> {
 
       Obf? initialBoard = project?.findBoardById(popup.boardId);
       WidgetsBinding.instance.addPostFrameCallback(
-        (_) async => _selectBoard(
-          initialBoard: initialBoard,
-          writeHistory: false,
-        ),
+        (_) async =>
+            _selectBoard(initialBoard: initialBoard, writeHistory: false),
       );
     } else if (popup is CreateBoard) {
-      WidgetsBinding.instance.addPostFrameCallback((_) => showCreateBoardDialog(
-            context,
-            _lastLinkedBoard,
-            history: widget.popupHistory,
-            widget.eventHandler,
-            name: popup.name,
-            rowCount: popup.rowCount,
-            colCount: popup.colCount,
-          ));
+      WidgetsBinding.instance.addPostFrameCallback(
+        (_) => showCreateBoardDialog(
+          context,
+          _lastLinkedBoard,
+          history: widget.popupHistory,
+          widget.eventHandler,
+          name: popup.name,
+          rowCount: popup.rowCount,
+          colCount: popup.colCount,
+        ),
+      );
     }
   }
 
   void changeBackgroundColor(Color color) {
     setState(() {
       ColorData colorData = ColorDataCovertor.fromColorToColorData(color);
-      widget.restorableButtonDiff
-          ?.update(ButtonData.bgColorKey, colorData.toString());
+      widget.restorableButtonDiff?.update(
+        ButtonData.bgColorKey,
+        colorData.toString(),
+      );
       buttonController.setBackgroundColor(colorData);
     });
   }
@@ -372,7 +378,8 @@ class _ButtonConfigPopupState extends State<ButtonConfigPopup> {
     if (project == null) {
       throw Exception("A project is needed to select a board");
     }
-    Obf board = initialBoard ??
+    Obf board =
+        initialBoard ??
         _lastLinkedBoard.currentBoardOrNull ??
         buttonController.project!.root!;
 
@@ -397,8 +404,10 @@ class _ButtonConfigPopupState extends State<ButtonConfigPopup> {
   void changeBorderColor(Color color) {
     setState(() {
       ColorData colorData = ColorDataCovertor.fromColorToColorData(color);
-      widget.restorableButtonDiff
-          ?.update(ButtonData.borderColorKey, colorData.toString());
+      widget.restorableButtonDiff?.update(
+        ButtonData.borderColorKey,
+        colorData.toString(),
+      );
       buttonController.setBorderColor(colorData);
     });
   }
@@ -415,8 +424,9 @@ class _ButtonConfigPopupState extends State<ButtonConfigPopup> {
         title: Text("pick a color"),
         content: SingleChildScrollView(
           child: ColorPicker(
-              pickerColor: initialColor ?? Colors.white,
-              onColorChanged: onColorChanged),
+            pickerColor: initialColor ?? Colors.white,
+            onColorChanged: onColorChanged,
+          ),
         ),
       ),
     ).then((_) {
@@ -460,8 +470,10 @@ class _ButtonConfigPopupState extends State<ButtonConfigPopup> {
             onSelectionChanged: (valSet) {
               _shapeController.value = valSet.first;
               buttonController.shape = _shapeController.value;
-              widget.restorableButtonDiff
-                  ?.update(parrotButtonShapeKey, buttonController.shape.label);
+              widget.restorableButtonDiff?.update(
+                parrotButtonShapeKey,
+                buttonController.shape.label,
+              );
             },
           );
         },
@@ -484,16 +496,17 @@ class _ButtonConfigPopupState extends State<ButtonConfigPopup> {
       child: Row(
         children: [
           ListenableBuilder(
-              listenable: _lastLinkedBoard,
-              builder: (context, child) {
-                return Flexible(
-                  child: Text(
-                    "${_lastLinkedBoard.currentBoardOrNull?.name ?? "none"}: ",
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                  ),
-                );
-              }),
+            listenable: _lastLinkedBoard,
+            builder: (context, child) {
+              return Flexible(
+                child: Text(
+                  "${_lastLinkedBoard.currentBoardOrNull?.name ?? "none"}: ",
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                ),
+              );
+            },
+          ),
           Flexible(
             child: TextButton(
               onPressed: () async => _selectBoard(),
@@ -557,8 +570,9 @@ class _ButtonConfigPopupState extends State<ButtonConfigPopup> {
   }
 
   Widget _audioTypeMenu(double width) {
-    final values =
-        List<PreferredAudioSourceType>.of(PreferredAudioSourceType.values);
+    final values = List<PreferredAudioSourceType>.of(
+      PreferredAudioSourceType.values,
+    );
     if (startingAudioSource != PreferredAudioSourceType.alternative) {
       values.remove(PreferredAudioSourceType.alternative);
     }
@@ -566,21 +580,18 @@ class _ButtonConfigPopupState extends State<ButtonConfigPopup> {
     Widget fileContent = Row(
       children: [
         ValueListenableBuilder(
-            valueListenable: _selectedAudioPath,
-            builder: (context, value, _) {
-              String name = "none";
-              if (value != null) {
-                name = p.basenameWithoutExtension(value);
-                if (name.startsWith(recordedAudioString)) {
-                  name = removeTrailingIncrement(name);
-                }
+          valueListenable: _selectedAudioPath,
+          builder: (context, value, _) {
+            String name = "none";
+            if (value != null) {
+              name = p.basenameWithoutExtension(value);
+              if (name.startsWith(recordedAudioString)) {
+                name = removeTrailingIncrement(name);
               }
-              return Text(
-                name,
-                overflow: TextOverflow.ellipsis,
-                maxLines: 1,
-              );
-            }),
+            }
+            return Text(name, overflow: TextOverflow.ellipsis, maxLines: 1);
+          },
+        ),
         TextButton(
           onPressed: () async {
             if (buttonController.projectPath == null) {
@@ -611,68 +622,66 @@ class _ButtonConfigPopupState extends State<ButtonConfigPopup> {
           child: Text("select audio file"),
         ),
         ValueListenableBuilder(
-            valueListenable: recording,
-            builder: (context, isRecording, child) {
-              return TextButton(
-                onPressed: () async {
-                  recording.value = !isRecording;
-                  if (buttonController.projectPath == null) {
-                    throw Exception("needs audio path for recording");
+          valueListenable: recording,
+          builder: (context, isRecording, child) {
+            return TextButton(
+              onPressed: () async {
+                recording.value = !isRecording;
+                if (buttonController.projectPath == null) {
+                  throw Exception("needs audio path for recording");
+                }
+
+                final projectPath = buttonController.projectPath!;
+                final audioPath = tmpAudioPath(projectPath);
+                if (!isRecording) {
+                  final audioDir = Directory(audioPath);
+                  audioDir.createSync(recursive: true);
+                  String name = recordedAudioString;
+
+                  Iterable<String> existingNames = Directory(audioPath)
+                      .listSync()
+                      .whereType<File>()
+                      .map((f) => f.path)
+                      .map(p.basenameWithoutExtension);
+
+                  name = determineNoncollidingName(name, existingNames);
+                  MyAudioRecorder().start(
+                    parentDirectory: audioDir,
+                    fileName: name,
+                  );
+                  currentRecordingPath = p.relative(
+                    p.setExtension(p.join(audioPath, name), '.wav'),
+                    from: projectPath,
+                  );
+                } else {
+                  MyAudioRecorder().stop();
+                  if (_selectedAudioPath.value != null) {
+                    File(
+                      p.join(projectPath, _selectedAudioPath.value!),
+                    ).deleteSync();
                   }
+                  assert(
+                    currentRecordingPath != null,
+                    "recording audio path can't be null",
+                  );
+                  final String path = currentRecordingPath!;
+                  _selectedAudioPath.value = path;
 
-                  final projectPath = buttonController.projectPath!;
-                  final audioPath = tmpAudioPath(projectPath);
-                  if (!isRecording) {
-                    final audioDir = Directory(audioPath);
-                    audioDir.createSync(recursive: true);
-                    String name = recordedAudioString;
+                  final duration = await _getDuration(project?.path, path);
 
-                    Iterable<String> existingNames = Directory(audioPath)
-                        .listSync()
-                        .whereType<File>()
-                        .map((f) => f.path)
-                        .map(p.basenameWithoutExtension);
-
-                    name = determineNoncollidingName(name, existingNames);
-                    MyAudioRecorder().start(
-                      parentDirectory: audioDir,
-                      fileName: name,
-                    );
-                    currentRecordingPath = p.relative(
-                        p.setExtension(
-                          p.join(
-                            audioPath,
-                            name,
-                          ),
-                          '.wav',
-                        ),
-                        from: projectPath);
-                  } else {
-                    MyAudioRecorder().stop();
-                    if (_selectedAudioPath.value != null) {
-                      File(
-                        p.join(projectPath, _selectedAudioPath.value!),
-                      ).deleteSync();
-                    }
-                    assert(currentRecordingPath != null,
-                        "recording audio path can't be null");
-                    final String path = currentRecordingPath!;
-                    _selectedAudioPath.value = path;
-
-                    final duration = await _getDuration(project?.path, path);
-
-                    _setSound(
-                      SoundData(
-                        duration: duration.inSeconds,
-                        id: Obz.generateSoundId(project),
-                        path: currentRecordingPath,
-                      ),
-                    );
-                  }
-                },
-                child: Text(isRecording ? "stop" : "record"),
-              );
-            }),
+                  _setSound(
+                    SoundData(
+                      duration: duration.inSeconds,
+                      id: Obz.generateSoundId(project),
+                      path: currentRecordingPath,
+                    ),
+                  );
+                }
+              },
+              child: Text(isRecording ? "stop" : "record"),
+            );
+          },
+        ),
       ],
     );
 
@@ -727,7 +736,8 @@ class _ButtonConfigPopupState extends State<ButtonConfigPopup> {
       return Duration.zero;
     }
     return PreemptiveAudioPlayer.getDuration(
-        AudioFilePathSource(p.join(projectPath, path)));
+      AudioFilePathSource(p.join(projectPath, path)),
+    );
   }
 
   void _setSound(SoundData sound) {
@@ -737,15 +747,35 @@ class _ButtonConfigPopupState extends State<ButtonConfigPopup> {
 
   Widget _ttsLabel(double width) {
     return ValueListenableBuilder(
-        valueListenable: _labelController,
-        builder: (context, value, child) {
-          return textInput(
-            "tts says",
-            _voclizationController,
-            width,
-            hintOverride: value.text.trim() != "" ? value.text : null,
-          );
-        });
+      valueListenable: _labelController,
+      builder: (context, value, child) {
+        return textInput(
+          "tts says",
+          _voclizationController,
+          width,
+          hintOverride: value.text.trim() != "" ? value.text : null,
+        );
+      },
+    );
+  }
+
+  Future<void> _changeImage(XFile newImage) async {
+    lastSetTempImage?.deleteSync();
+    String path = await writeTempImage(
+      Directory(buttonController.projectPath!),
+      newImage,
+    );
+
+    final fullPath = p.join(buttonController.projectPath!, path);
+    longTermFutureCache.invalidate(fullPath);
+    lastSetTempImage = File(fullPath);
+
+    ImageData image = ImageData(path: path, id: Obz.generateImageId(project));
+
+    widget.restorableButtonDiff?.update(ButtonData.imageKey, image.toJson());
+    setState(() {
+      buttonController.setImage(image);
+    });
   }
 
   @override
@@ -758,10 +788,12 @@ class _ButtonConfigPopupState extends State<ButtonConfigPopup> {
     const double maxWidth = 500;
     if (buttonData.image != null) {
       image = ConstrainedBox(
+        key: ValueKey(buttonData.image?.path),
         constraints: BoxConstraints(maxWidth: 100, maxHeight: 100),
         child: SizedBox.expand(
-          child: buttonData.image!
-              .toImage(projectPath: buttonController.projectPath),
+          child: buttonData.image!.toImage(
+            projectPath: buttonController.projectPath,
+          ),
         ),
       );
     }
@@ -772,64 +804,55 @@ class _ButtonConfigPopupState extends State<ButtonConfigPopup> {
           textInput("label", _labelController, maxWidth),
           space(),
           image,
-          TextButton(
-              onPressed: () async {
-                if (buttonController.projectPath == null) {
-                  return;
-                }
+          Row(
+            children: [
+              TextButton(
+                onPressed: () async {
+                  if (buttonController.projectPath == null) {
+                    return;
+                  }
 
-                XFile? file = await getImage();
-                if (file == null) {
-                  return;
-                }
+                  XFile? file = await getImage();
+                  if (file == null) {
+                    return;
+                  }
 
-                lastSetTempImage?.deleteSync();
+                  _changeImage(file);
+                },
+                child: Text("select image"),
+              ),
 
-                String path = await writeTempImage(
-                  Directory(buttonController.projectPath!),
-                  file,
-                );
+              TextButton(
+                onPressed: () async {
+                  SymbolResult? result = await showOpenSymbolSearchDialog(
+                    context,
+                    initialSearch: _labelController.text,
+                  );
 
-                lastSetTempImage =
-                    File(p.join(buttonController.projectPath!, path));
-
-                ImageData image = ImageData(
-                  path: path,
-                  id: Obz.generateImageId(project),
-                );
-
-                widget.restorableButtonDiff?.update(
-                  ButtonData.imageKey,
-                  image.toJson(),
-                );
-                setState(() {
-                  buttonController.setImage(image);
-                });
-              },
-              child: Text("select image")),
-          colorPickerButton(
-            "background color",
-            backgroundColor,
-            () {
-              widget.popupHistory?.pushScreen(SelectBackgroundColor());
-              _showColorChangeDialog(
-                changeBackgroundColor,
-                initialColor: currentBackgroundColor?.toColor(),
-              );
-            },
+                  if (result != null) {
+                    File file = await result.asFile;
+                    _changeImage(XFile(file.path));
+                  }
+                },
+                child: Text("search symbols"),
+              ),
+            ],
           ),
+          colorPickerButton("background color", backgroundColor, () {
+            widget.popupHistory?.pushScreen(SelectBackgroundColor());
+            _showColorChangeDialog(
+              changeBackgroundColor,
+              initialColor: currentBackgroundColor?.toColor(),
+            );
+          }),
           space(),
-          colorPickerButton(
-            "border color",
-            borderColor,
-            () {
-              widget.popupHistory?.pushScreen(SelectBorderColor());
-              _showColorChangeDialog(
-                changeBorderColor,
-                initialColor: currentBorderColor?.toColor(),
-              );
-            },
-          ),
+          colorPickerButton("border color", borderColor, () {
+            widget.popupHistory?.pushScreen(SelectBorderColor());
+            _showColorChangeDialog(
+              changeBorderColor,
+              initialColor: currentBorderColor?.toColor(),
+            );
+          }),
           space(),
           _actionConfig(widget.buttonController, maxWidth),
           space(),
