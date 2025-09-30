@@ -32,3 +32,7 @@ class _AppLifecycleHandler with WidgetsBindingObserver {
     }
   }
 }
+
+String? get userToken => _globalRestorationData["user_token"];
+set userToken(String? token) =>
+    _globalRestorationData.writeData("user_token", token);

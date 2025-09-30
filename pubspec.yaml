@@ -40,6 +40,7 @@ dependencies:
   flutter_cache_manager: ^3.4.1
   flutter_colorpicker: ^1.1.0
   flutter_screen_lock: ^9.2.1+1
+  flutter_secure_storage: ^4.2.1
   flutter_slidable: ^4.0.0
   flutter_svg: ^2.0.17
   flutter_tts: ^4.2.2

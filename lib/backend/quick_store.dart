@@ -1,5 +1,5 @@
 import 'package:hive_flutter/hive_flutter.dart';
-import 'package:parrotaac/backend/simple_logger.dart';
+import 'package:parrotaac/backend/project/project_utils.dart';
 
 Future<void> initializeQuickStorePluggins() {
   return Hive.initFlutter();
@@ -11,14 +11,12 @@ class QuickStore {
   bool _initialized = false;
   late final Box _box;
 
-  QuickStore(
-    this.name, {
-    this.path,
-  });
+  QuickStore(this.name, {this.path});
 
   bool get isNotInitialized => !_initialized;
 
   Future<void> initialize() async {
+    final path = this.path ?? (await applicationDocumentDir).path;
     _box = await Hive.openBox(name, path: path);
     _initialized = true;
   }
@@ -48,7 +46,10 @@ class IndexedQuickstore {
   IndexedQuickstore(this.name);
 
   Future<void> initialize() async {
-    await Hive.openBox(name);
+    await Hive.openBox(
+      name,
+      path: await applicationDocumentDir.then((dir) => dir.path),
+    );
   }
 
   Future<void> pushAndWrite(dynamic data) {

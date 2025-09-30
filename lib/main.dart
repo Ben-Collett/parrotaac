@@ -13,13 +13,18 @@ void main() async {
   await initializeQuickStorePluggins();
 
   //must be called before RestorativeNavigator().initialize()
-  await Future.wait([initializeGlobalRestorationData(), initializeSettings()]);
+  await initializeGlobalRestorationData();
+
+  await Future.wait([initializeSettings(), initializeServer()]);
 
   await RestorativeNavigator().initialize();
 
   if (isMobile && wasBackgrounded) {
     alreadyAuthenticated = wasAuthenticated;
   }
+
+  accessTokenOverride =
+      "temp::1759179283:1759179283:48aa3787db51cfd9ae43e948:a6b56bd1dbe6839ee332b12acba5747e5bc8b1fccffa005af1942c2c1bd0df7ba3094d0535780b1c8ec4e79cf5c079193828ab3dc03ed7d65a575f7d6919ac5e";
   runApp(const MyApp());
 }
 

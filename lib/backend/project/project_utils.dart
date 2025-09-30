@@ -7,6 +7,22 @@ import 'package:path_provider/path_provider.dart';
 import 'custom_manifest_keys.dart';
 import 'manifest_utils.dart';
 
+Directory? _cachedApplicationDocumentDir;
+Future<Directory> get applicationDocumentDir async {
+  if (_cachedApplicationDocumentDir != null) {
+    return _cachedApplicationDocumentDir!;
+  }
+  Directory applicationDocumentDir = await getApplicationDocumentsDirectory();
+  if (Platform.isLinux) {
+    applicationDocumentDir = Directory(
+      p.join(applicationDocumentDir.path, "parrot_aac_data"),
+    );
+    await applicationDocumentDir.create();
+  }
+  _cachedApplicationDocumentDir = applicationDocumentDir;
+  return applicationDocumentDir;
+}
+
 ///if name is defined in manifest.json using ext_name return it else return dir base name
 Future<String> getProjectName(Directory dir) {
   File? file = getManifestFile(dir);
@@ -51,10 +67,8 @@ Future<String> determineValidProjectPath(String name) async {
 Future<Iterable<Directory>> projectDirs() async {
   Directory convertPathToDir(String path) => Directory(path);
   bool theDirectoryExist(Directory dir) => dir.existsSync();
-  Iterable<Directory> getTheSubDirs(Directory dir) => dir
-      .listSync()
-      .whereType<Directory>()
-      .where(
+  Iterable<Directory> getTheSubDirs(Directory dir) =>
+      dir.listSync().whereType<Directory>().where(
         theDirectoryExist,
       ); //Need to check for existens otherwise it breaks when deleting files
 
@@ -80,10 +94,11 @@ Future<String> get projectTargetDirectory async {
     return Future(() => _projectTargetPathCache!);
   }
   const String projectsDirName = 'projects';
-  final Directory applicationDocumentsDir =
-      await getApplicationDocumentsDirectory();
-  final String projectDirPath =
-      p.join(applicationDocumentsDir.path, projectsDirName);
+  final Directory applicationDocumentsDir = await applicationDocumentDir;
+  final String projectDirPath = p.join(
+    applicationDocumentsDir.path,
+    projectsDirName,
+  );
   final Directory projectDirectory = Directory(projectDirPath);
   if (!projectDirectory.existsSync()) {
     projectDirectory.createSync();

@@ -9,6 +9,7 @@ import 'package:parrotaac/shared_providers/project_dir_controller.dart';
 import 'package:parrotaac/state/application_state.dart';
 import 'package:parrotaac/state/project_selector_state.dart';
 import 'package:parrotaac/ui/popups/lock_popups/admin_lock.dart';
+import 'package:parrotaac/ui/popups/login_popup.dart';
 import 'package:parrotaac/ui/settings/settings_themed_appbar.dart';
 import 'package:parrotaac/ui/util_widgets/future_controller_builder.dart';
 import 'package:parrotaac/ui/util_widgets/multi_listenable_builder.dart';
@@ -40,20 +41,19 @@ List<DisplayEntry> _displayDataFromDirList(
   double? imageHeight,
   int Function(DisplayData, DisplayData)? sort,
   TextStyle? textStyle,
-}) =>
-    _displayData(dirs, sort: sort)
-        .map(
-          (d) => DisplayEntry(
-            key: UniqueKey(),
-            data: d,
-            viewType: viewType,
-            imageWidth: imageWidth,
-            selectMode: selectMode,
-            imageHeight: imageHeight,
-            textStyle: textStyle,
-          ),
-        )
-        .toList();
+}) => _displayData(dirs, sort: sort)
+    .map(
+      (d) => DisplayEntry(
+        key: UniqueKey(),
+        data: d,
+        viewType: viewType,
+        imageWidth: imageWidth,
+        selectMode: selectMode,
+        imageHeight: imageHeight,
+        textStyle: textStyle,
+      ),
+    )
+    .toList();
 List<Widget> filteredEntries(
   Iterable<Directory> dirs,
   String search, {
@@ -65,15 +65,15 @@ List<Widget> filteredEntries(
   TextStyle? textStyle,
 }) {
   bool match(Text text) => text.data?.startsWith(search) ?? true;
-  return _displayDataFromDirList(dirs,
-          imageWidth: imageWidth,
-          imageHeight: imageHeight,
-          selectMode: selectMode,
-          sort: sort,
-          viewType: viewType,
-          textStyle: textStyle)
-      .where((entry) => match(entry.displayName))
-      .toList();
+  return _displayDataFromDirList(
+    dirs,
+    imageWidth: imageWidth,
+    imageHeight: imageHeight,
+    selectMode: selectMode,
+    sort: sort,
+    viewType: viewType,
+    textStyle: textStyle,
+  ).where((entry) => match(entry.displayName)).toList();
 }
 
 class ProjectSelector extends StatefulWidget {
@@ -103,10 +103,7 @@ class _ProjectSelectorState extends State<ProjectSelector> {
         if (!isEmpty) {
           outputOnPressed = onPressed;
         }
-        return IconButton(
-          onPressed: outputOnPressed,
-          icon: icon,
-        );
+        return IconButton(onPressed: outputOnPressed, icon: icon);
       },
     );
   }
@@ -122,9 +119,7 @@ class _ProjectSelectorState extends State<ProjectSelector> {
         child: Row(
           mainAxisAlignment: MainAxisAlignment.spaceBetween,
           children: [
-            SearchBar(
-              textController: _state.searchTextController,
-            ),
+            SearchBar(textController: _state.searchTextController),
             ValueListenableBuilder(
               valueListenable: _state.selectModeNotifier,
               builder: (context, selectMode, child) {
@@ -156,35 +151,31 @@ class _ProjectSelectorState extends State<ProjectSelector> {
                   );
                 }
 
-                children.addAll(
-                  [
-                    Container(
-                      color: Colors.yellow,
-                      child: TextButton(
-                        child: Text(text),
-                        onPressed: () {
-                          _selectorState.selectedNotifier.clear();
-                          _state.selectModeNotifier.value = !selectMode;
-                        },
-                      ),
+                children.addAll([
+                  Container(
+                    color: Colors.yellow,
+                    child: TextButton(
+                      child: Text(text),
+                      onPressed: () {
+                        _selectorState.selectedNotifier.clear();
+                        _state.selectModeNotifier.value = !selectMode;
+                      },
                     ),
-                    Container(
-                      color: Colors.orangeAccent,
-                      child: TextButton(
-                        onPressed: () => showAdminLockPopup(
-                          context: context,
-                          onAccept: () => _showCreateProjectDialog(context),
-                        ),
-                        child: Text("create project"),
+                  ),
+                  Container(
+                    color: Colors.orangeAccent,
+                    child: TextButton(
+                      onPressed: () => showAdminLockPopup(
+                        context: context,
+                        onAccept: () => _showCreateProjectDialog(context),
                       ),
+                      child: Text("create project"),
                     ),
-                  ],
-                );
-                return Row(
-                  children: children,
-                );
+                  ),
+                ]);
+                return Row(children: children);
               },
-            )
+            ),
           ],
         ),
       ),
@@ -210,6 +201,7 @@ class _ProjectSelectorState extends State<ProjectSelector> {
             const Text('ParrotAAC'),
             Row(
               children: [
+                LoginButton(),
                 IconButton(
                   icon: Icon(Icons.file_download_outlined),
                   onPressed: () async {
@@ -233,7 +225,7 @@ class _ProjectSelectorState extends State<ProjectSelector> {
                   onPressed: () => RestorativeNavigator().goToSettings(context),
                 ),
               ],
-            )
+            ),
           ],
         ),
       ),
@@ -309,58 +301,56 @@ class _CreateProjectDialogState extends State<CreateProjectDialog> {
                 child: SizedBox(
                   width: maxWidth,
                   child: ValueListenableBuilder(
-                      valueListenable: _selectorState.viewTypeNotifier,
-                      builder: (_, viewType, __) {
-                        return FutureControllerBuilder(
-                          controller: projectDirController,
-                          onData: (dirs) {
-                            List<String> displayNames = _displayDataFromDirList(
-                                    dirs!,
-                                    viewType: viewType)
-                                .map((d) => d.displayName.data)
-                                .whereType<String>()
-                                .toList();
-                            List<Widget> column = [
-                              TextFormField(
-                                controller: widget.controller,
-                                validator: (text) =>
-                                    validate(text, displayNames),
-                                decoration: InputDecoration(
-                                  border: OutlineInputBorder(),
-                                  labelText: "Project Name",
-                                ),
+                    valueListenable: _selectorState.viewTypeNotifier,
+                    builder: (_, viewType, __) {
+                      return FutureControllerBuilder(
+                        controller: projectDirController,
+                        onData: (dirs) {
+                          List<String> displayNames =
+                              _displayDataFromDirList(dirs!, viewType: viewType)
+                                  .map((d) => d.displayName.data)
+                                  .whereType<String>()
+                                  .toList();
+                          List<Widget> column = [
+                            TextFormField(
+                              controller: widget.controller,
+                              validator: (text) => validate(text, displayNames),
+                              decoration: InputDecoration(
+                                border: OutlineInputBorder(),
+                                labelText: "Project Name",
                               ),
-                            ];
+                            ),
+                          ];
 
-                            if (_image != null) {
-                              column.add(
-                                FutureBuilder(
-                                  future: _image,
-                                  builder: (_, snapshot) {
-                                    if (snapshot.data == null) {
-                                      return SizedBox(width: 0, height: 0);
-                                    }
-                                    XFile data = snapshot.requireData!;
-                                    return ConstrainedBox(
-                                      constraints:
-                                          BoxConstraints(maxHeight: 100),
-                                      child: imageFromPath(data.path),
-                                    );
-                                  },
-                                ),
-                              );
-                            }
-                            column.add(TextButton(
+                          if (_image != null) {
+                            column.add(
+                              FutureBuilder(
+                                future: _image,
+                                builder: (_, snapshot) {
+                                  if (snapshot.data == null) {
+                                    return SizedBox(width: 0, height: 0);
+                                  }
+                                  XFile data = snapshot.requireData!;
+                                  return ConstrainedBox(
+                                    constraints: BoxConstraints(maxHeight: 100),
+                                    child: imageFromPath(data.path),
+                                  );
+                                },
+                              ),
+                            );
+                          }
+                          column.add(
+                            TextButton(
                               child: Text("select project image"),
                               onPressed: () => setImage(getImage()),
-                            ));
+                            ),
+                          );
 
-                            return Column(
-                              children: column,
-                            );
-                          },
-                        );
-                      }),
+                          return Column(children: column);
+                        },
+                      );
+                    },
+                  ),
                 ),
               ),
             ],
@@ -406,10 +396,7 @@ class _CreateProjectDialogState extends State<CreateProjectDialog> {
 
 class SearchBar extends StatelessWidget {
   final TextEditingController textController;
-  const SearchBar({
-    super.key,
-    required this.textController,
-  });
+  const SearchBar({super.key, required this.textController});
 
   @override
   Widget build(BuildContext context) {
@@ -421,7 +408,9 @@ class SearchBar extends StatelessWidget {
       //could add autocomplete but it looks bad and provides little advantage
       child: TextField(
         decoration: InputDecoration(
-            prefixIcon: Icon(Icons.search), hintText: "search..."),
+          prefixIcon: Icon(Icons.search),
+          hintText: "search...",
+        ),
         controller: textController,
       ),
     );
@@ -436,14 +425,13 @@ class BoardCountText extends StatelessWidget {
     return FutureControllerBuilder(
       controller: projectDirController,
       onData: (value) => ValueListenableBuilder(
-          valueListenable: _selectorState.searchTextController,
-          builder: (context, search, child) {
-            return Text('${filteredEntries(
-              value!,
-              search.text,
-              viewType: ViewType.list,
-            ).length} boards');
-          }),
+        valueListenable: _selectorState.searchTextController,
+        builder: (context, search, child) {
+          return Text(
+            '${filteredEntries(value!, search.text, viewType: ViewType.list).length} boards',
+          );
+        },
+      ),
       onLoad: const Text('calculating #of boards'),
     );
   }
@@ -455,20 +443,26 @@ class ViewTypeSegmantedButton extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     //TODO: it would be nice to replace the labels with icons
-    final listSegment =
-        ButtonSegment(value: ViewType.list, label: Text("list"));
-    const gridSegment =
-        ButtonSegment(value: ViewType.grid, label: Text("grid"));
+    final listSegment = ButtonSegment(
+      value: ViewType.list,
+      label: Text("list"),
+    );
+    const gridSegment = ButtonSegment(
+      value: ViewType.grid,
+      label: Text("grid"),
+    );
     return ValueListenableBuilder(
-        valueListenable: _selectorState.viewTypeNotifier,
-        builder: (context, value, child) {
-          return SegmentedButton(
-              segments: [listSegment, gridSegment],
-              selected: {value},
-              onSelectionChanged: (selected) {
-                _selectorState.viewTypeNotifier.value = selected.first;
-              });
-        });
+      valueListenable: _selectorState.viewTypeNotifier,
+      builder: (context, value, child) {
+        return SegmentedButton(
+          segments: [listSegment, gridSegment],
+          selected: {value},
+          onSelectionChanged: (selected) {
+            _selectorState.viewTypeNotifier.value = selected.first;
+          },
+        );
+      },
+    );
   }
 }
 
@@ -491,7 +485,7 @@ class _DisplayViewState extends State<DisplayView> {
   void initState() {
     listenable = Listenable.merge([
       appState.getProjectSelectorState().searchTextController,
-      appState.getProjectSelectorState().selectModeNotifier
+      appState.getProjectSelectorState().selectModeNotifier,
     ]);
     super.initState();
   }
@@ -503,12 +497,8 @@ class _DisplayViewState extends State<DisplayView> {
       onData: (data) => ValueListenableBuilder(
         valueListenable: _selectorState.viewTypeNotifier,
         builder: (_, viewType, __) => viewType == ViewType.list
-            ? SelectorListView(
-                data: data!,
-              )
-            : SelectorGridView(
-                data: data!,
-              ),
+            ? SelectorListView(data: data!)
+            : SelectorGridView(data: data!),
       ),
     );
   }
@@ -529,63 +519,63 @@ class SelectorListView extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return MultiListenableBuilder(
-        listenables: [
-          _selectorState.searchTextController,
-          _selectorState.selectModeNotifier,
-        ],
-        builder: (context, _) {
-          List<Widget> filtered = filteredEntries(
-            data,
-            _selectorState.searchText,
-            viewType: ViewType.list,
-            sort: _byLastAccessedThenAlphabeticalOrder,
-            imageWidth: 75,
-            imageHeight: 98,
-            selectMode: _selectorState.selectMode,
-            textStyle: TextStyle(
-              fontSize: 50,
+      listenables: [
+        _selectorState.searchTextController,
+        _selectorState.selectModeNotifier,
+      ],
+      builder: (context, _) {
+        List<Widget> filtered = filteredEntries(
+          data,
+          _selectorState.searchText,
+          viewType: ViewType.list,
+          sort: _byLastAccessedThenAlphabeticalOrder,
+          imageWidth: 75,
+          imageHeight: 98,
+          selectMode: _selectorState.selectMode,
+          textStyle: TextStyle(fontSize: 50),
+        );
+        final Color borderColor = Colors.grey.withAlpha(127);
+        final double borderWidth = 1;
+        return ListView.separated(
+          key: ValueKey(0),
+          itemCount: filtered.length,
+          separatorBuilder: (_, __) => Container(),
+          itemBuilder: (_, index) => Container(
+            decoration: BoxDecoration(
+              border: Border(
+                bottom: BorderSide(color: borderColor, width: borderWidth),
+              ),
             ),
-          );
-          final Color borderColor = Colors.grey.withAlpha(127);
-          final double borderWidth = 1;
-          return ListView.separated(
-            key: ValueKey(0),
-            itemCount: filtered.length,
-            separatorBuilder: (_, __) => Container(),
-            itemBuilder: (_, index) => Container(
-                decoration: BoxDecoration(
-                  border: Border(
-                    bottom: BorderSide(color: borderColor, width: borderWidth),
-                  ),
-                ),
-                child: filtered[index]),
-          );
-        });
+            child: filtered[index],
+          ),
+        );
+      },
+    );
   }
 }
 
 class SelectorGridView extends StatelessWidget {
   final Iterable<Directory> data;
 
-  const SelectorGridView({
-    super.key,
-    required this.data,
-  });
+  const SelectorGridView({super.key, required this.data});
 
   @override
   Widget build(BuildContext context) {
     return MultiListenableBuilder(
       listenables: [
         _selectorState.selectModeNotifier,
-        _selectorState.searchTextController
+        _selectorState.searchTextController,
       ],
       builder: (context, _) {
-        List<Widget> filtered = filteredEntries(data, _selectorState.searchText,
-            viewType: ViewType.grid,
-            selectMode: _selectorState.selectMode,
-            textStyle: TextStyle(fontSize: 45),
-            imageWidth: 170,
-            imageHeight: 250);
+        List<Widget> filtered = filteredEntries(
+          data,
+          _selectorState.searchText,
+          viewType: ViewType.grid,
+          selectMode: _selectorState.selectMode,
+          textStyle: TextStyle(fontSize: 45),
+          imageWidth: 170,
+          imageHeight: 250,
+        );
         return GridView.count(
           key: ValueKey(1),
           crossAxisCount: 3,
@@ -634,14 +624,15 @@ void _showBulkDeleteDialog(BuildContext context) {
                 child: Column(
                   children: toRemoveNames
                       .map(
-                        (n) => Text(n,
-                            maxLines: 1, overflow: TextOverflow.ellipsis),
+                        (n) => Text(
+                          n,
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                        ),
                       )
                       .map(
                         (n) => ConstrainedBox(
-                          constraints: BoxConstraints(
-                            maxWidth: 220,
-                          ),
+                          constraints: BoxConstraints(maxWidth: 220),
                           child: n,
                         ),
                       )
@@ -655,9 +646,7 @@ void _showBulkDeleteDialog(BuildContext context) {
                       _bulkDelete(context);
                       Navigator.of(context).pop();
                     },
-                    style: TextButton.styleFrom(
-                      backgroundColor: Colors.red,
-                    ),
+                    style: TextButton.styleFrom(backgroundColor: Colors.red),
                     child: Text("yes"),
                   ),
                   TextButton(
@@ -666,7 +655,7 @@ void _showBulkDeleteDialog(BuildContext context) {
                     child: Text("no"),
                   ),
                 ],
-              )
+              ),
             ],
           ),
         ),
@@ -677,7 +666,9 @@ void _showBulkDeleteDialog(BuildContext context) {
 
 void _bulkDelete(BuildContext context) {
   showLoadingDialog(
-      context, "delete ${_selectorState.selectedNotifier.length}");
+    context,
+    "delete ${_selectorState.selectedNotifier.length}",
+  );
   for (Directory dir in _selectorState.selectedNotifier.values) {
     dir.deleteSync(recursive: true);
   }

@@ -8,6 +8,7 @@ set(BINARY_NAME "parrotaac")
 # The unique GTK application identifier for this application. See:
 # https://wiki.gnome.org/HowDoI/ChooseApplicationID
 set(APPLICATION_ID "com.example.parrotaac")
+add_definitions(-DAPPLICATION_ID="com.example.parrotaac")
 
 # Explicitly opt in to modern CMake behaviors to avoid warnings with recent
 # versions of CMake.
