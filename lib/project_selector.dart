@@ -8,6 +8,7 @@ import 'package:parrotaac/restorative_navigator.dart';
 import 'package:parrotaac/shared_providers/project_dir_controller.dart';
 import 'package:parrotaac/state/application_state.dart';
 import 'package:parrotaac/state/project_selector_state.dart';
+import 'package:parrotaac/ui/painters/heart.dart';
 import 'package:parrotaac/ui/popups/lock_popups/admin_lock.dart';
 import 'package:parrotaac/ui/popups/login_popup.dart';
 import 'package:parrotaac/ui/settings/settings_themed_appbar.dart';
@@ -35,7 +36,6 @@ List<DisplayData> _displayData(
 
 List<DisplayEntry> _displayDataFromDirList(
   Iterable<Directory> dirs, {
-  required ViewType viewType,
   bool selectMode = false,
   double? imageWidth,
   double? imageHeight,
@@ -46,7 +46,6 @@ List<DisplayEntry> _displayDataFromDirList(
       (d) => DisplayEntry(
         key: UniqueKey(),
         data: d,
-        viewType: viewType,
         imageWidth: imageWidth,
         selectMode: selectMode,
         imageHeight: imageHeight,
@@ -59,7 +58,6 @@ List<Widget> filteredEntries(
   String search, {
   double? imageWidth,
   bool selectMode = false,
-  required ViewType viewType,
   int Function(DisplayData, DisplayData)? sort,
   double? imageHeight,
   TextStyle? textStyle,
@@ -71,7 +69,6 @@ List<Widget> filteredEntries(
     imageHeight: imageHeight,
     selectMode: selectMode,
     sort: sort,
-    viewType: viewType,
     textStyle: textStyle,
   ).where((entry) => match(entry.displayName)).toList();
 }
@@ -188,7 +185,7 @@ class _ProjectSelectorState extends State<ProjectSelector> {
           mainAxisAlignment: MainAxisAlignment.spaceBetween,
           children: [
             BoardCountText(textController: _state.searchTextController),
-            ViewTypeSegmantedButton(),
+            DonationButton(),
           ],
         ),
       ),
@@ -235,13 +232,33 @@ class _ProjectSelectorState extends State<ProjectSelector> {
         children: [
           top,
           Flexible(
-            child: DisplayView(
-              searchController: _state.searchTextController,
-              viewTypeController: _state.viewTypeNotifier,
-            ),
+            child: DisplayView(searchController: _state.searchTextController),
           ),
           bottom,
         ],
+      ),
+    );
+  }
+}
+
+class DonationButton extends StatelessWidget {
+  const DonationButton({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.all(2.0),
+      child: ElevatedButton(
+        onPressed: () {},
+        style: ElevatedButton.styleFrom(
+          padding: EdgeInsets.only(left: 8, right: 8),
+        ),
+        child: const Row(
+          children: [
+            CustomPaint(painter: HeartPainter(), size: Size(20, 20)),
+            Text("support", overflow: TextOverflow.ellipsis),
+          ],
+        ),
       ),
     );
   }
@@ -300,14 +317,13 @@ class _CreateProjectDialogState extends State<CreateProjectDialog> {
                 constraints: BoxConstraints(minWidth: 0, maxWidth: maxWidth),
                 child: SizedBox(
                   width: maxWidth,
-                  child: ValueListenableBuilder(
-                    valueListenable: _selectorState.viewTypeNotifier,
-                    builder: (_, viewType, __) {
+                  child: Builder(
+                    builder: (context) {
                       return FutureControllerBuilder(
                         controller: projectDirController,
                         onData: (dirs) {
                           List<String> displayNames =
-                              _displayDataFromDirList(dirs!, viewType: viewType)
+                              _displayDataFromDirList(dirs!)
                                   .map((d) => d.displayName.data)
                                   .whereType<String>()
                                   .toList();
@@ -427,9 +443,7 @@ class BoardCountText extends StatelessWidget {
       onData: (value) => ValueListenableBuilder(
         valueListenable: _selectorState.searchTextController,
         builder: (context, search, child) {
-          return Text(
-            '${filteredEntries(value!, search.text, viewType: ViewType.list).length} boards',
-          );
+          return Text('${filteredEntries(value!, search.text).length} boards');
         },
       ),
       onLoad: const Text('calculating #of boards'),
@@ -437,43 +451,9 @@ class BoardCountText extends StatelessWidget {
   }
 }
 
-class ViewTypeSegmantedButton extends StatelessWidget {
-  const ViewTypeSegmantedButton({super.key});
-
-  @override
-  Widget build(BuildContext context) {
-    //TODO: it would be nice to replace the labels with icons
-    final listSegment = ButtonSegment(
-      value: ViewType.list,
-      label: Text("list"),
-    );
-    const gridSegment = ButtonSegment(
-      value: ViewType.grid,
-      label: Text("grid"),
-    );
-    return ValueListenableBuilder(
-      valueListenable: _selectorState.viewTypeNotifier,
-      builder: (context, value, child) {
-        return SegmentedButton(
-          segments: [listSegment, gridSegment],
-          selected: {value},
-          onSelectionChanged: (selected) {
-            _selectorState.viewTypeNotifier.value = selected.first;
-          },
-        );
-      },
-    );
-  }
-}
-
 class DisplayView extends StatefulWidget {
   final TextEditingController searchController;
-  final ValueNotifier<ViewType> viewTypeController;
-  const DisplayView({
-    super.key,
-    required this.searchController,
-    required this.viewTypeController,
-  });
+  const DisplayView({super.key, required this.searchController});
 
   @override
   State<DisplayView> createState() => _DisplayViewState();
@@ -494,12 +474,7 @@ class _DisplayViewState extends State<DisplayView> {
   Widget build(BuildContext context) {
     return FutureControllerBuilder(
       controller: projectDirController,
-      onData: (data) => ValueListenableBuilder(
-        valueListenable: _selectorState.viewTypeNotifier,
-        builder: (_, viewType, __) => viewType == ViewType.list
-            ? SelectorListView(data: data!)
-            : SelectorGridView(data: data!),
-      ),
+      onData: (data) => SelectorListView(data: data!),
     );
   }
 }
@@ -527,7 +502,6 @@ class SelectorListView extends StatelessWidget {
         List<Widget> filtered = filteredEntries(
           data,
           _selectorState.searchText,
-          viewType: ViewType.list,
           sort: _byLastAccessedThenAlphabeticalOrder,
           imageWidth: 75,
           imageHeight: 98,
@@ -548,38 +522,6 @@ class SelectorListView extends StatelessWidget {
             ),
             child: filtered[index],
           ),
-        );
-      },
-    );
-  }
-}
-
-class SelectorGridView extends StatelessWidget {
-  final Iterable<Directory> data;
-
-  const SelectorGridView({super.key, required this.data});
-
-  @override
-  Widget build(BuildContext context) {
-    return MultiListenableBuilder(
-      listenables: [
-        _selectorState.selectModeNotifier,
-        _selectorState.searchTextController,
-      ],
-      builder: (context, _) {
-        List<Widget> filtered = filteredEntries(
-          data,
-          _selectorState.searchText,
-          viewType: ViewType.grid,
-          selectMode: _selectorState.selectMode,
-          textStyle: TextStyle(fontSize: 45),
-          imageWidth: 170,
-          imageHeight: 250,
-        );
-        return GridView.count(
-          key: ValueKey(1),
-          crossAxisCount: 3,
-          children: filtered,
         );
       },
     );

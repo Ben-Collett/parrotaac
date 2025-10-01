@@ -3,21 +3,17 @@ import 'dart:io' show Directory;
 
 import 'package:flutter/widgets.dart';
 import 'package:parrotaac/state/has_state.dart';
-import 'package:parrotaac/ui/widgets/displey_entry.dart';
 
 class ProjectSelectorState implements HasState {
-  final viewTypeNotifier = ValueNotifier(ViewType.list);
   final selectModeNotifier = ValueNotifier(false);
   final searchTextController = TextEditingController();
   final selectedNotifier = _SelectedNotifier();
 
-  ViewType get viewType => viewTypeNotifier.value;
   bool get selectMode => selectModeNotifier.value;
   String get searchText => searchTextController.text;
 
   @override
   void dispose() {
-    viewTypeNotifier.dispose();
     selectModeNotifier.dispose();
     searchTextController.dispose();
     selectedNotifier;

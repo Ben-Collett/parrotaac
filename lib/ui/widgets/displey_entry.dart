@@ -13,8 +13,6 @@ import 'package:parrotaac/ui/popups/loading.dart';
 import 'package:parrotaac/ui/popups/lock_popups/admin_lock.dart';
 import 'package:parrotaac/utils.dart';
 
-enum ViewType { grid, list }
-
 class DisplayEntry extends StatefulWidget {
   final TextStyle? textStyle;
   Text get displayName {
@@ -34,7 +32,6 @@ class DisplayEntry extends StatefulWidget {
   }
 
   final DisplayData data;
-  final ViewType viewType;
   final bool selectMode;
 
   final double? imageWidth;
@@ -42,21 +39,16 @@ class DisplayEntry extends StatefulWidget {
 
   ///A sized box containing the image
   Widget get image => ConstrainedBox(
-        constraints: BoxConstraints(
-          maxWidth: imageWidth ?? double.infinity,
-          maxHeight: imageHeight ?? double.infinity,
-        ),
-        child: SizedBox(
-          width: imageWidth,
-          height: imageHeight,
-          child: data.image,
-        ),
-      );
+    constraints: BoxConstraints(
+      maxWidth: imageWidth ?? double.infinity,
+      maxHeight: imageHeight ?? double.infinity,
+    ),
+    child: SizedBox(width: imageWidth, height: imageHeight, child: data.image),
+  );
 
   const DisplayEntry({
     super.key,
     required this.data,
-    required this.viewType,
     required this.imageWidth,
     required this.imageHeight,
     this.textStyle,
@@ -67,10 +59,19 @@ class DisplayEntry extends StatefulWidget {
   State<DisplayEntry> createState() => _DisplayEntryState();
 }
 
-class _DisplayEntryState extends State<DisplayEntry> {
+class _DisplayEntryState extends State<DisplayEntry>
+    with TickerProviderStateMixin {
   bool selected = false;
+  late final SlidableController _slideController;
+  @override
+  void initState() {
+    _slideController = SlidableController(this);
+    super.initState();
+  }
+
   @override
   void dispose() {
+    _slideController.dispose();
     super.dispose();
   }
 
@@ -79,24 +80,16 @@ class _DisplayEntryState extends State<DisplayEntry> {
     const double padding = 2;
     if (selected) {
       return Padding(
-        padding: const EdgeInsets.symmetric(
-          horizontal: padding,
-        ), // 2 pixels on left & right
+        padding: const EdgeInsets.symmetric(horizontal: padding),
         child: CircleAvatar(
           backgroundColor: Colors.blue,
           radius: radius,
-          child: Icon(
-            Icons.check,
-            size: 16,
-            color: Colors.white,
-          ),
+          child: Icon(Icons.check, size: 16, color: Colors.white),
         ),
       );
     } else {
       return Padding(
-        padding: const EdgeInsets.symmetric(
-          horizontal: padding,
-        ), // Match padding
+        padding: const EdgeInsets.symmetric(horizontal: padding),
         child: Container(
           width: radius * 2,
           height: radius * 2,
@@ -110,13 +103,11 @@ class _DisplayEntryState extends State<DisplayEntry> {
   }
 
   void _openBoard() async {
-    updateAccessedTimeInManifest(widget.dir!);
     await RestorativeNavigator().openProject(
       context,
-      ParrotProject.fromDirectory(
-        widget.dir!,
-      ),
+      ParrotProject.fromDirectory(widget.dir!),
     );
+    updateAccessedTimeInManifest(widget.dir!);
     projectDirController.refresh();
   }
 
@@ -140,15 +131,13 @@ class _DisplayEntryState extends State<DisplayEntry> {
         });
 
         if (selected) {
-          appState
-              .getProjectSelectorState()
-              .selectedNotifier
-              .addIfNotNull(widget.dir);
+          appState.getProjectSelectorState().selectedNotifier.addIfNotNull(
+            widget.dir,
+          );
         } else if (!selected) {
-          appState
-              .getProjectSelectorState()
-              .selectedNotifier
-              .remove(widget.dir);
+          appState.getProjectSelectorState().selectedNotifier.remove(
+            widget.dir,
+          );
         }
       } else {
         _openBoard();
@@ -156,19 +145,12 @@ class _DisplayEntryState extends State<DisplayEntry> {
     }
 
     Widget entry;
-    if (widget.viewType == ViewType.list) {
-      if (widget.selectMode) {
-        children.insert(0, _circleSelectedIndicator);
-      }
-      entry = Row(children: children);
-    } else {
-      entry = Column(
-          crossAxisAlignment: CrossAxisAlignment.center,
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: children);
+    if (widget.selectMode) {
+      children.insert(0, _circleSelectedIndicator);
     }
+    entry = Row(children: children);
     return Slidable(
-      enabled: widget.viewType == ViewType.list,
+      controller: _slideController,
       endActionPane: ActionPane(
         motion: const StretchMotion(),
         children: [
@@ -176,7 +158,10 @@ class _DisplayEntryState extends State<DisplayEntry> {
             onPressed: (_) {
               showAdminLockPopup(
                 context: context,
-                onAccept: () => showExportDialog(context, widget.dir),
+                onAccept: () => showExportDialog(
+                  context,
+                  widget.dir,
+                ).then((_) => _slideController.close()),
               );
             },
             icon: Icons.folder,
@@ -184,110 +169,82 @@ class _DisplayEntryState extends State<DisplayEntry> {
             foregroundColor: Colors.white,
           ),
           SlidableAction(
+            autoClose: false,
             onPressed: (_) {
               showAdminLockPopup(
                 context: context,
                 onAccept: () => showDeleteDialog(
-                    context, widget.displayName.data, widget.dir),
+                  context,
+                  widget.displayName.data,
+                  widget.dir,
+                ),
               );
             },
             icon: Icons.delete,
             backgroundColor: Colors.red,
             foregroundColor: Colors.white,
-          )
+          ),
         ],
       ),
-      child: _button(
-        backgroundColor,
-        () {
-          onTap();
-        },
-        entry,
-      ),
+      child: _button(backgroundColor, () {
+        onTap();
+      }, entry),
     );
   }
 
   Widget _button(Color bg, VoidCallback onTap, Widget child) {
-    if (widget.viewType == ViewType.list) {
-      return Material(
-        color: bg,
-        child: InkWell(onTap: onTap, child: child),
-      );
-    } else {
-      return LayoutBuilder(
-        builder: (context, constraints) {
-          List<Widget> stack = [
-            InkWell(
-              onTap: onTap,
-              child: SizedBox(
-                  width: constraints.maxWidth,
-                  height: constraints.maxHeight,
-                  child: child),
-            ),
-          ];
-
-          if (widget.selectMode) {
-            stack.add(_circleSelectedIndicator);
-          }
-          return Center(
-            child: Material(color: bg, child: Stack(children: stack)),
-          );
-        },
-      );
-    }
+    return Material(
+      color: bg,
+      child: InkWell(onTap: onTap, child: child),
+    );
   }
 }
 
-void showDeleteDialog(
+Future<void> showDeleteDialog(
   BuildContext context,
   String? displayName,
   Directory? dir,
-) =>
-    showDialog(
-      context: context,
-      builder: (context) {
-        return AlertDialog(
-          content: SingleChildScrollView(
-            child: Column(
+) => showDialog(
+  context: context,
+  builder: (context) {
+    return AlertDialog(
+      content: SingleChildScrollView(
+        child: Column(
+          children: [
+            Text("are you sure you want to delete $displayName:"),
+            ConstrainedBox(
+              constraints: BoxConstraints(maxHeight: 35),
+              child: Container(),
+            ),
+            Row(
+              mainAxisAlignment: MainAxisAlignment.end,
               children: [
-                Text(
-                  "are you sure you want to delete $displayName:",
+                TextButton(
+                  onPressed: () {
+                    Navigator.of(context).pop();
+                  },
+                  child: Text('no'),
                 ),
-                ConstrainedBox(
-                  constraints: BoxConstraints(maxHeight: 35),
-                  child: Container(),
-                ),
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.end,
-                  children: [
-                    TextButton(
-                        onPressed: () {
-                          Navigator.of(context).pop();
-                        },
-                        child: Text('no')),
-                    TextButton(
-                      onPressed: () {
-                        showLoadingDialog(
-                          context,
-                          'deleting $displayName',
-                        );
-                        dir?.deleteSync(recursive: true);
-                        Navigator.of(context).pop();
-                        Navigator.of(context).pop();
-                        projectDirController.refresh();
-                      },
-                      child: Text('yes'),
-                    ),
-                  ],
+                TextButton(
+                  onPressed: () {
+                    showLoadingDialog(context, 'deleting $displayName');
+                    dir?.deleteSync(recursive: true);
+                    Navigator.of(context).pop();
+                    Navigator.of(context).pop();
+                    projectDirController.refresh();
+                  },
+                  child: Text('yes'),
                 ),
               ],
             ),
-          ),
-        );
-      },
+          ],
+        ),
+      ),
     );
+  },
+);
 
-void showExportDialog(BuildContext context, Directory? dir) async {
+Future<void> showExportDialog(BuildContext context, Directory? dir) async {
   final String? exportDirPath = await getUserSelectedDirectory();
   if (exportDirPath != null && dir != null) {
     if (context.mounted) {
