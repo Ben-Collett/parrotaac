@@ -5,14 +5,13 @@ import 'package:image_picker/image_picker.dart';
 import 'package:parrotaac/backend/project/parrot_project.dart';
 import 'package:parrotaac/backend/project/project_interface.dart';
 import 'package:parrotaac/restorative_navigator.dart';
-import 'package:parrotaac/shared_providers/project_dir_controller.dart';
 import 'package:parrotaac/state/application_state.dart';
+import 'package:parrotaac/state/project_dir_state.dart';
 import 'package:parrotaac/state/project_selector_state.dart';
 import 'package:parrotaac/ui/painters/heart.dart';
 import 'package:parrotaac/ui/popups/lock_popups/admin_lock.dart';
 import 'package:parrotaac/ui/popups/login_popup.dart';
 import 'package:parrotaac/ui/settings/settings_themed_appbar.dart';
-import 'package:parrotaac/ui/util_widgets/future_controller_builder.dart';
 import 'package:parrotaac/ui/util_widgets/multi_listenable_builder.dart';
 import 'package:parrotaac/utils.dart';
 
@@ -23,38 +22,25 @@ import 'file_utils.dart';
 import 'ui/popups/loading.dart';
 import 'ui/widgets/displey_entry.dart';
 
-List<DisplayData> _displayData(
-  Iterable<Directory> dirs, {
-  int Function(DisplayData, DisplayData)? sort,
-}) {
-  List<DisplayData> out = dirs.map(ParrotProjectDisplayData.fromDir).toList();
-  if (sort != null) {
-    out.sort(sort);
-  }
-  return out;
-}
-
-List<DisplayEntry> _displayDataFromDirList(
-  Iterable<Directory> dirs, {
+List<DisplayEntry> _displayEntriesFromDataList({
   bool selectMode = false,
   double? imageWidth,
   double? imageHeight,
   int Function(DisplayData, DisplayData)? sort,
   TextStyle? textStyle,
-}) => _displayData(dirs, sort: sort)
+}) => defaultProjectDirListener.data
     .map(
       (d) => DisplayEntry(
         key: UniqueKey(),
         data: d,
         imageWidth: imageWidth,
-        selectMode: selectMode,
+        selectMode: _selectorState.selectModeNotifier,
         imageHeight: imageHeight,
         textStyle: textStyle,
       ),
     )
     .toList();
-List<Widget> filteredEntries(
-  Iterable<Directory> dirs,
+List<DisplayEntry> filteredEntries(
   String search, {
   double? imageWidth,
   bool selectMode = false,
@@ -63,8 +49,7 @@ List<Widget> filteredEntries(
   TextStyle? textStyle,
 }) {
   bool match(Text text) => text.data?.startsWith(search) ?? true;
-  return _displayDataFromDirList(
-    dirs,
+  return _displayEntriesFromDataList(
     imageWidth: imageWidth,
     imageHeight: imageHeight,
     selectMode: selectMode,
@@ -83,8 +68,16 @@ class ProjectSelector extends StatefulWidget {
 class _ProjectSelectorState extends State<ProjectSelector> {
   final _state = _selectorState;
 
+  void onRefresh() => setState(() {});
+  @override
+  void initState() {
+    defaultProjectDirListener.addOnRefreshListener(onRefresh);
+    super.initState();
+  }
+
   @override
   void dispose() {
+    defaultProjectDirListener.clearListeners();
     appState.disposeOfProjectSelector();
     super.dispose();
   }
@@ -152,7 +145,10 @@ class _ProjectSelectorState extends State<ProjectSelector> {
                   Container(
                     color: Colors.yellow,
                     child: TextButton(
-                      child: Text(text),
+                      child: AnimatedSwitcher(
+                        duration: const Duration(milliseconds: 300),
+                        child: Text(text, key: ValueKey(text)),
+                      ),
                       onPressed: () {
                         _selectorState.selectedNotifier.clear();
                         _state.selectModeNotifier.value = !selectMode;
@@ -207,14 +203,20 @@ class _ProjectSelectorState extends State<ProjectSelector> {
                     if (context.mounted) {
                       showLoadingDialog(context, 'importing');
                     }
-                    for (String path in toImport) {
-                      await import(path, lastAccessedTime: time);
-                    }
+
+                    List<String> importedPaths = await Future.wait(
+                      toImport.map(
+                        (path) => import(path, lastAccessedTime: time),
+                      ),
+                    );
+
                     if (context.mounted) {
                       Navigator.of(context).pop();
                     }
 
-                    projectDirController.refresh();
+                    for (String path in importedPaths) {
+                      defaultProjectDirListener.add(Directory(path));
+                    }
                   },
                 ),
                 IconButton(
@@ -319,52 +321,46 @@ class _CreateProjectDialogState extends State<CreateProjectDialog> {
                   width: maxWidth,
                   child: Builder(
                     builder: (context) {
-                      return FutureControllerBuilder(
-                        controller: projectDirController,
-                        onData: (dirs) {
-                          List<String> displayNames =
-                              _displayDataFromDirList(dirs!)
-                                  .map((d) => d.displayName.data)
-                                  .whereType<String>()
-                                  .toList();
-                          List<Widget> column = [
-                            TextFormField(
-                              controller: widget.controller,
-                              validator: (text) => validate(text, displayNames),
-                              decoration: InputDecoration(
-                                border: OutlineInputBorder(),
-                                labelText: "Project Name",
-                              ),
-                            ),
-                          ];
+                      List<String> displayNames = _displayEntriesFromDataList()
+                          .map((d) => d.displayName.data)
+                          .whereType<String>()
+                          .toList();
+                      List<Widget> column = [
+                        TextFormField(
+                          controller: widget.controller,
+                          validator: (text) => validate(text, displayNames),
+                          decoration: InputDecoration(
+                            border: OutlineInputBorder(),
+                            labelText: "Project Name",
+                          ),
+                        ),
+                      ];
 
-                          if (_image != null) {
-                            column.add(
-                              FutureBuilder(
-                                future: _image,
-                                builder: (_, snapshot) {
-                                  if (snapshot.data == null) {
-                                    return SizedBox(width: 0, height: 0);
-                                  }
-                                  XFile data = snapshot.requireData!;
-                                  return ConstrainedBox(
-                                    constraints: BoxConstraints(maxHeight: 100),
-                                    child: imageFromPath(data.path),
-                                  );
-                                },
-                              ),
-                            );
-                          }
-                          column.add(
-                            TextButton(
-                              child: Text("select project image"),
-                              onPressed: () => setImage(getImage()),
-                            ),
-                          );
-
-                          return Column(children: column);
-                        },
+                      if (_image != null) {
+                        column.add(
+                          FutureBuilder(
+                            future: _image,
+                            builder: (_, snapshot) {
+                              if (snapshot.data == null) {
+                                return SizedBox(width: 0, height: 0);
+                              }
+                              XFile data = snapshot.requireData!;
+                              return ConstrainedBox(
+                                constraints: BoxConstraints(maxHeight: 100),
+                                child: imageFromPath(data.path),
+                              );
+                            },
+                          ),
+                        );
+                      }
+                      column.add(
+                        TextButton(
+                          child: Text("select project image"),
+                          onPressed: () => setImage(getImage()),
+                        ),
                       );
+
+                      return Column(children: column);
                     },
                   ),
                 ),
@@ -392,16 +388,20 @@ class _CreateProjectDialogState extends State<CreateProjectDialog> {
                 XFile? image = await _image;
                 imagePath = image?.path;
               }
+
+              final path = await determineValidProjectPath(
+                widget.controller.text,
+              );
               await writeDefaultProject(
                 widget.controller.text,
-                path: await determineValidProjectPath(widget.controller.text),
+                path: path,
                 projectImagePath: imagePath,
               );
+
               if (context.mounted) {
                 Navigator.of(context).pop();
               }
-
-              projectDirController.refresh();
+              defaultProjectDirListener.add(Directory(path));
             }
           },
         ),
@@ -438,15 +438,16 @@ class BoardCountText extends StatelessWidget {
   const BoardCountText({super.key, required this.textController});
   @override
   Widget build(BuildContext context) {
-    return FutureControllerBuilder(
-      controller: projectDirController,
-      onData: (value) => ValueListenableBuilder(
-        valueListenable: _selectorState.searchTextController,
-        builder: (context, search, child) {
-          return Text('${filteredEntries(value!, search.text).length} boards');
-        },
-      ),
-      onLoad: const Text('calculating #of boards'),
+    return MultiListenableBuilder(
+      listenables: [
+        _selectorState.searchTextController,
+        defaultProjectDirListener,
+      ],
+      builder: (context, child) {
+        return Text(
+          '${filteredEntries(_selectorState.searchTextController.text).length} boards',
+        );
+      },
     );
   }
 }
@@ -472,77 +473,236 @@ class _DisplayViewState extends State<DisplayView> {
 
   @override
   Widget build(BuildContext context) {
-    return FutureControllerBuilder(
-      controller: projectDirController,
-      onData: (data) => SelectorListView(data: data!),
-    );
-  }
-}
-
-class SelectorListView extends StatelessWidget {
-  final Function(Directory?)? onSelect;
-  final Function(Directory?)? onDeselect;
-  final Iterable<Directory> data;
-
-  const SelectorListView({
-    super.key,
-    this.onSelect,
-    this.onDeselect,
-    required this.data,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    return MultiListenableBuilder(
-      listenables: [
-        _selectorState.searchTextController,
-        _selectorState.selectModeNotifier,
-      ],
-      builder: (context, _) {
-        List<Widget> filtered = filteredEntries(
-          data,
-          _selectorState.searchText,
-          sort: _byLastAccessedThenAlphabeticalOrder,
-          imageWidth: 75,
-          imageHeight: 98,
-          selectMode: _selectorState.selectMode,
-          textStyle: TextStyle(fontSize: 50),
-        );
-        final Color borderColor = Colors.grey.withAlpha(127);
-        final double borderWidth = 1;
-        return ListView.separated(
-          key: ValueKey(0),
-          itemCount: filtered.length,
-          separatorBuilder: (_, __) => Container(),
-          itemBuilder: (_, index) => Container(
-            decoration: BoxDecoration(
-              border: Border(
-                bottom: BorderSide(color: borderColor, width: borderWidth),
-              ),
-            ),
-            child: filtered[index],
-          ),
+    return ValueListenableBuilder(
+      valueListenable: _selectorState.searchTextController,
+      builder: (context, value, child) {
+        return SelectorListView(
+          data: defaultProjectDirListener.data,
+          search: _selectorState.searchTextController.text,
         );
       },
     );
   }
 }
 
-int _byLastAccessedThenAlphabeticalOrder(DisplayData d1, DisplayData d2) {
-  DateTime? t1 = d1.lastAccessed;
-  DateTime? t2 = d2.lastAccessed;
-  if (d1.lastAccessed == null && d2.lastAccessed == null) {
-    return d1.name.compareTo(d2.name);
-  } else if (t1 == null) {
-    return 1;
-  } else if (t2 == null) {
-    return -1;
-  } else if (t1.isBefore(t2)) {
-    return 1;
-  } else if (t1.isAfter(t2)) {
-    return -1;
+class SelectorListView extends StatefulWidget {
+  final Function(Directory?)? onSelect;
+  final Function(Directory?)? onDeselect;
+  final Iterable<DisplayData> data;
+  final String search;
+
+  const SelectorListView({
+    super.key,
+    this.onSelect,
+    this.onDeselect,
+    required this.search,
+    required this.data,
+  });
+
+  @override
+  State<SelectorListView> createState() => _SelectorListViewState();
+}
+
+///WARNING: read the comment over [_overshotCount] before you touch anything, or even try to understand the hell that is this code
+class _SelectorListViewState extends State<SelectorListView> {
+  ///this is very important, it is being used to fix what I suspect to be a bug in the framework, but I have not been able to reproduce in a minimimal example so it could just be something in my code I can't figure out.
+  ///essintially what happens is when removing from the animated list using the [listkey], when searching which does a bulk deletion I kept getting an out of bounds error when remvoing the last index.
+  ///unless I artificially created a delay between each deletion,with the delay being significantly longer then the animation execution time, those two things being connected is what leads me to think it is a poblem in the framework.
+  ///so the solution was to not remove the last element from the animated list during searching for any reason. So instead I keep track of how many times I didn't delete the last element and store it in [_overshotCount]
+  ///I then when updating the search remove everything from overshot count until the value is one that is to say there is almost always going to be one more element in the animated list then there is in the [filtered] list
+  ///but if there is more then one it will be deleted in the next search.
+  int _overshotCount = 0;
+  final listKey = GlobalKey<AnimatedListState>();
+  late final List<DisplayEntry> filtered;
+
+  DisplayEntry makeDisplayEntry(DisplayData data) => DisplayEntry(
+    data: data,
+    imageWidth: 75,
+    imageHeight: 98,
+    selectMode: _selectorState.selectModeNotifier,
+    textStyle: const TextStyle(fontSize: 50),
+  );
+
+  void addItem(DisplayData data) {
+    if (data.name.startsWith(widget.search)) {
+      insertItem(0, data);
+    }
   }
-  return d1.name.compareTo(d2.name);
+
+  void insertItem(int index, DisplayData data) {
+    filtered.insert(index, makeDisplayEntry(data));
+    listKey.currentState!.insertItem(index);
+  }
+
+  ///[results] must be sorted
+  void updateSearched() {
+    List<DisplayData> results = defaultProjectDirListener.data
+        .where((data) => data.name.startsWith(_selectorState.searchText))
+        .toList();
+
+    if (results.length > filtered.length) {
+      int i = 0;
+      int j = 0;
+      while (i < results.length) {
+        if (j >= filtered.length) {
+          insertItem(filtered.length, results[i]);
+        } else if (results[i] != filtered[j].data) {
+          insertItem(j, results[i]);
+        }
+        j++;
+        i++;
+      }
+    } else if (results.length < filtered.length) {
+      final resultSet = results.toSet();
+
+      final List<int> indicesToRemove = [];
+      for (int i = 0; i < filtered.length; i++) {
+        if (!resultSet.contains(filtered[i].data)) {
+          indicesToRemove.add(i);
+        }
+      }
+
+      indicesToRemove.sort((a, b) => a.compareTo(b));
+
+      for (int i = 0; i < indicesToRemove.length; i++) {
+        _removeAtIndex(indicesToRemove[i] - i);
+      }
+
+      //WARNING: read overshot documentation
+    }
+    while (_overshotCount > 1) {
+      if (filtered.isEmpty) {
+        return;
+      }
+      listKey.currentState!.removeItem(
+        filtered.length - 1,
+        (context, animation) {
+          return SizeTransition(
+            sizeFactor: animation,
+            axisAlignment: 0.0,
+            child: SizedBox.shrink(), // empty widget
+          );
+        },
+        duration: Duration.zero, // <- no animation
+      );
+      _overshotCount--;
+    }
+  }
+
+  void _removeAtIndex(int removedIndex) {
+    if (removedIndex < 0 || removedIndex >= filtered.length) return;
+
+    final removedItem = filtered.removeAt(removedIndex);
+
+    final animatedState = listKey.currentState!;
+    //WARNING: read _overshotCount documentation
+    if (removedIndex == filtered.length) {
+      _overshotCount++;
+      return;
+    }
+
+    animatedState.removeItem(
+      removedIndex,
+      _deleteBuilder(removedItem),
+      duration: const Duration(milliseconds: 300),
+    );
+  }
+
+  void remove(DisplayData removedData) {
+    int? removedIndex;
+    for (int i = 0; i < filtered.length; i++) {
+      if (filtered[i].data == removedData) {
+        removedIndex = i;
+        break;
+      }
+    }
+    if (removedIndex != null) {
+      final removedItem = filtered.removeAt(removedIndex);
+
+      listKey.currentState!.removeItem(
+        removedIndex,
+        _deleteBuilder(removedItem),
+        duration: const Duration(milliseconds: 300),
+      );
+    }
+  }
+
+  Widget Function(BuildContext, Animation<double>) _deleteBuilder(
+    Widget removed,
+  ) =>
+      (context, animation) => SizeTransition(
+        sizeFactor: animation,
+        axisAlignment: 0.0,
+        child: FadeTransition(opacity: animation, child: removed),
+      );
+
+  @override
+  void initState() {
+    filtered = filteredEntries(
+      _selectorState.searchText,
+      imageWidth: 75,
+      imageHeight: 98,
+      selectMode: _selectorState.selectMode,
+      textStyle: const TextStyle(fontSize: 50),
+    );
+
+    _selectorState.searchTextController.addListener(updateSearched);
+
+    defaultProjectDirListener.addOnDeleteListener(remove);
+    defaultProjectDirListener.addOnAddListener(addItem);
+    super.initState();
+  }
+
+  @override
+  void dispose() {
+    defaultProjectDirListener.removeOnDeleteListener(remove);
+    defaultProjectDirListener.removeOnAddListener(addItem);
+    super.dispose();
+  }
+
+  Widget itemBuilder(
+    BuildContext context,
+    int index,
+    Animation<double> animation,
+  ) {
+    if (index >= filtered.length) {
+      return const SizedBox.shrink();
+    }
+
+    final item = filtered[index];
+    final borderColor = Colors.grey.withAlpha(127);
+
+    return SizeTransition(
+      sizeFactor: animation,
+      axisAlignment: 0.0,
+      child: FadeTransition(
+        opacity: animation,
+        child: Container(
+          decoration: BoxDecoration(
+            border: Border(bottom: BorderSide(color: borderColor, width: 1)),
+          ),
+          child: item,
+        ),
+      ),
+    );
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return MultiListenableBuilder(
+      listenables: [_selectorState.selectModeNotifier],
+      builder: (context, _) {
+        return AnimatedList.separated(
+          key: listKey,
+          initialItemCount: filtered.length,
+          separatorBuilder: (context, _, animation) => const SizedBox.shrink(),
+          itemBuilder: itemBuilder,
+          removedSeparatorBuilder: (context, index, animation) =>
+              const SizedBox.shrink(),
+        );
+      },
+    );
+  }
 }
 
 ProjectSelectorState get _selectorState => appState.getProjectSelectorState();
@@ -551,7 +711,7 @@ void _showBulkDeleteDialog(BuildContext context) {
   showDialog(
     context: context,
     builder: (context) {
-      List<String> toRemoveNames = _selectorState.selectedNotifier.values
+      List<String> toRemoveNames = _selectorState.selectedNotifier.dataAsDirs
           .map(ParrotProjectDisplayData.fromDir)
           .map((d) => d.name)
           .toList();
@@ -606,18 +766,23 @@ void _showBulkDeleteDialog(BuildContext context) {
   );
 }
 
-void _bulkDelete(BuildContext context) {
+Future<void> _bulkDelete(BuildContext context) async {
   showLoadingDialog(
     context,
     "delete ${_selectorState.selectedNotifier.length}",
   );
-  for (Directory dir in _selectorState.selectedNotifier.values) {
-    dir.deleteSync(recursive: true);
+  final dataSet = Set.from(_selectorState.selectedNotifier.data);
+  List<Future> deletions = [];
+  for (DisplayData data in dataSet) {
+    if (data.path != null) {
+      deletions.add(Directory(data.path!).delete(recursive: true));
+    }
+    defaultProjectDirListener.delete(data);
   }
-
-  _selectorState.selectedNotifier.clear();
-  projectDirController.refresh();
-  Navigator.of(context).pop();
+  await Future.wait(deletions);
+  if (context.mounted) {
+    Navigator.of(context).pop();
+  }
 }
 
 void _bulkExport(BuildContext context) async {
@@ -626,7 +791,7 @@ void _bulkExport(BuildContext context) async {
     if (context.mounted) {
       showLoadingDialog(context, "exporting");
     }
-    for (Directory dir in _selectorState.selectedNotifier.values) {
+    for (Directory dir in _selectorState.selectedNotifier.dataAsDirs) {
       await writeDirectoryAsObz(
         sourceDirPath: dir.path,
         outputDirPath: exportDirPath,

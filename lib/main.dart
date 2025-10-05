@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:parrotaac/backend/global_restoration_data.dart';
 import 'package:parrotaac/backend/is_computer.dart';
 import 'package:parrotaac/backend/server/server_utils.dart';
+import 'package:parrotaac/state/project_dir_state.dart';
 import 'package:parrotaac/ui/popups/lock_popups/admin_lock.dart';
 import 'package:parrotaac/ui/settings/labels.dart';
 
@@ -10,12 +11,13 @@ import 'backend/settings_utils.dart';
 import 'restorative_navigator.dart';
 
 void main() async {
+  Future refreshProject = defaultProjectDirListener.refresh();
   await initializeQuickStorePluggins();
 
   //must be called before RestorativeNavigator().initialize()
   await initializeGlobalRestorationData();
 
-  await Future.wait([initializeSettings(), initializeServer()]);
+  await Future.wait([initializeSettings(), initializeServer(), refreshProject]);
 
   await RestorativeNavigator().initialize();
 

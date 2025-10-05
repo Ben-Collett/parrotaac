@@ -59,15 +59,18 @@ class ParrotProject extends Obz with AACProject {
         p.basenameWithoutExtension(path);
   }
 
-  ParrotProject(
-      {super.boards, required String name, required this.path, this.settings})
-      : super() {
+  ParrotProject({
+    super.boards,
+    required String name,
+    required this.path,
+    this.settings,
+  }) : super() {
     manifestExtendedProperties[nameKey] = name;
   }
 
   ParrotProject.fromDirectory(Directory dir, {this.settings})
-      : path = dir.path,
-        super.fromDirectory(dir) {
+    : path = dir.path,
+      super.fromDirectory(dir) {
     Map<String, dynamic> manifest = manifestJson;
     manifestExtendedProperties[nameKey] =
         manifest[nameKey] ?? p.basename(dir.path);
@@ -101,9 +104,7 @@ class ParrotProject extends Obz with AACProject {
       return {};
     }
     out = mapDirectoryContentToOtherDir(
-      inputDir: Directory(
-        tmpImagePath(path),
-      ),
+      inputDir: Directory(tmpImagePath(path)),
       outputDir: images,
     );
     return out;
@@ -118,18 +119,14 @@ class ParrotProject extends Obz with AACProject {
       return {};
     }
     out = mapDirectoryContentToOtherDir(
-      inputDir: Directory(
-        tmpAudioPath(path),
-      ),
+      inputDir: Directory(tmpAudioPath(path)),
       outputDir: audio,
     );
     return out;
   }
 
   ///[map] tells the function where to move the old file from to it's new path
-  Future<void> moveFiles(
-    Map<String, String> map,
-  ) async {
+  Future<void> moveFiles(Map<String, String> map) async {
     for (MapEntry entry in map.entries) {
       File file = File(entry.key);
       if (file.existsSync()) {
@@ -218,8 +215,10 @@ class ParrotProject extends Obz with AACProject {
     }
   }
 
-  Future<void> _writeBoards(Directory projectDir,
-      {Set<String>? idsToWrite}) async {
+  Future<void> _writeBoards(
+    Directory projectDir, {
+    Set<String>? idsToWrite,
+  }) async {
     String fullPath(Obf obf) => p.join(projectDir.path, obf.path);
     Set<Obf> boardsToWrite = _boardsToWrite(idsToWrite: idsToWrite);
 
@@ -237,26 +236,41 @@ class ParrotProject extends Obz with AACProject {
   }
 
   factory ParrotProject.fromObz(Obz obz, String name, String path) {
-    return ParrotProject(boards: obz.boards, name: name, path: path)
-        .parseManifestJson(obz.manifestJson);
+    return ParrotProject(
+      boards: obz.boards,
+      name: name,
+      path: path,
+    ).parseManifestJson(obz.manifestJson);
   }
 
   @override
-  ParrotProject parseManifestString(String json,
-      {bool fullOverride = false, bool updateLinkedBoards = true}) {
-    super.parseManifestString(json,
-        fullOverride: fullOverride, updateLinkedBoards: updateLinkedBoards);
+  ParrotProject parseManifestString(
+    String json, {
+    bool fullOverride = false,
+    bool updateLinkedBoards = true,
+  }) {
+    super.parseManifestString(
+      json,
+      fullOverride: fullOverride,
+      updateLinkedBoards: updateLinkedBoards,
+    );
     return this;
   }
 
   @override
-  ParrotProject parseManifestJson(Map<String, dynamic> manifestJson,
-      {bool fullOverride = true, bool updateLinkedBoards = true}) {
+  ParrotProject parseManifestJson(
+    Map<String, dynamic> manifestJson, {
+    bool fullOverride = true,
+    bool updateLinkedBoards = true,
+  }) {
     if (manifestJson[nameKey] == null) {
       manifestJson[nameKey] = name;
     }
-    super.parseManifestJson(manifestJson,
-        fullOverride: fullOverride, updateLinkedBoards: updateLinkedBoards);
+    super.parseManifestJson(
+      manifestJson,
+      fullOverride: fullOverride,
+      updateLinkedBoards: updateLinkedBoards,
+    );
     return this;
   }
 }
@@ -268,7 +282,7 @@ class ParrotProjectDisplayData extends DisplayData {
   @override
   DateTime? lastAccessed;
   @override
-  String? path;
+  late String path;
   Widget? _image;
   @override
   Widget get image {
@@ -283,12 +297,12 @@ class ParrotProjectDisplayData extends DisplayData {
   ParrotProjectDisplayData(
     this.name, {
     Widget? image,
-    this.path,
+    required this.path,
     this.lastAccessed,
   }) : _image = image;
 
   ParrotProjectDisplayData.fromDir(Directory dir)
-      : name = p.basename(dir.path) {
+    : name = p.basename(dir.path) {
     path = dir.path;
     Map<String, dynamic>? manifest = getManifestJson(dir);
     if (manifest == null) {

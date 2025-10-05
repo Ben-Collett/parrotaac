@@ -4,7 +4,6 @@ import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:http/http.dart' as http;
 import 'package:http/http.dart';
 import 'package:parrotaac/backend/server/firebase_responses.dart';
-import 'package:parrotaac/backend/simple_logger.dart';
 import 'package:parrotaac/extensions/http_extensions.dart';
 
 import 'firebase_constants.dart';
@@ -101,7 +100,6 @@ class User {
   User._(_UserData data) : _userData = data;
 
   Future<void> updateStoredUser() async {
-    SimpleLogger().logDebug("updating shared user $_userData");
     await Future.wait([
       FlutterSecureStorage().write(
         key: _refreshTokenKey,
@@ -170,8 +168,6 @@ class _UserData {
       store.read(key: _refreshTokenKey),
       store.read(key: _apiExpirationTimeKey),
     ]);
-
-    SimpleLogger().logDebug(results);
 
     if (results.contains(null)) {
       return null;

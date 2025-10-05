@@ -1,5 +1,4 @@
 import 'dart:io';
-
 import 'package:flutter/material.dart';
 import 'package:flutter_slidable/flutter_slidable.dart';
 import 'package:parrotaac/backend/project/manifest_utils.dart';
@@ -7,8 +6,8 @@ import 'package:parrotaac/backend/project/parrot_project.dart';
 import 'package:parrotaac/backend/project/project_interface.dart';
 import 'package:parrotaac/file_utils.dart';
 import 'package:parrotaac/restorative_navigator.dart';
-import 'package:parrotaac/shared_providers/project_dir_controller.dart';
 import 'package:parrotaac/state/application_state.dart';
+import 'package:parrotaac/state/project_dir_state.dart';
 import 'package:parrotaac/ui/popups/loading.dart';
 import 'package:parrotaac/ui/popups/lock_popups/admin_lock.dart';
 import 'package:parrotaac/utils.dart';
@@ -32,7 +31,7 @@ class DisplayEntry extends StatefulWidget {
   }
 
   final DisplayData data;
-  final bool selectMode;
+  final ValueNotifier<bool> selectMode;
 
   final double? imageWidth;
   final double? imageHeight;
@@ -49,10 +48,10 @@ class DisplayEntry extends StatefulWidget {
   const DisplayEntry({
     super.key,
     required this.data,
-    required this.imageWidth,
-    required this.imageHeight,
+    required this.selectMode,
+    this.imageWidth,
+    this.imageHeight,
     this.textStyle,
-    this.selectMode = false,
   });
 
   @override
@@ -61,11 +60,19 @@ class DisplayEntry extends StatefulWidget {
 
 class _DisplayEntryState extends State<DisplayEntry>
     with TickerProviderStateMixin {
-  bool selected = false;
+  bool get selected => appState
+      .getProjectSelectorState()
+      .selectedNotifier
+      .data
+      .contains(widget.data);
   late final SlidableController _slideController;
+
   @override
   void initState() {
     _slideController = SlidableController(this);
+
+    WidgetsBinding.instance.addPostFrameCallback((_) => setState(() {}));
+
     super.initState();
   }
 
@@ -75,120 +82,105 @@ class _DisplayEntryState extends State<DisplayEntry>
     super.dispose();
   }
 
-  Widget get _circleSelectedIndicator {
-    const double radius = 11;
-    const double padding = 2;
-    if (selected) {
-      return Padding(
-        padding: const EdgeInsets.symmetric(horizontal: padding),
-        child: CircleAvatar(
-          backgroundColor: Colors.blue,
-          radius: radius,
-          child: Icon(Icons.check, size: 16, color: Colors.white),
-        ),
-      );
-    } else {
-      return Padding(
-        padding: const EdgeInsets.symmetric(horizontal: padding),
-        child: Container(
-          width: radius * 2,
-          height: radius * 2,
-          decoration: BoxDecoration(
-            shape: BoxShape.circle,
-            border: Border.all(color: Colors.grey, width: 1.25),
-          ),
-        ),
-      );
-    }
-  }
-
   void _openBoard() async {
     await RestorativeNavigator().openProject(
       context,
       ParrotProject.fromDirectory(widget.dir!),
     );
     updateAccessedTimeInManifest(widget.dir!);
-    projectDirController.refresh();
+    defaultProjectDirListener.refresh();
+  }
+
+  void _onTap(bool selectMode) {
+    if (selectMode) {
+      if (selected) {
+        appState.getProjectSelectorState().selectedNotifier.remove(widget.data);
+      } else if (!selected) {
+        appState.getProjectSelectorState().selectedNotifier.addIfNotNull(
+          widget.data,
+        );
+      }
+
+      setState(() {});
+    } else {
+      _openBoard();
+    }
   }
 
   @override
   Widget build(BuildContext context) {
-    //removes selections when exiting selectedMode
-    if (!widget.selectMode) {
-      selected = false;
-    }
-    final Color backgroundColor;
-    if (widget.selectMode && selected) {
-      backgroundColor = Colors.grey.withAlpha(127);
-    } else {
-      backgroundColor = Colors.white;
-    }
-    List<Widget> children = [widget.image, Expanded(child: widget.displayName)];
-    void onTap() {
-      if (widget.selectMode) {
-        setState(() {
-          selected = !selected;
-        });
-
-        if (selected) {
-          appState.getProjectSelectorState().selectedNotifier.addIfNotNull(
-            widget.dir,
-          );
-        } else if (!selected) {
-          appState.getProjectSelectorState().selectedNotifier.remove(
-            widget.dir,
-          );
+    return ValueListenableBuilder(
+      valueListenable: widget.selectMode,
+      builder: (context, selectMode, child) {
+        final Color backgroundColor;
+        if (selectMode && selected) {
+          backgroundColor = Colors.grey.withAlpha(127);
+        } else {
+          backgroundColor = Colors.white;
         }
-      } else {
-        _openBoard();
-      }
-    }
 
-    Widget entry;
-    if (widget.selectMode) {
-      children.insert(0, _circleSelectedIndicator);
-    }
-    entry = Row(children: children);
-    return Slidable(
-      controller: _slideController,
-      endActionPane: ActionPane(
-        motion: const StretchMotion(),
-        children: [
-          SlidableAction(
-            onPressed: (_) {
-              showAdminLockPopup(
-                context: context,
-                onAccept: () => showExportDialog(
-                  context,
-                  widget.dir,
-                ).then((_) => _slideController.close()),
-              );
-            },
-            icon: Icons.folder,
-            backgroundColor: Colors.lightBlue,
-            foregroundColor: Colors.white,
+        return Slidable(
+          controller: _slideController,
+          endActionPane: ActionPane(
+            motion: const StretchMotion(),
+            children: [
+              SlidableAction(
+                onPressed: (_) {
+                  showAdminLockPopup(
+                    context: context,
+                    onAccept: () => showExportDialog(
+                      context,
+                      widget.dir,
+                    ).then((_) => _slideController.close()),
+                  );
+                },
+                icon: Icons.folder,
+                backgroundColor: Colors.lightBlue,
+                foregroundColor: Colors.white,
+              ),
+              SlidableAction(
+                autoClose: false,
+                onPressed: (_) {
+                  showAdminLockPopup(
+                    context: context,
+                    onAccept: () => showDeleteDialog(context, widget.data),
+                  );
+                },
+                icon: Icons.delete,
+                backgroundColor: Colors.red,
+                foregroundColor: Colors.white,
+              ),
+            ],
           ),
-          SlidableAction(
-            autoClose: false,
-            onPressed: (_) {
-              showAdminLockPopup(
-                context: context,
-                onAccept: () => showDeleteDialog(
-                  context,
-                  widget.displayName.data,
-                  widget.dir,
+          child: _button(
+            backgroundColor,
+            () {
+              _onTap(selectMode);
+            },
+            Row(
+              children: [
+                AnimatedContainer(
+                  duration: const Duration(milliseconds: 300),
+                  width: widget.selectMode.value ? 32 : 0,
+                  height: widget.selectMode.value ? 32 : 0,
+                  child: _CircleSelectionIndecator(selected),
                 ),
-              );
-            },
-            icon: Icons.delete,
-            backgroundColor: Colors.red,
-            foregroundColor: Colors.white,
+                Expanded(
+                  child: AnimatedContainer(
+                    duration: const Duration(milliseconds: 300),
+                    child: Row(
+                      children: [
+                        widget.image,
+                        Expanded(child: widget.displayName),
+                      ],
+                    ),
+                  ),
+                ),
+              ],
+            ),
           ),
-        ],
-      ),
-      child: _button(backgroundColor, () {
-        onTap();
-      }, entry),
+        );
+      },
     );
   }
 
@@ -200,49 +192,84 @@ class _DisplayEntryState extends State<DisplayEntry>
   }
 }
 
-Future<void> showDeleteDialog(
-  BuildContext context,
-  String? displayName,
-  Directory? dir,
-) => showDialog(
-  context: context,
-  builder: (context) {
-    return AlertDialog(
-      content: SingleChildScrollView(
-        child: Column(
-          children: [
-            Text("are you sure you want to delete $displayName:"),
-            ConstrainedBox(
-              constraints: BoxConstraints(maxHeight: 35),
-              child: Container(),
+class _CircleSelectionIndecator extends StatelessWidget {
+  final bool selected;
+  const _CircleSelectionIndecator(this.selected);
+  @override
+  Widget build(BuildContext context) {
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final double radius = constraints.maxWidth / 2;
+        const double padding = 2;
+        if (selected) {
+          return Padding(
+            padding: const EdgeInsets.symmetric(horizontal: padding),
+            child: CircleAvatar(
+              backgroundColor: Colors.blue,
+              radius: radius,
+              child: Icon(Icons.check, size: radius, color: Colors.white),
             ),
-            Row(
-              mainAxisAlignment: MainAxisAlignment.end,
+          );
+        } else {
+          return Padding(
+            padding: const EdgeInsets.symmetric(horizontal: padding),
+            child: Container(
+              width: radius * 2,
+              height: radius * 2,
+              decoration: BoxDecoration(
+                shape: BoxShape.circle,
+                border: Border.all(color: Colors.grey, width: 1.25),
+              ),
+            ),
+          );
+        }
+      },
+    );
+  }
+}
+
+Future<void> showDeleteDialog(BuildContext context, DisplayData data) =>
+    showDialog(
+      context: context,
+      builder: (context) {
+        final displayName = data.name;
+        final dir = data.path == null ? null : Directory(data.path!);
+        return AlertDialog(
+          content: SingleChildScrollView(
+            child: Column(
               children: [
-                TextButton(
-                  onPressed: () {
-                    Navigator.of(context).pop();
-                  },
-                  child: Text('no'),
+                Text("are you sure you want to delete $displayName:"),
+                ConstrainedBox(
+                  constraints: BoxConstraints(maxHeight: 35),
+                  child: Container(),
                 ),
-                TextButton(
-                  onPressed: () {
-                    showLoadingDialog(context, 'deleting $displayName');
-                    dir?.deleteSync(recursive: true);
-                    Navigator.of(context).pop();
-                    Navigator.of(context).pop();
-                    projectDirController.refresh();
-                  },
-                  child: Text('yes'),
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.end,
+                  children: [
+                    TextButton(
+                      onPressed: () {
+                        Navigator.of(context).pop();
+                      },
+                      child: Text('no'),
+                    ),
+                    TextButton(
+                      onPressed: () {
+                        showLoadingDialog(context, 'deleting $displayName');
+                        dir?.deleteSync(recursive: true);
+                        Navigator.of(context).pop();
+                        Navigator.of(context).pop();
+                        defaultProjectDirListener.delete(data);
+                      },
+                      child: Text('yes'),
+                    ),
+                  ],
                 ),
               ],
             ),
-          ],
-        ),
-      ),
+          ),
+        );
+      },
     );
-  },
-);
 
 Future<void> showExportDialog(BuildContext context, Directory? dir) async {
   final String? exportDirPath = await getUserSelectedDirectory();

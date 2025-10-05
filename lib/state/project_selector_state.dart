@@ -2,7 +2,10 @@ import 'dart:collection';
 import 'dart:io' show Directory;
 
 import 'package:flutter/widgets.dart';
+import 'package:parrotaac/backend/project/project_interface.dart';
 import 'package:parrotaac/state/has_state.dart';
+
+import 'project_dir_state.dart';
 
 class ProjectSelectorState implements HasState {
   final selectModeNotifier = ValueNotifier(false);
@@ -21,16 +24,24 @@ class ProjectSelectorState implements HasState {
 }
 
 class _SelectedNotifier extends ChangeNotifier {
-  final Set<Directory> _values = {};
+  final Set<DisplayData> _values = {};
+
+  _SelectedNotifier() {
+    defaultProjectDirListener.addOnDeleteListener(remove);
+  }
 
   ValueNotifier<bool> emptyNotifier = ValueNotifier(true);
-  UnmodifiableSetView<Directory> get values => UnmodifiableSetView(_values);
+
+  UnmodifiableSetView<DisplayData> get data => UnmodifiableSetView(_values);
+  Iterable<Directory> get dataAsDirs => _values
+      .where((data) => data.path != null)
+      .map((data) => Directory(data.path!));
   bool get isNotEmpty => _values.isNotEmpty;
   int get length => _values.length;
 
   ///if dir is null it won't be added
   ///if [dir] is in the set or is null then listeners won't be notfied
-  void addIfNotNull(Directory? dir) {
+  void addIfNotNull(DisplayData? dir) {
     if (dir != null) {
       emptyNotifier.value = false;
       final bool setChanged = _values.add(dir);
@@ -41,26 +52,24 @@ class _SelectedNotifier extends ChangeNotifier {
   }
 
   void clear() {
+    emptyNotifier.value = true;
     if (_values.isNotEmpty) {
       _values.clear();
       notifyListeners();
     }
   }
 
-  void remove(Directory? dir) {
-    final startingLength = _values.length;
-    _values.removeWhere((d) => d.path == dir?.path);
-    final newLength = _values.length;
-    if (startingLength != newLength) {
+  void remove(DisplayData data) {
+    final removedData = _values.remove(data);
+    if (removedData) {
       notifyListeners();
-    }
-    if (newLength == 0) {
-      emptyNotifier.value = true;
+      emptyNotifier.value = _values.isEmpty;
     }
   }
 
   @override
   void dispose() {
+    defaultProjectDirListener.removeOnDeleteListener(remove);
     emptyNotifier.dispose();
     super.dispose();
   }
