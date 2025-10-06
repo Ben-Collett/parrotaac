@@ -31,7 +31,7 @@ List<DisplayEntry> _displayEntriesFromDataList({
 }) => defaultProjectDirListener.data
     .map(
       (d) => DisplayEntry(
-        key: UniqueKey(),
+        key: ValueKey(d.name),
         data: d,
         imageWidth: imageWidth,
         selectMode: _selectorState.selectModeNotifier,
@@ -180,7 +180,7 @@ class _ProjectSelectorState extends State<ProjectSelector> {
         child: Row(
           mainAxisAlignment: MainAxisAlignment.spaceBetween,
           children: [
-            BoardCountText(textController: _state.searchTextController),
+            BoardCountText(textController: _state.stringTextController),
             DonationButton(),
           ],
         ),
@@ -233,9 +233,7 @@ class _ProjectSelectorState extends State<ProjectSelector> {
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
           top,
-          Flexible(
-            child: DisplayView(searchController: _state.searchTextController),
-          ),
+          Flexible(child: SelectorListView()),
           bottom,
         ],
       ),
@@ -434,7 +432,7 @@ class SearchBar extends StatelessWidget {
 }
 
 class BoardCountText extends StatelessWidget {
-  final TextEditingController textController;
+  final ValueNotifier<String> textController;
   const BoardCountText({super.key, required this.textController});
   @override
   Widget build(BuildContext context) {
@@ -461,57 +459,28 @@ class DisplayView extends StatefulWidget {
 }
 
 class _DisplayViewState extends State<DisplayView> {
-  late final Listenable listenable;
   @override
   void initState() {
-    listenable = Listenable.merge([
-      appState.getProjectSelectorState().searchTextController,
-      appState.getProjectSelectorState().selectModeNotifier,
-    ]);
     super.initState();
   }
 
   @override
   Widget build(BuildContext context) {
-    return ValueListenableBuilder(
-      valueListenable: _selectorState.searchTextController,
-      builder: (context, value, child) {
-        return SelectorListView(
-          data: defaultProjectDirListener.data,
-          search: _selectorState.searchTextController.text,
-        );
-      },
-    );
+    return SelectorListView();
   }
 }
 
 class SelectorListView extends StatefulWidget {
   final Function(Directory?)? onSelect;
   final Function(Directory?)? onDeselect;
-  final Iterable<DisplayData> data;
-  final String search;
 
-  const SelectorListView({
-    super.key,
-    this.onSelect,
-    this.onDeselect,
-    required this.search,
-    required this.data,
-  });
+  const SelectorListView({super.key, this.onSelect, this.onDeselect});
 
   @override
   State<SelectorListView> createState() => _SelectorListViewState();
 }
 
-///WARNING: read the comment over [_overshotCount] before you touch anything, or even try to understand the hell that is this code
 class _SelectorListViewState extends State<SelectorListView> {
-  ///this is very important, it is being used to fix what I suspect to be a bug in the framework, but I have not been able to reproduce in a minimimal example so it could just be something in my code I can't figure out.
-  ///essintially what happens is when removing from the animated list using the [listkey], when searching which does a bulk deletion I kept getting an out of bounds error when remvoing the last index.
-  ///unless I artificially created a delay between each deletion,with the delay being significantly longer then the animation execution time, those two things being connected is what leads me to think it is a poblem in the framework.
-  ///so the solution was to not remove the last element from the animated list during searching for any reason. So instead I keep track of how many times I didn't delete the last element and store it in [_overshotCount]
-  ///I then when updating the search remove everything from overshot count until the value is one that is to say there is almost always going to be one more element in the animated list then there is in the [filtered] list
-  ///but if there is more then one it will be deleted in the next search.
-  int _overshotCount = 0;
   final listKey = GlobalKey<AnimatedListState>();
   late final List<DisplayEntry> filtered;
 
@@ -524,88 +493,12 @@ class _SelectorListViewState extends State<SelectorListView> {
   );
 
   void addItem(DisplayData data) {
-    if (data.name.startsWith(widget.search)) {
-      insertItem(0, data);
-    }
+    insertItem(0, data);
   }
 
   void insertItem(int index, DisplayData data) {
     filtered.insert(index, makeDisplayEntry(data));
     listKey.currentState!.insertItem(index);
-  }
-
-  ///[results] must be sorted
-  void updateSearched() {
-    List<DisplayData> results = defaultProjectDirListener.data
-        .where((data) => data.name.startsWith(_selectorState.searchText))
-        .toList();
-
-    if (results.length > filtered.length) {
-      int i = 0;
-      int j = 0;
-      while (i < results.length) {
-        if (j >= filtered.length) {
-          insertItem(filtered.length, results[i]);
-        } else if (results[i] != filtered[j].data) {
-          insertItem(j, results[i]);
-        }
-        j++;
-        i++;
-      }
-    } else if (results.length < filtered.length) {
-      final resultSet = results.toSet();
-
-      final List<int> indicesToRemove = [];
-      for (int i = 0; i < filtered.length; i++) {
-        if (!resultSet.contains(filtered[i].data)) {
-          indicesToRemove.add(i);
-        }
-      }
-
-      indicesToRemove.sort((a, b) => a.compareTo(b));
-
-      for (int i = 0; i < indicesToRemove.length; i++) {
-        _removeAtIndex(indicesToRemove[i] - i);
-      }
-
-      //WARNING: read overshot documentation
-    }
-    while (_overshotCount > 1) {
-      if (filtered.isEmpty) {
-        return;
-      }
-      listKey.currentState!.removeItem(
-        filtered.length - 1,
-        (context, animation) {
-          return SizeTransition(
-            sizeFactor: animation,
-            axisAlignment: 0.0,
-            child: SizedBox.shrink(), // empty widget
-          );
-        },
-        duration: Duration.zero, // <- no animation
-      );
-      _overshotCount--;
-    }
-  }
-
-  void _removeAtIndex(int removedIndex) {
-    if (removedIndex < 0 || removedIndex >= filtered.length) return;
-
-    final removedItem = filtered.removeAt(removedIndex);
-
-    final animatedState = listKey.currentState!;
-    //WARNING: read _overshotCount documentation
-    if (removedIndex == filtered.length) {
-      _overshotCount++;
-      return;
-    }
-
-    animatedState.removeItem(
-      removedIndex,
-      _deleteBuilder(removedItem),
-      duration: const Duration(milliseconds: 300),
-    );
   }
 
   void remove(DisplayData removedData) {
@@ -646,8 +539,6 @@ class _SelectorListViewState extends State<SelectorListView> {
       textStyle: const TextStyle(fontSize: 50),
     );
 
-    _selectorState.searchTextController.addListener(updateSearched);
-
     defaultProjectDirListener.addOnDeleteListener(remove);
     defaultProjectDirListener.addOnAddListener(addItem);
     super.initState();
@@ -672,18 +563,30 @@ class _SelectorListViewState extends State<SelectorListView> {
     final item = filtered[index];
     final borderColor = Colors.grey.withAlpha(127);
 
-    return SizeTransition(
-      sizeFactor: animation,
-      axisAlignment: 0.0,
-      child: FadeTransition(
-        opacity: animation,
-        child: Container(
-          decoration: BoxDecoration(
-            border: Border(bottom: BorderSide(color: borderColor, width: 1)),
+    return ValueListenableBuilder(
+      valueListenable: _selectorState.stringTextController,
+      builder: (context, value, child) {
+        final bool hasBorder =
+            index < filtered.length - 1 &&
+            filtered[index].data.name.startsWith(_selectorState.searchText);
+
+        return SizeTransition(
+          sizeFactor: animation,
+          key: ValueKey(filtered[index].data.name),
+          axisAlignment: 0.0,
+          child: FadeTransition(
+            opacity: animation,
+            child: Container(
+              decoration: BoxDecoration(
+                border: hasBorder
+                    ? Border(bottom: BorderSide(color: borderColor, width: 1))
+                    : null,
+              ),
+              child: item,
+            ),
           ),
-          child: item,
-        ),
-      ),
+        );
+      },
     );
   }
 
@@ -692,13 +595,10 @@ class _SelectorListViewState extends State<SelectorListView> {
     return MultiListenableBuilder(
       listenables: [_selectorState.selectModeNotifier],
       builder: (context, _) {
-        return AnimatedList.separated(
+        return AnimatedList(
           key: listKey,
           initialItemCount: filtered.length,
-          separatorBuilder: (context, _, animation) => const SizedBox.shrink(),
           itemBuilder: itemBuilder,
-          removedSeparatorBuilder: (context, index, animation) =>
-              const SizedBox.shrink(),
         );
       },
     );

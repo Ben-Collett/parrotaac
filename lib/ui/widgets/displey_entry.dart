@@ -8,6 +8,7 @@ import 'package:parrotaac/file_utils.dart';
 import 'package:parrotaac/restorative_navigator.dart';
 import 'package:parrotaac/state/application_state.dart';
 import 'package:parrotaac/state/project_dir_state.dart';
+import 'package:parrotaac/ui/animations/fade_shrink.dart';
 import 'package:parrotaac/ui/popups/loading.dart';
 import 'package:parrotaac/ui/popups/lock_popups/admin_lock.dart';
 import 'package:parrotaac/utils.dart';
@@ -67,11 +68,26 @@ class _DisplayEntryState extends State<DisplayEntry>
       .contains(widget.data);
   late final SlidableController _slideController;
 
+  late final ValueNotifier<String> _searchController;
+
+  late bool isHidden;
+
+  void _filter() {
+    String searched = _searchController.value;
+    bool shouldBeHidden = !widget.data.name.startsWith(searched);
+    if (isHidden != shouldBeHidden) {
+      setState(() {
+        isHidden = shouldBeHidden;
+      });
+    }
+  }
+
   @override
   void initState() {
     _slideController = SlidableController(this);
-
-    WidgetsBinding.instance.addPostFrameCallback((_) => setState(() {}));
+    _searchController = appState.getProjectSelectorState().stringTextController;
+    _searchController.addListener(_filter);
+    isHidden = !widget.data.name.startsWith(_searchController.value);
 
     super.initState();
   }
@@ -79,6 +95,7 @@ class _DisplayEntryState extends State<DisplayEntry>
   @override
   void dispose() {
     _slideController.dispose();
+    _searchController.removeListener(_filter);
     super.dispose();
   }
 
@@ -109,78 +126,77 @@ class _DisplayEntryState extends State<DisplayEntry>
 
   @override
   Widget build(BuildContext context) {
-    return ValueListenableBuilder(
-      valueListenable: widget.selectMode,
-      builder: (context, selectMode, child) {
-        final Color backgroundColor;
-        if (selectMode && selected) {
-          backgroundColor = Colors.grey.withAlpha(127);
-        } else {
-          backgroundColor = Colors.white;
-        }
+    return FadeAndShrink(
+      visible: !isHidden,
+      duration: const Duration(milliseconds: 450),
+      child: ValueListenableBuilder(
+        valueListenable: widget.selectMode,
+        builder: (context, selectMode, child) {
+          final Color backgroundColor = (selectMode && selected)
+              ? Colors.grey.withAlpha(127)
+              : Colors.white;
 
-        return Slidable(
-          controller: _slideController,
-          endActionPane: ActionPane(
-            motion: const StretchMotion(),
-            children: [
-              SlidableAction(
-                onPressed: (_) {
-                  showAdminLockPopup(
-                    context: context,
-                    onAccept: () => showExportDialog(
-                      context,
-                      widget.dir,
-                    ).then((_) => _slideController.close()),
-                  );
-                },
-                icon: Icons.folder,
-                backgroundColor: Colors.lightBlue,
-                foregroundColor: Colors.white,
-              ),
-              SlidableAction(
-                autoClose: false,
-                onPressed: (_) {
-                  showAdminLockPopup(
-                    context: context,
-                    onAccept: () => showDeleteDialog(context, widget.data),
-                  );
-                },
-                icon: Icons.delete,
-                backgroundColor: Colors.red,
-                foregroundColor: Colors.white,
-              ),
-            ],
-          ),
-          child: _button(
-            backgroundColor,
-            () {
-              _onTap(selectMode);
-            },
-            Row(
+          return Slidable(
+            controller: _slideController,
+            endActionPane: ActionPane(
+              motion: const StretchMotion(),
               children: [
-                AnimatedContainer(
-                  duration: const Duration(milliseconds: 300),
-                  width: widget.selectMode.value ? 32 : 0,
-                  height: widget.selectMode.value ? 32 : 0,
-                  child: _CircleSelectionIndecator(selected),
+                SlidableAction(
+                  onPressed: (_) {
+                    showAdminLockPopup(
+                      context: context,
+                      onAccept: () => showExportDialog(
+                        context,
+                        widget.dir,
+                      ).then((_) => _slideController.close()),
+                    );
+                  },
+                  icon: Icons.folder,
+                  backgroundColor: Colors.lightBlue,
+                  foregroundColor: Colors.white,
                 ),
-                Expanded(
-                  child: AnimatedContainer(
-                    duration: const Duration(milliseconds: 300),
-                    child: Row(
-                      children: [
-                        widget.image,
-                        Expanded(child: widget.displayName),
-                      ],
-                    ),
-                  ),
+                SlidableAction(
+                  autoClose: false,
+                  onPressed: (_) {
+                    showAdminLockPopup(
+                      context: context,
+                      onAccept: () => showDeleteDialog(context, widget.data),
+                    );
+                  },
+                  icon: Icons.delete,
+                  backgroundColor: Colors.red,
+                  foregroundColor: Colors.white,
                 ),
               ],
             ),
-          ),
-        );
-      },
+            child: _button(
+              backgroundColor,
+              () => _onTap(selectMode),
+              Row(
+                children: [
+                  AnimatedContainer(
+                    duration: const Duration(milliseconds: 300),
+                    width: widget.selectMode.value ? 32 : 0,
+                    height: widget.selectMode.value ? 32 : 0,
+                    child: _CircleSelectionIndecator(selected),
+                  ),
+                  Expanded(
+                    child: AnimatedContainer(
+                      duration: const Duration(milliseconds: 300),
+                      child: Row(
+                        children: [
+                          widget.image,
+                          Expanded(child: widget.displayName),
+                        ],
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          );
+        },
+      ),
     );
   }
 

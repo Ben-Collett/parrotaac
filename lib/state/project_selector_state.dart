@@ -11,12 +11,19 @@ class ProjectSelectorState implements HasState {
   final selectModeNotifier = ValueNotifier(false);
   final searchTextController = TextEditingController();
   final selectedNotifier = _SelectedNotifier();
+  final stringTextController = ValueNotifier<String>("");
 
   bool get selectMode => selectModeNotifier.value;
   String get searchText => searchTextController.text;
 
+  ProjectSelectorState() {
+    searchTextController.addListener(() {
+      stringTextController.value = searchTextController.text;
+    });
+  }
   @override
   void dispose() {
+    stringTextController.dispose();
     selectModeNotifier.dispose();
     searchTextController.dispose();
     selectedNotifier;
