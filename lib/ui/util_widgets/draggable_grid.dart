@@ -1,4 +1,5 @@
 import 'dart:collection';
+import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:parrotaac/backend/value_wrapper.dart';
 import 'package:parrotaac/ui/painters/painted_color_box.dart';
@@ -288,9 +289,12 @@ class GridFlowDelegate extends FlowDelegate {
 
   @override
   void paintChildren(FlowPaintingContext context) {
+    if (rowCount == 0 || colCount == 0) {
+      return;
+    }
     final size = context.size;
-    final dpr = WidgetsBinding.instance.window.devicePixelRatio;
 
+    final dpr = PlatformDispatcher.instance.views.first.devicePixelRatio;
     // total physical pixels
     final totalPhysW = (size.width * dpr).round();
     final totalPhysH = (size.height * dpr).round();
@@ -313,9 +317,12 @@ class GridFlowDelegate extends FlowDelegate {
         final physW = basePhysW + (c < remW ? 1 : 0);
         final logicalW = physW / dpr;
 
+        const z = 0.0;
+        const w = 1.0;
+
         context.paintChild(
           childIndex,
-          transform: Matrix4.identity()..translate(x, y),
+          transform: Matrix4.identity()..translateByDouble(x, y, z, w),
         );
 
         x += logicalW;
@@ -328,6 +335,9 @@ class GridFlowDelegate extends FlowDelegate {
 
   @override
   BoxConstraints getConstraintsForChild(int i, BoxConstraints constraints) {
+    if (rowCount == 0 || colCount == 0) {
+      return BoxConstraints(maxHeight: 0, maxWidth: 0);
+    }
     final dpr =
         WidgetsBinding.instance.platformDispatcher.views.first.devicePixelRatio;
     final totalPhysW = (constraints.maxWidth * dpr).round();

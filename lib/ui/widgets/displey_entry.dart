@@ -100,12 +100,14 @@ class _DisplayEntryState extends State<DisplayEntry>
   }
 
   void _openBoard() async {
-    await RestorativeNavigator().openProject(
-      context,
-      ParrotProject.fromDirectory(widget.dir!),
-    );
     updateAccessedTimeInManifest(widget.dir!);
-    defaultProjectDirListener.refresh();
+    await defaultProjectDirListener.refresh();
+    if (context.mounted) {
+      await RestorativeNavigator().openProject(
+        context,
+        ParrotProject.fromDirectory(widget.dir!),
+      );
+    }
   }
 
   void _onTap(bool selectMode) {

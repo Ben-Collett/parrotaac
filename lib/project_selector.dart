@@ -22,11 +22,10 @@ import 'file_utils.dart';
 import 'ui/popups/loading.dart';
 import 'ui/widgets/displey_entry.dart';
 
-List<DisplayEntry> _displayEntriesFromDataList({
+List<DisplayEntry> unfilteredEntries({
   bool selectMode = false,
   double? imageWidth,
   double? imageHeight,
-  int Function(DisplayData, DisplayData)? sort,
   TextStyle? textStyle,
 }) => defaultProjectDirListener.data
     .map(
@@ -40,20 +39,19 @@ List<DisplayEntry> _displayEntriesFromDataList({
       ),
     )
     .toList();
+
 List<DisplayEntry> filteredEntries(
   String search, {
   double? imageWidth,
   bool selectMode = false,
-  int Function(DisplayData, DisplayData)? sort,
   double? imageHeight,
   TextStyle? textStyle,
 }) {
   bool match(Text text) => text.data?.startsWith(search) ?? true;
-  return _displayEntriesFromDataList(
+  return unfilteredEntries(
     imageWidth: imageWidth,
     imageHeight: imageHeight,
     selectMode: selectMode,
-    sort: sort,
     textStyle: textStyle,
   ).where((entry) => match(entry.displayName)).toList();
 }
@@ -319,7 +317,7 @@ class _CreateProjectDialogState extends State<CreateProjectDialog> {
                   width: maxWidth,
                   child: Builder(
                     builder: (context) {
-                      List<String> displayNames = _displayEntriesFromDataList()
+                      List<String> displayNames = unfilteredEntries()
                           .map((d) => d.displayName.data)
                           .whereType<String>()
                           .toList();
@@ -482,7 +480,7 @@ class SelectorListView extends StatefulWidget {
 
 class _SelectorListViewState extends State<SelectorListView> {
   final listKey = GlobalKey<AnimatedListState>();
-  late final List<DisplayEntry> filtered;
+  late final List<DisplayEntry> entries;
 
   DisplayEntry makeDisplayEntry(DisplayData data) => DisplayEntry(
     data: data,
@@ -497,20 +495,20 @@ class _SelectorListViewState extends State<SelectorListView> {
   }
 
   void insertItem(int index, DisplayData data) {
-    filtered.insert(index, makeDisplayEntry(data));
+    entries.insert(index, makeDisplayEntry(data));
     listKey.currentState!.insertItem(index);
   }
 
   void remove(DisplayData removedData) {
     int? removedIndex;
-    for (int i = 0; i < filtered.length; i++) {
-      if (filtered[i].data == removedData) {
+    for (int i = 0; i < entries.length; i++) {
+      if (entries[i].data == removedData) {
         removedIndex = i;
         break;
       }
     }
     if (removedIndex != null) {
-      final removedItem = filtered.removeAt(removedIndex);
+      final removedItem = entries.removeAt(removedIndex);
 
       listKey.currentState!.removeItem(
         removedIndex,
@@ -531,8 +529,7 @@ class _SelectorListViewState extends State<SelectorListView> {
 
   @override
   void initState() {
-    filtered = filteredEntries(
-      _selectorState.searchText,
+    entries = unfilteredEntries(
       imageWidth: 75,
       imageHeight: 98,
       selectMode: _selectorState.selectMode,
@@ -556,23 +553,23 @@ class _SelectorListViewState extends State<SelectorListView> {
     int index,
     Animation<double> animation,
   ) {
-    if (index >= filtered.length) {
+    if (index >= entries.length) {
       return const SizedBox.shrink();
     }
 
-    final item = filtered[index];
+    final item = entries[index];
     final borderColor = Colors.grey.withAlpha(127);
 
     return ValueListenableBuilder(
       valueListenable: _selectorState.stringTextController,
       builder: (context, value, child) {
         final bool hasBorder =
-            index < filtered.length - 1 &&
-            filtered[index].data.name.startsWith(_selectorState.searchText);
+            index < entries.length - 1 &&
+            entries[index].data.name.startsWith(_selectorState.searchText);
 
         return SizeTransition(
           sizeFactor: animation,
-          key: ValueKey(filtered[index].data.name),
+          key: ValueKey(entries[index].data.name),
           axisAlignment: 0.0,
           child: FadeTransition(
             opacity: animation,
@@ -597,7 +594,7 @@ class _SelectorListViewState extends State<SelectorListView> {
       builder: (context, _) {
         return AnimatedList(
           key: listKey,
-          initialItemCount: filtered.length,
+          initialItemCount: entries.length,
           itemBuilder: itemBuilder,
         );
       },

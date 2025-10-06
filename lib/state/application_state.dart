@@ -3,14 +3,12 @@ import 'package:parrotaac/state/project_selector_state.dart';
 
 ApplicationState _appState = ApplicationState();
 
-ApplicationState get appState =>_appState;
+ApplicationState get appState => _appState;
 
-void newAppstate(){
-    _appState.dispose();
-    _appState = ApplicationState();
+void newAppstate() {
+  _appState.dispose();
+  _appState = ApplicationState();
 }
-
-
 
 //TODO: add open project state
 class ApplicationState with HasState {
