@@ -56,11 +56,11 @@ class OpenSymbolSet extends SymbolSet {
 
 class OpenSymbolResult extends SymbolResult {
   @override
-  String imageUrl;
+  String get imageUrl => getUpdatedUrl(_currentVariant, originalImageUrl);
   @override
   final String originalImageUrl;
   @override
-  final double relevance;
+  double get relevance => json["relevance"];
 
   @override
   final bool supportsTones;
@@ -70,11 +70,20 @@ class OpenSymbolResult extends SymbolResult {
   String get currentVariant => _currentVariant;
 
   @override
-  final String label;
+  String get label => json["name"];
 
-  final String _license;
+  String get _license => json["license"];
 
   final Map<String, dynamic> json;
+
+  Map<String, dynamic> encode() {
+    return {"variant": _currentVariant, "json": json};
+  }
+
+  static OpenSymbolResult decode(Map<String, dynamic> encoded) {
+    return OpenSymbolResult.fromJson(encoded["json"])
+      .._currentVariant = encoded["variant"];
+  }
 
   @override
   Future<AttributionData> get attributionData async {
@@ -106,11 +115,7 @@ class OpenSymbolResult extends SymbolResult {
   bool get supportCommercialUse => !_license.contains("NC");
 
   OpenSymbolResult.fromJson(this.json)
-    : imageUrl = json["image_url"],
-      originalImageUrl = json["image_url"],
-      relevance = json["relevance"],
-      label = json["name"],
-      _license = json["license"],
+    : originalImageUrl = json["image_url"],
       supportsTones = json["skins"] ?? false;
 
   @override
@@ -132,7 +137,6 @@ label=$label
   void changeVariant(dynamic variant) {
     if (variant is String) {
       _currentVariant = variant;
-      imageUrl = getUpdatedUrl(variant, originalImageUrl);
     } else {
       SimpleLogger().logError("invalid change variant request");
     }

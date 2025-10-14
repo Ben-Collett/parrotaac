@@ -5,11 +5,14 @@ import 'parrot_project.dart';
 class ProjectSettings {
   static const _quickStoreName = "project_settings";
   static const _showSentenceBar = "show_bar";
-  final QuickStore _quickStore;
+  final QuickStoreHiveImp _quickStore;
 
   ProjectSettings._(this._quickStore);
   static Future<ProjectSettings> fromProject(ParrotProject project) async {
-    QuickStore quickStore = QuickStore(_quickStoreName, path: project.path);
+    QuickStoreHiveImp quickStore = QuickStoreHiveImp(
+      _quickStoreName,
+      path: project.path,
+    );
     if (quickStore.isNotInitialized) await quickStore.initialize();
     return ProjectSettings._(quickStore);
   }

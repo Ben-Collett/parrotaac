@@ -18,6 +18,22 @@ ButtonCreate _$ButtonCreateFromJson(Map<String, dynamic> json) =>
 Map<String, dynamic> _$ButtonCreateToJson(ButtonCreate instance) =>
     <String, dynamic>{'row': instance.row, 'col': instance.col};
 
+OpenSymbolsPopup _$OpenSymbolsPopupFromJson(Map<String, dynamic> json) =>
+    OpenSymbolsPopup(
+        currentSearch: json['currentSearch'] as String?,
+        selectedSymbol: json['selectedSymbol'] as Map<String, dynamic>?,
+      )
+      ..changedTones = (json['changedTones'] as Map<String, dynamic>?)?.map(
+        (k, e) => MapEntry(k, e as String),
+      );
+
+Map<String, dynamic> _$OpenSymbolsPopupToJson(OpenSymbolsPopup instance) =>
+    <String, dynamic>{
+      'currentSearch': instance.currentSearch,
+      'changedTones': instance.changedTones,
+      'selectedSymbol': instance.selectedSymbol,
+    };
+
 SelectBoardScreen _$SelectBoardScreenFromJson(Map<String, dynamic> json) =>
     SelectBoardScreen(json['boardId'] as String);
 

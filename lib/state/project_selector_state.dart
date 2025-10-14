@@ -2,21 +2,32 @@ import 'dart:collection';
 import 'dart:io' show Directory;
 
 import 'package:flutter/widgets.dart';
+import 'package:parrotaac/backend/global_restoration_data.dart';
 import 'package:parrotaac/backend/project/project_interface.dart';
+import 'package:parrotaac/project_selector_constants.dart';
+import 'package:parrotaac/state/get_stored_notifiers.dart';
 import 'package:parrotaac/state/has_state.dart';
 
 import 'project_dir_state.dart';
 
 class ProjectSelectorState implements HasState {
-  final selectModeNotifier = ValueNotifier(false);
-  final searchTextController = TextEditingController();
+  final selectModeNotifier = generateStoredValueNotifier<bool>(
+    storage: globalRestorationQuickstore,
+    label: 'select mode selector screen',
+    defaultValue: false,
+  );
+  final searchTextController = generateStoredTextController(
+    globalRestorationQuickstore,
+    "project search",
+  );
   final selectedNotifier = _SelectedNotifier();
-  final stringTextController = ValueNotifier<String>("");
+  late final ValueNotifier<String> stringTextController;
 
   bool get selectMode => selectModeNotifier.value;
   String get searchText => searchTextController.text;
 
   ProjectSelectorState() {
+    stringTextController = ValueNotifier(searchTextController.text);
     searchTextController.addListener(() {
       stringTextController.value = searchTextController.text;
     });
@@ -35,6 +46,12 @@ class _SelectedNotifier extends ChangeNotifier {
 
   _SelectedNotifier() {
     defaultProjectDirListener.addOnDeleteListener(remove);
+    addListener(() async {
+      await globalRestorationQuickstore.writeData(
+        selectedProjectNamesKey,
+        selectedNames,
+      );
+    });
   }
 
   ValueNotifier<bool> emptyNotifier = ValueNotifier(true);
@@ -57,6 +74,8 @@ class _SelectedNotifier extends ChangeNotifier {
       }
     }
   }
+
+  List<String> get selectedNames => data.map((data) => data.name).toList();
 
   void clear() {
     emptyNotifier.value = true;

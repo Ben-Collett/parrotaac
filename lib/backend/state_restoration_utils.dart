@@ -15,7 +15,7 @@ import 'map_utils.dart';
 import 'project/parrot_project.dart';
 
 class ProjectRestorationData {
-  final QuickStore _quickStore;
+  final QuickStoreHiveImp quickStore;
   static const _boardHistoryKey = "board_history";
   static const _sentenceBoxKey = "sentence_box";
   static const _undoStackKey = "undo_stack";
@@ -28,77 +28,77 @@ class ProjectRestorationData {
   static const _showSentenceBar = "show_sentence_bar";
   static const _showSideBar = "show_side_bar";
 
-  ProjectRestorationData._(this._quickStore);
+  ProjectRestorationData._(this.quickStore);
   static Future<ProjectRestorationData> fromPath(String path) async {
-    QuickStore quickStore = QuickStore(_quickStoreName, path: path);
+    QuickStoreHiveImp quickStore = QuickStoreHiveImp(
+      _quickStoreName,
+      path: path,
+    );
     if (quickStore.isNotInitialized) await quickStore.initialize();
     return ProjectRestorationData._(quickStore);
   }
 
   Future<void> writeNewBoardHistory(List<String> boardIds) {
-    return _quickStore.writeData(_boardHistoryKey, boardIds);
+    return quickStore.writeData(_boardHistoryKey, boardIds);
   }
 
   Future<void> writeShowSentenceBar(bool value) =>
-      _quickStore.writeData(_showSentenceBar, value);
-  bool get showSentenceBar => _quickStore[_showSentenceBar] ?? true;
+      quickStore.writeData(_showSentenceBar, value);
+  bool get showSentenceBar => quickStore[_showSentenceBar] ?? true;
 
   Future<void> writeShowSideBar(bool value) =>
-      _quickStore.writeData(_showSideBar, value);
-  bool? get showSideBar => _quickStore[_showSideBar];
+      quickStore.writeData(_showSideBar, value);
+  bool? get showSideBar => quickStore[_showSideBar];
 
   Future<void> removeCurrentButtonData() => Future.wait([
-        _quickStore.removeFromKey(_openButtonDiffKey),
-        _quickStore.removeFromKey(_currentButtonBoardActionLinkKey)
-      ]);
+    quickStore.removeFromKey(_openButtonDiffKey),
+    quickStore.removeFromKey(_currentButtonBoardActionLinkKey),
+  ]);
 
   Future<void> writeSentenceBoxHistory(List<BoardButtonPair> buttons) {
-    return _quickStore.writeData(
+    return quickStore.writeData(
       _sentenceBoxKey,
       buttons.map((b) => b.asMap).toList(),
     );
   }
 
   Future<void> writeBoardLinkingAction(String? action) {
-    return _quickStore.writeData(_currentButtonBoardActionLinkKey, action);
+    return quickStore.writeData(_currentButtonBoardActionLinkKey, action);
   }
 
   Future<void> writeBoardMode(BoardMode mode) {
-    return _quickStore.writeData(
-      _boardModeKey,
-      mode.asString,
-    );
+    return quickStore.writeData(_boardModeKey, mode.asString);
   }
 
   String? get boardLinkingActionMode =>
-      _quickStore[_currentButtonBoardActionLinkKey];
+      quickStore[_currentButtonBoardActionLinkKey];
   BoardMode get currentBoardMode {
-    final currentBoardModeString = _quickStore[_boardModeKey];
+    final currentBoardModeString = quickStore[_boardModeKey];
     return BoardMode.values.firstWhere(
       (mode) => mode.asString == currentBoardModeString,
       orElse: () => BoardMode.normalMode,
     );
   }
 
-  Future<void> writeUndoStack(List<ProjectEvent> events) => _quickStore
+  Future<void> writeUndoStack(List<ProjectEvent> events) => quickStore
       .writeData(_undoStackKey, events.map((e) => e.encode()).toList());
 
-  Future<void> writeRedoStack(List<ProjectEvent> events) => _quickStore
+  Future<void> writeRedoStack(List<ProjectEvent> events) => quickStore
       .writeData(_redoStackKey, events.map((e) => e.encode()).toList());
   Future<void> writePopupHistory(List<BoardScreenPopup> popupHistory) =>
-      _quickStore.writeData(
+      quickStore.writeData(
         _popupHistoryKey,
         popupHistory.map((p) => p.encode()).toList(),
       );
 
   Future<void> writeButtonDiff(Map<String, dynamic> buttonDiff) =>
-      _quickStore.writeData(_openButtonDiffKey, buttonDiff);
+      quickStore.writeData(_openButtonDiffKey, buttonDiff);
 
   List<ProjectEvent> get currentUndoStack =>
-      _convertToEvents(_quickStore[_undoStackKey]);
+      _convertToEvents(quickStore[_undoStackKey]);
 
   List<ProjectEvent> get currentRedoStack =>
-      _convertToEvents(_quickStore[_redoStackKey]);
+      _convertToEvents(quickStore[_redoStackKey]);
 
   List<ProjectEvent> _convertToEvents(dynamic data) {
     List<dynamic> events = [];
@@ -114,7 +114,7 @@ class ProjectRestorationData {
   }
 
   List<BoardScreenPopup> get currentPopupHistory {
-    final history = _quickStore[_popupHistoryKey];
+    final history = quickStore[_popupHistoryKey];
     if (history is List) {
       return history
           .map(castMapToJsonMap)
@@ -127,11 +127,11 @@ class ProjectRestorationData {
   }
 
   Map<String, dynamic> get openButtonDiff =>
-      deepCastMapToJsonMap(_quickStore[_openButtonDiffKey]) ?? {};
+      deepCastMapToJsonMap(quickStore[_openButtonDiffKey]) ?? {};
 
   ///project.root should probably not be null when calling this
   BoardHistoryStack createBoardHistory(ParrotProject project, int historySize) {
-    List<String?>? boardIds = _quickStore[_boardHistoryKey];
+    List<String?>? boardIds = quickStore[_boardHistoryKey];
     if (boardIds == null) {
       return BoardHistoryStack(
         maxHistorySize: historySize,
@@ -143,12 +143,9 @@ class ProjectRestorationData {
 
     List<Obf> boards = boardIds.map(toBoard).nonNulls.toList();
     if (boards.isEmpty) {
-      boards.add(project.root ??
-          Obf(
-            locale: "en",
-            name: "defaultName",
-            id: "defaultId",
-          ));
+      boards.add(
+        project.root ?? Obf(locale: "en", name: "defaultName", id: "defaultId"),
+      );
     }
 
     return BoardHistoryStack.fromNonEmptyList(
@@ -158,11 +155,11 @@ class ProjectRestorationData {
   }
 
   Future<void> close() async {
-    await _quickStore.close();
+    await quickStore.close();
   }
 
   List<SenteceBoxDisplayEntry> getSentenceBoxData(ParrotProject project) {
-    dynamic sentenceBoxData = _quickStore[_sentenceBoxKey];
+    dynamic sentenceBoxData = quickStore[_sentenceBoxKey];
     if (sentenceBoxData is List) {
       SenteceBoxDisplayEntry? toEntry(BoardButtonPair? pair) =>
           _pairToEntry(project, pair);

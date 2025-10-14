@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:openboard_wrapper/obf.dart';
+import 'package:parrotaac/backend/global_restoration_data.dart';
 import 'package:parrotaac/backend/project/parrot_project.dart';
+import 'package:parrotaac/backend/settings_utils.dart';
 import 'package:parrotaac/ui/settings/defaults.dart';
 import 'package:parrotaac/ui/settings/settings_themed_appbar.dart';
 import 'package:parrotaac/ui/util_widgets/setting_util_widgets.dart';
@@ -8,59 +10,67 @@ import 'package:parrotaac/ui/util_widgets/setting_util_widgets.dart';
 const _padding = 16.0;
 const _wideScreenSize = 600;
 
+const selectedCategoriesKey = "settings selected categories";
+const appbarColorOpenKey = "appbar color open";
+
 class SettingsScreen extends StatefulWidget {
   final Obf? board;
   final ParrotProject? project;
-  const SettingsScreen({
-    super.key,
-    this.board,
-    this.project,
-  });
+  const SettingsScreen({super.key, this.board, this.project});
   @override
   State<SettingsScreen> createState() => _SettingsScreenState();
 }
 
 class _SettingsScreenState extends State<SettingsScreen> {
-  late _Category selectedCategory;
+  _Category get selectedCategory {
+    dynamic result = globalRestorationQuickstore[selectedCategoriesKey];
+    _Category out = categories[0];
+    if (result is List && result.isNotEmpty) {
+      final selectedCategory = categories
+          .where((category) => category.label == result.last)
+          .firstOrNull;
+      if (selectedCategory != null) {
+        out = selectedCategory;
+      }
+    }
+    return out;
+  }
 
   late final List<_Category> categories;
 
   @override
   void initState() {
+    const appbarColorSettingName = "Appbar Color";
     categories = [
-      //if (widget.board != null) Category(label: "Board", settingOptions: []),
       if (widget.project != null) _ProjectCategory(widget.project!),
-      SettingsOptionsCategory(
-        "General",
-        [
-          _ToggleOption("Enable Feature X"),
-          _DropdownOption(
-            "TTS Voice",
-            ["english", "spanish", "french"],
-          )
-        ],
-      ),
+      SettingsOptionsCategory("General", [
+        _ToggleOption("Enable Feature X"),
+        _DropdownOption("TTS Voice", ["english", "spanish", "french"]),
+      ]),
       SettingsOptionsCategory("Admin", [
-        _DropdownOption(
-          "Admin-Lock",
-          ["None", "Math"],
-        ),
+        _DropdownOption("Admin-Lock", ["None", "Math"]),
       ]),
       SettingsOptionsCategory("Appearance", [
-        _ColorChangeOption("Appbar Color", defaultAppbarColor),
+        _ColorChangeOption(appbarColorSettingName, defaultAppbarColor),
       ]),
-      SettingsOptionsCategory(
-        "About",
-        [
-          _SubtitleOption(
-            "Version",
-            "1.0.0",
-          ),
-          _NavigatableOption("License")
-        ],
-      ),
+      SettingsOptionsCategory("About", [
+        _SubtitleOption("Version", "1.0.0"),
+        _NavigatableOption("License"),
+      ]),
     ];
-    selectedCategory = categories[0];
+
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (globalRestorationQuickstore.isTrue(appbarColorOpenKey)) {
+        showAppbarColorPickerDialog(
+          context,
+          Color(getSetting(appbarColorSettingName) ?? defaultAppbarColor),
+          (Color value) async {
+            await setSetting(appbarColorSettingName, value.toARGB32());
+          },
+        );
+      }
+    });
+
     super.initState();
   }
 
@@ -69,9 +79,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
     final isWideScreen = MediaQuery.of(context).size.width >= _wideScreenSize;
 
     return Scaffold(
-      appBar: SettingsThemedAppbar(
-        title: Text("Settings"),
-      ),
+      appBar: SettingsThemedAppbar(title: Text("Settings")),
       body: isWideScreen ? _splitView() : _expandableTilesView(),
     );
   }
@@ -86,20 +94,22 @@ class _SettingsScreenState extends State<SettingsScreen> {
               return ListTile(
                 selected: category == selectedCategory,
                 title: Text(category.label),
-                onTap: () => setState(() {
-                  selectedCategory = category;
-                }),
+                onTap: () async => await setCategory(category),
               );
             }).toList(),
           ),
         ),
         const VerticalDivider(width: 1),
-        Flexible(
-          flex: 5,
-          child: selectedCategory.content,
-        ),
+        Flexible(flex: 5, child: selectedCategory.content),
       ],
     );
+  }
+
+  Future<void> setCategory(_Category category) async {
+    await globalRestorationQuickstore.writeData(selectedCategoriesKey, [
+      category.label,
+    ]);
+    setState(() {});
   }
 
   Widget _expandableTilesView() {
@@ -107,6 +117,23 @@ class _SettingsScreenState extends State<SettingsScreen> {
       children: categories.map((category) {
         return ExpansionTile(
           title: Text(category.label),
+          onExpansionChanged: (expanded) async {
+            List<String> selectedCategories =
+                globalRestorationQuickstore[selectedCategoriesKey] ?? [];
+
+            if (expanded) {
+              selectedCategories.add(category.label);
+            } else {
+              selectedCategories.remove(category.label);
+            }
+
+            await globalRestorationQuickstore.writeData(
+              selectedCategoriesKey,
+              selectedCategories,
+            );
+          },
+          initiallyExpanded: globalRestorationQuickstore[selectedCategoriesKey]
+              ?.contains(category.label),
           children: [category.content],
         );
       }).toList(),
@@ -117,9 +144,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
 class _Category {
   final String label;
 
-  const _Category({
-    required this.label,
-  });
+  const _Category({required this.label});
 
   Widget get content => Placeholder();
 }
@@ -127,16 +152,14 @@ class _Category {
 class SettingsOptionsCategory extends _Category {
   final List<_SettingsOption> _settingOptions;
   SettingsOptionsCategory(String label, this._settingOptions)
-      : super(label: label);
+    : super(label: label);
 
   @override
   Widget get content {
     Widget toWidget(_SettingsOption option) => option.asWidget;
     return Padding(
       padding: const EdgeInsets.all(_padding),
-      child: Column(
-        children: _settingOptions.map(toWidget).toList(),
-      ),
+      child: Column(children: _settingOptions.map(toWidget).toList()),
     );
   }
 }
@@ -144,27 +167,28 @@ class SettingsOptionsCategory extends _Category {
 class _ProjectCategory extends _Category {
   final ParrotProject project;
   _ProjectCategory(this.project)
-      : assert(
-          project.settings != null,
-          "${project.name} settings are equal to null when entering the settings screen",
-        ),
-        super(label: "Project");
+    : assert(
+        project.settings != null,
+        "${project.name} settings are equal to null when entering the settings screen",
+      ),
+      super(label: "Project");
 
   @override
   Widget get content => Padding(
-        padding: const EdgeInsets.all(_padding),
-        child: Column(
-          children: [
-            _ToggleTile(
-                key: UniqueKey(),
-                label: "Show Sentence Bar",
-                onChange: (val) {
-                  project.settings?.writeShowSentenceBar(val);
-                },
-                initialValue: project.settings?.showSentenceBar ?? true)
-          ],
+    padding: const EdgeInsets.all(_padding),
+    child: Column(
+      children: [
+        _ToggleTile(
+          key: UniqueKey(),
+          label: "Show Sentence Bar",
+          onChange: (val) {
+            project.settings?.writeShowSentenceBar(val);
+          },
+          initialValue: project.settings?.showSentenceBar ?? true,
         ),
-      );
+      ],
+    ),
+  );
 }
 
 class _ToggleTile extends StatefulWidget {
@@ -236,11 +260,11 @@ class _DropdownOption extends _SettingsOption {
   _DropdownOption(this.label, this.options);
   @override
   Widget get asWidget => SettingsDropDown(
-        label: label,
-        key: UniqueKey(),
-        defaultValue: options.firstOrNull ?? "empty",
-        options: options,
-      );
+    label: label,
+    key: UniqueKey(),
+    defaultValue: options.firstOrNull ?? "empty",
+    options: options,
+  );
 }
 
 class _NavigatableOption extends _SettingsOption {
@@ -249,10 +273,8 @@ class _NavigatableOption extends _SettingsOption {
 
   _NavigatableOption(this.label);
   @override
-  Widget get asWidget => ListTile(
-        title: Text(label),
-        trailing: Icon(Icons.arrow_forward_ios),
-      );
+  Widget get asWidget =>
+      ListTile(title: Text(label), trailing: Icon(Icons.arrow_forward_ios));
 }
 
 class _SubtitleOption extends _SettingsOption {
@@ -262,10 +284,7 @@ class _SubtitleOption extends _SettingsOption {
 
   _SubtitleOption(this.label, this.subtitle);
   @override
-  Widget get asWidget => ListTile(
-        title: Text(label),
-        subtitle: Text(subtitle),
-      );
+  Widget get asWidget => ListTile(title: Text(label), subtitle: Text(subtitle));
 }
 
 class _ColorChangeOption extends _SettingsOption {

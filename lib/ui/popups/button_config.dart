@@ -357,6 +357,21 @@ class _ButtonConfigPopupState extends State<ButtonConfigPopup> {
           colCount: popup.colCount,
         ),
       );
+    } else if (popup is OpenSymbolsPopup) {
+      widget.popupHistory?.pushScreen(popup, writeHistory: false);
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        showOpenSymbolSearchDialog(
+          context,
+          initialSearch: _labelController.text,
+          currentSearch: popup.currentSearch,
+          changedTones: popup.changedTones,
+          selected: popup.selectedSymbol,
+          popupHistory: widget.popupHistory,
+          onSelect: onSymbolSelected,
+        ).then((_) async {
+          widget.popupHistory?.popScreen();
+        });
+      });
     }
   }
 
@@ -778,6 +793,11 @@ class _ButtonConfigPopupState extends State<ButtonConfigPopup> {
     });
   }
 
+  Future<void> onSymbolSelected(SymbolResult symbol) async {
+    File file = await symbol.asFile;
+    _changeImage(XFile(file.path));
+  }
+
   @override
   Widget build(BuildContext context) {
     ButtonData buttonData = buttonController.data;
@@ -824,15 +844,18 @@ class _ButtonConfigPopupState extends State<ButtonConfigPopup> {
 
               TextButton(
                 onPressed: () async {
-                  SymbolResult? result = await showOpenSymbolSearchDialog(
-                    context,
-                    initialSearch: _labelController.text,
+                  widget.popupHistory?.pushScreen(
+                    OpenSymbolsPopup(),
+                    writeHistory: true,
                   );
-
-                  if (result != null) {
-                    File file = await result.asFile;
-                    _changeImage(XFile(file.path));
-                  }
+                  await showOpenSymbolSearchDialog(
+                    context,
+                    popupHistory: widget.popupHistory,
+                    initialSearch: _labelController.text,
+                    onSelect: onSymbolSelected,
+                  ).then((_) {
+                    widget.popupHistory?.popScreen();
+                  });
                 },
                 child: Text("search symbols"),
               ),

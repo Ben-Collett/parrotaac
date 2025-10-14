@@ -2,18 +2,18 @@ import 'package:parrotaac/backend/quick_store.dart';
 
 import 'package:flutter/widgets.dart';
 
-final _globalRestorationData = QuickStore("global_rest");
+final globalRestorationQuickstore = QuickStoreHiveImp("global_rest");
 
 Future<void> initializeGlobalRestorationData() async {
-  await _globalRestorationData.initialize();
+  await globalRestorationQuickstore.initialize();
   await _AppLifecycleHandler().init();
 }
 
-bool get wasBackgrounded => _globalRestorationData["was_backgrounded"];
+bool get wasBackgrounded => globalRestorationQuickstore["was_backgrounded"];
 bool get wasAuthenticated =>
-    _globalRestorationData["was_authenticated"] ?? false;
+    globalRestorationQuickstore["was_authenticated"] ?? false;
 set wasAuthenticated(bool value) =>
-    _globalRestorationData.writeData("was_authenticated", value);
+    globalRestorationQuickstore.writeData("was_authenticated", value);
 
 class _AppLifecycleHandler with WidgetsBindingObserver {
   _AppLifecycleHandler();
@@ -26,13 +26,13 @@ class _AppLifecycleHandler with WidgetsBindingObserver {
   void didChangeAppLifecycleState(AppLifecycleState state) async {
     if (state == AppLifecycleState.paused ||
         state == AppLifecycleState.inactive) {
-      await _globalRestorationData.writeData("was_backgrounded", true);
+      await globalRestorationQuickstore.writeData("was_backgrounded", true);
     } else if (state == AppLifecycleState.resumed) {
-      await _globalRestorationData.writeData("was_backgrounded", false);
+      await globalRestorationQuickstore.writeData("was_backgrounded", false);
     }
   }
 }
 
-String? get userToken => _globalRestorationData["user_token"];
+String? get userToken => globalRestorationQuickstore["user_token"];
 set userToken(String? token) =>
-    _globalRestorationData.writeData("user_token", token);
+    globalRestorationQuickstore.writeData("user_token", token);

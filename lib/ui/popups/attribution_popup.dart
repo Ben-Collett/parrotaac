@@ -3,9 +3,13 @@ import 'package:parrotaac/backend/attribution_data.dart';
 import 'package:parrotaac/ui/util_widgets/simple_future_builder.dart';
 import 'package:parrotaac/ui/util_widgets/url_text.dart';
 
-void showAttributionPopup(BuildContext context, Future<AttributionData> data) {
-  showDialog(context: context, builder: (context) => _AttributionDialog(data));
-}
+Future<void> showAttributionPopup(
+  BuildContext context,
+  Future<AttributionData> data,
+) => showDialog(
+  context: context,
+  builder: (context) => _AttributionDialog(data),
+);
 
 class _AttributionDialog extends StatelessWidget {
   final Future<AttributionData> data;

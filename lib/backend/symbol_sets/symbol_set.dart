@@ -14,12 +14,12 @@ abstract class SymbolResult {
   String get label;
   String? get originalImageUrl;
   String? get imageUrl;
+  String get currentVariant;
   bool get supportsTones;
 
   Future<AttributionData> get attributionData;
 
   void changeVariant(dynamic vareint);
-  dynamic get currentVariant;
 
   ///returns a file object with the data no garntee on the path, or how long the file will exist, should be copied to a new path to manipulate
   Future<File> get asFile;

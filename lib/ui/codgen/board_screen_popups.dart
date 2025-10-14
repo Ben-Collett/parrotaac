@@ -10,7 +10,7 @@ abstract class BoardScreenPopup {
   const BoardScreenPopup();
 
   static BoardScreenPopup? decode(Map<String, dynamic> json) {
-    Map<String, dynamic>? content = castMapToJsonMap(json['content']);
+    Map<String, dynamic>? content = deepCastMapToJsonMap(json['content']);
     if (content == null) {
       SimpleLogger().logWarning("can't decode popup as $json content is null");
       return null;
@@ -28,16 +28,19 @@ abstract class BoardScreenPopup {
         return CreateBoard.fromJson(content);
       case "select_board":
         return SelectBoardScreen.fromJson(content);
+      case "open_symbols":
+        return OpenSymbolsPopup.fromJson(content);
+      case "attribution_popup":
+        return AttributionPopup();
+      case "selected_tone_popup":
+        return SelectedTonePopup.fromJson(content);
       default:
         SimpleLogger().logWarning("can't decode $json as popup");
         return null;
     }
   }
 
-  Map<String, dynamic> encode() => {
-        'type': type,
-        'content': toJson(),
-      };
+  Map<String, dynamic> encode() => {'type': type, 'content': toJson()};
 
   Map<String, dynamic> toJson();
 }
@@ -80,6 +83,47 @@ abstract class SelectColor extends BoardScreenPopup {
   String get type => 'select_color';
   @override
   Map<String, dynamic> toJson() => {};
+}
+
+@JsonSerializable()
+class OpenSymbolsPopup extends BoardScreenPopup {
+  String? currentSearch;
+  Map<String, String>? changedTones;
+  Map<String, dynamic>? selectedSymbol;
+
+  OpenSymbolsPopup({this.currentSearch, this.selectedSymbol});
+
+  @override
+  Map<String, dynamic> toJson() => _$OpenSymbolsPopupToJson(this);
+
+  factory OpenSymbolsPopup.fromJson(Map<String, dynamic> json) =>
+      _$OpenSymbolsPopupFromJson(json);
+
+  @override
+  String get type => "open_symbols";
+}
+
+class AttributionPopup extends BoardScreenPopup {
+  @override
+  Map<String, dynamic> toJson() => {};
+
+  @override
+  String get type => "attribution_popup";
+}
+
+class SelectedTonePopup extends BoardScreenPopup {
+  String? selectedTone;
+
+  @override
+  Map<String, dynamic> toJson() {
+    return {"selectedTone": selectedTone};
+  }
+
+  SelectedTonePopup.fromJson(Map<String, dynamic> json)
+    : selectedTone = json["selectedTone"];
+
+  @override
+  String get type => "selected_tone_popup";
 }
 
 @JsonSerializable()

@@ -35,10 +35,6 @@ Future<AdminAuthenticationState> showMathAuthenticationPopup(
       );
     },
   ).then((val) {
-    assert(
-      val != null,
-      "something went wrong with the math authentication, value was null",
-    );
     return val ?? AdminAuthenticationState.canceled;
   });
 }
@@ -92,14 +88,15 @@ class _MathProblemDialogState extends State<MathProblemDialog> {
   @override
   Widget build(BuildContext context) {
     Widget keypad = ValueListenableBuilder(
-        valueListenable: onWrongAnswerCoolDown,
-        builder: (context, val, _) {
-          return NumericKeypad(
-            isEnabled: !val,
-            controller: textController,
-            buttonColor: Colors.green.withAlpha(220),
-          );
-        });
+      valueListenable: onWrongAnswerCoolDown,
+      builder: (context, val, _) {
+        return NumericKeypad(
+          isEnabled: !val,
+          controller: textController,
+          buttonColor: Colors.green.withAlpha(220),
+        );
+      },
+    );
 
     textController.addListener(() {
       setState(() {});
@@ -164,15 +161,12 @@ class _MathProblemDialogState extends State<MathProblemDialog> {
         title: Row(
           mainAxisAlignment: MainAxisAlignment.spaceBetween,
           children: [
-            Text(
-              "multiplication problem",
-              style: TextStyle(fontSize: 18),
-            ),
+            Text("multiplication problem", style: TextStyle(fontSize: 18)),
             IconButton(
               onPressed: () =>
                   Navigator.of(context).pop(AdminAuthenticationState.canceled),
               icon: Icon(Icons.close),
-            )
+            ),
           ],
         ),
         content: SingleChildScrollView(
@@ -183,10 +177,11 @@ class _MathProblemDialogState extends State<MathProblemDialog> {
                 style: TextStyle(fontSize: widget.questionFontSize),
               ),
               _TextBar(
-                  onCooldownController: onWrongAnswerCoolDown,
-                  text: textController.text,
-                  height: widget.textBarMaxHeight,
-                  width: widget.textBarMaxWidth),
+                onCooldownController: onWrongAnswerCoolDown,
+                text: textController.text,
+                height: widget.textBarMaxHeight,
+                width: widget.textBarMaxWidth,
+              ),
               SizedBox(height: 10),
               keypad,
             ],
@@ -300,31 +295,34 @@ class _TextBar extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return ValueListenableBuilder(
-        valueListenable: onCooldownController,
-        builder: (context, val, _) {
-          return ConstrainedBox(
-            constraints: BoxConstraints(
-                maxWidth: width ?? double.infinity,
-                maxHeight: height ?? double.infinity),
-            child: Container(
-                width: width,
-                height: height,
-                decoration: BoxDecoration(
-                  border: Border.all(color: Colors.grey),
-                  borderRadius: BorderRadius.circular(8),
-                  color: val ? Colors.red : Colors.white,
-                ),
-                child: Center(
-                  child: Text(
-                    text,
-                    textAlign: TextAlign.center,
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                    style: const TextStyle(fontSize: 32),
-                  ),
-                )),
-          );
-        });
+      valueListenable: onCooldownController,
+      builder: (context, val, _) {
+        return ConstrainedBox(
+          constraints: BoxConstraints(
+            maxWidth: width ?? double.infinity,
+            maxHeight: height ?? double.infinity,
+          ),
+          child: Container(
+            width: width,
+            height: height,
+            decoration: BoxDecoration(
+              border: Border.all(color: Colors.grey),
+              borderRadius: BorderRadius.circular(8),
+              color: val ? Colors.red : Colors.white,
+            ),
+            child: Center(
+              child: Text(
+                text,
+                textAlign: TextAlign.center,
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                style: const TextStyle(fontSize: 32),
+              ),
+            ),
+          ),
+        );
+      },
+    );
   }
 }
 

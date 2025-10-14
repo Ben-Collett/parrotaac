@@ -1,7 +1,10 @@
+//TODO: lost state, scroll position, and skine tone popup
 import 'dart:math';
 import 'package:flutter/material.dart';
 import 'package:parrotaac/backend/symbol_sets/open_symbol.dart';
 import 'package:parrotaac/backend/symbol_sets/symbol_set.dart';
+import 'package:parrotaac/ui/board_screen_popup_history.dart';
+import 'package:parrotaac/ui/codgen/board_screen_popups.dart';
 import 'package:parrotaac/ui/popups/attribution_popup.dart';
 import 'package:parrotaac/ui/popups/skine_tone_picker.dart';
 import 'package:parrotaac/ui/util_widgets/simple_future_builder.dart';
@@ -10,16 +13,42 @@ const _gridBackgroundColor = Colors.blue;
 Future<OpenSymbolResult?> showOpenSymbolSearchDialog(
   BuildContext context, {
   String? initialSearch,
+  String? currentSearch,
+  Map<String, String>? changedTones,
+  Map<String, dynamic>? selected,
+  BoardScreenPopupHistory? popupHistory,
+  required Future<void> Function(SymbolResult) onSelect,
 }) {
   return showDialog<OpenSymbolResult>(
     context: context,
-    builder: (context) => _OpenSymbolSearchPopup(initialSearch ?? ""),
-  );
+    builder: (context) => _OpenSymbolSearchPopup(
+      initialSearch ?? "",
+      currentSearch: currentSearch,
+      changedTones: changedTones,
+      selected: selected,
+      popupHistory: popupHistory,
+    ),
+  ).then((val) async {
+    if (val is SymbolResult) {
+      await onSelect(val!);
+    }
+    return val;
+  });
 }
 
 class _OpenSymbolSearchPopup extends StatefulWidget {
   final String initialSearch;
-  const _OpenSymbolSearchPopup(this.initialSearch);
+  final String? currentSearch;
+  final Map<String, String>? changedTones;
+  final Map<String, dynamic>? selected;
+  final BoardScreenPopupHistory? popupHistory;
+  const _OpenSymbolSearchPopup(
+    this.initialSearch, {
+    this.currentSearch,
+    this.changedTones,
+    this.selected,
+    this.popupHistory,
+  });
 
   @override
   State<_OpenSymbolSearchPopup> createState() => _OpenSymbolSearchPopupState();
@@ -27,20 +56,81 @@ class _OpenSymbolSearchPopup extends StatefulWidget {
 
 class _OpenSymbolSearchPopupState extends State<_OpenSymbolSearchPopup> {
   late final ValueNotifier<String> _searchNotifier;
-  late final ValueNotifier<SymbolResult?> _selectedResultController;
+  late final ValueNotifier<OpenSymbolResult?> _selectedResultController;
   final Map<String, String> _changedSkinToneUrls = {};
+
+  late final TextEditingController _textController;
 
   String get text => _searchNotifier.value;
   @override
   void initState() {
-    _selectedResultController = ValueNotifier(null);
-    _searchNotifier = ValueNotifier(widget.initialSearch);
+    OpenSymbolResult? result;
+    if (widget.selected != null) {
+      result = OpenSymbolResult.decode(widget.selected!);
+    }
+    _selectedResultController = ValueNotifier(result);
+
+    _selectedResultController.addListener(() {
+      if (widget.popupHistory != null) {
+        OpenSymbolsPopup screen =
+            widget.popupHistory?.topScreen as OpenSymbolsPopup;
+        screen.selectedSymbol = _selectedResultController.value?.encode();
+        widget.popupHistory?.write();
+      }
+    });
+    _textController = TextEditingController(text: widget.currentSearch);
+    _searchNotifier = ValueNotifier(
+      widget.currentSearch == null || widget.currentSearch!.trim() == ""
+          ? widget.initialSearch
+          : widget.currentSearch!,
+    );
+
+    if (widget.changedTones != null) {
+      _changedSkinToneUrls.addAll(widget.changedTones!);
+    }
+
+    _textController.addListener(() {
+      if (_textController.text != _searchNotifier.value &&
+          widget.popupHistory != null) {
+        OpenSymbolsPopup screen =
+            widget.popupHistory?.topScreen as OpenSymbolsPopup;
+        screen.currentSearch = _textController.text;
+        widget.popupHistory?.write();
+      }
+
+      if (_textController.text.isNotEmpty) {
+        _searchNotifier.value = _textController.text;
+      } else {
+        _searchNotifier.value = widget.initialSearch.trim();
+      }
+    });
+
+    BoardScreenPopup? popup = widget.popupHistory?.removeNextToRecover();
+    if (popup is AttributionPopup) {
+      WidgetsBinding.instance.addPostFrameCallback(
+        (_) => showCurrentAttributePopup(context, write: false),
+      );
+    }
 
     super.initState();
   }
 
+  Future<void> showCurrentAttributePopup(
+    BuildContext context, {
+    bool write = true,
+  }) {
+    widget.popupHistory?.pushScreen(AttributionPopup(), writeHistory: write);
+    return showAttributionPopup(
+      context,
+      _selectedResultController.value!.attributionData,
+    ).then((_) {
+      widget.popupHistory?.popScreen();
+    });
+  }
+
   @override
   void dispose() {
+    _textController.dispose();
     _selectedResultController.dispose();
     _searchNotifier.dispose();
     super.dispose();
@@ -63,6 +153,11 @@ class _OpenSymbolSearchPopupState extends State<_OpenSymbolSearchPopup> {
           initialSkintone: initialSkintone,
           onSkintonChange: (skinTone) {
             _changedSkinToneUrls[results[index].originalImageUrl!] = skinTone;
+            if (widget.popupHistory != null) {
+              final popup = widget.popupHistory?.topScreen as OpenSymbolsPopup;
+              popup.changedTones = _changedSkinToneUrls;
+              widget.popupHistory?.write();
+            }
           },
           selectedResultController: _selectedResultController,
         );
@@ -84,13 +179,7 @@ class _OpenSymbolSearchPopupState extends State<_OpenSymbolSearchPopup> {
 
     return AlertDialog(
       title: TextField(
-        onChanged: (text) {
-          if (text.isNotEmpty) {
-            _searchNotifier.value = text;
-          } else {
-            _searchNotifier.value = widget.initialSearch.trim();
-          }
-        },
+        controller: _textController,
         decoration: InputDecoration(
           prefixIcon: Icon(Icons.search),
           hintText: searchHintText,
@@ -107,7 +196,7 @@ class _OpenSymbolSearchPopupState extends State<_OpenSymbolSearchPopup> {
                   onPressed: value == null
                       ? null
                       : () {
-                          showAttributionPopup(context, value.attributionData);
+                          showCurrentAttributePopup(context);
                         },
                   style: ElevatedButton.styleFrom(
                     backgroundColor: Colors.deepPurple,
@@ -274,6 +363,13 @@ class _SymbolGridEntryState extends State<_SymbolGridEntry> {
     isSelectedNotifier.value = _isSelected;
   }
 
+  void changeSkineTone(String tone) {
+    setState(() {
+      widget.onSkintonChange(tone);
+      widget.result.changeVariant(tone);
+    });
+  }
+
   @override
   Widget build(BuildContext context) {
     const radiusPreportion = .15;
@@ -298,12 +394,7 @@ class _SymbolGridEntryState extends State<_SymbolGridEntry> {
               },
               onLongPress: () {
                 if (theCurrentSymbolSupportsTones) {
-                  showSkinToneDialog(context, widget.result, (tone) {
-                    setState(() {
-                      widget.onSkintonChange(tone);
-                      widget.result.changeVariant(tone);
-                    });
-                  });
+                  showSkinToneDialog(context, widget.result, changeSkineTone);
                 }
               },
               child: Stack(

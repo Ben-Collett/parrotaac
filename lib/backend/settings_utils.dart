@@ -11,7 +11,7 @@ class _ControllerReferenceTracker extends ChangeNotifier {
   }
 }
 
-QuickStore _settingsQuickstore = QuickStore('settings');
+QuickStoreHiveImp _settingsQuickstore = QuickStoreHiveImp('settings');
 Future<void> initializeSettings() {
   return _settingsQuickstore.initialize();
 }
@@ -41,8 +41,9 @@ ChangeNotifier addNotifier(String key) {
 
 void removeNotifier(String key) {
   if (!_refMap.containsKey(key)) {
-    SimpleLogger()
-        .logError("attempted to remove non-existent key $key from $_refMap");
+    SimpleLogger().logError(
+      "attempted to remove non-existent key $key from $_refMap",
+    );
     return;
   }
   _refMap[key]!.refCount--;

@@ -1,16 +1,19 @@
 import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:flutter_slidable/flutter_slidable.dart';
+import 'package:parrotaac/backend/global_restoration_data.dart';
 import 'package:parrotaac/backend/project/manifest_utils.dart';
 import 'package:parrotaac/backend/project/parrot_project.dart';
 import 'package:parrotaac/backend/project/project_interface.dart';
 import 'package:parrotaac/file_utils.dart';
+import 'package:parrotaac/project_selector_constants.dart';
 import 'package:parrotaac/restorative_navigator.dart';
 import 'package:parrotaac/state/application_state.dart';
 import 'package:parrotaac/state/project_dir_state.dart';
 import 'package:parrotaac/ui/animations/fade_shrink.dart';
 import 'package:parrotaac/ui/popups/loading.dart';
 import 'package:parrotaac/ui/popups/lock_popups/admin_lock.dart';
+import 'package:parrotaac/ui/popups/show_restorable_popup.dart';
 import 'package:parrotaac/utils.dart';
 
 class DisplayEntry extends StatefulWidget {
@@ -160,10 +163,7 @@ class _DisplayEntryState extends State<DisplayEntry>
                 SlidableAction(
                   autoClose: false,
                   onPressed: (_) {
-                    showAdminLockPopup(
-                      context: context,
-                      onAccept: () => showDeleteDialog(context, widget.data),
-                    );
+                    showDeleteDisplayDataDialog(context, widget.data);
                   },
                   icon: Icons.delete,
                   backgroundColor: Colors.red,
@@ -246,8 +246,13 @@ class _CircleSelectionIndecator extends StatelessWidget {
   }
 }
 
-Future<void> showDeleteDialog(BuildContext context, DisplayData data) =>
-    showDialog(
+Future<void> showDeleteDisplayDataDialog(
+  BuildContext context,
+  DisplayData data,
+) async {
+  await globalRestorationQuickstore.writeData(normalDeleteNameKey, data.name);
+  if (context.mounted) {
+    showRestorableDialog(
       context: context,
       builder: (context) {
         final displayName = data.name;
@@ -287,7 +292,13 @@ Future<void> showDeleteDialog(BuildContext context, DisplayData data) =>
           ),
         );
       },
+      mainLabel: currentProjectSelectorDialogKey,
+      adminLocked: true,
+      mainLabelValue: ProjectDialog.normalDeleteDialog.name,
+      fieldLabels: [normalDeleteNameKey],
     );
+  }
+}
 
 Future<void> showExportDialog(BuildContext context, Directory? dir) async {
   final String? exportDirPath = await getUserSelectedDirectory();

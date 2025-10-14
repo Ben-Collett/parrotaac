@@ -38,14 +38,11 @@ class BoardScreenPopupHistory {
     restoreSteam?.updateProjectPopupHistory(_history.toList());
   }
 
-  void recoverScreen(BoardScreenPopup popup) {
-    _history.add(popup);
-  }
-
   void _logNullStreamWarning() {
     if (restoreSteam == null) {
       SimpleLogger().logWarning(
-          "restore stream is null not writing popup history to disk");
+        "restore stream is null not writing popup history to disk",
+      );
     }
   }
 

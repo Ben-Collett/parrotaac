@@ -2,8 +2,11 @@ import 'dart:io';
 
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
+import 'package:parrotaac/backend/global_restoration_data.dart';
 import 'package:parrotaac/backend/project/parrot_project.dart';
 import 'package:parrotaac/backend/project/project_interface.dart';
+import 'package:parrotaac/backend/simple_logger.dart';
+import 'package:parrotaac/project_selector_constants.dart';
 import 'package:parrotaac/restorative_navigator.dart';
 import 'package:parrotaac/state/application_state.dart';
 import 'package:parrotaac/state/project_dir_state.dart';
@@ -11,6 +14,7 @@ import 'package:parrotaac/state/project_selector_state.dart';
 import 'package:parrotaac/ui/painters/heart.dart';
 import 'package:parrotaac/ui/popups/lock_popups/admin_lock.dart';
 import 'package:parrotaac/ui/popups/login_popup.dart';
+import 'package:parrotaac/ui/popups/show_restorable_popup.dart';
 import 'package:parrotaac/ui/settings/settings_themed_appbar.dart';
 import 'package:parrotaac/ui/util_widgets/multi_listenable_builder.dart';
 import 'package:parrotaac/utils.dart';
@@ -70,7 +74,60 @@ class _ProjectSelectorState extends State<ProjectSelector> {
   @override
   void initState() {
     defaultProjectDirListener.addOnRefreshListener(onRefresh);
+    List<DisplayData> dataList = defaultProjectDirListener.data;
+
+    Set<String>? selectedNames =
+        globalRestorationQuickstore[selectedProjectNamesKey]?.toSet();
+
+    if (selectedNames != null) {
+      for (final data in dataList) {
+        if (selectedNames.contains(data.name)) {
+          _selectorState.selectedNotifier.addIfNotNull(data);
+        }
+      }
+    }
+
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      restorePopups();
+    });
+
     super.initState();
+  }
+
+  void restorePopups() {
+    List<DisplayData> dataList = defaultProjectDirListener.data;
+
+    ProjectDialog? dialog = ProjectDialog.fromName(
+      globalRestorationQuickstore[currentProjectSelectorDialogKey],
+    );
+
+    switch (dialog) {
+      case ProjectDialog.loginDialog:
+        showSigninPopup(context);
+        break;
+      case ProjectDialog.createProjectDialog:
+        _showCreateProjectDialog(
+          context,
+          name: globalRestorationQuickstore[newProjectNameKey],
+        );
+        break;
+      case ProjectDialog.bulkDeleteDialog:
+        _showBulkDeleteDialog(context);
+        break;
+      case ProjectDialog.normalDeleteDialog:
+        DisplayData? data = dataList
+            .where(
+              (data) =>
+                  data.name == globalRestorationQuickstore[normalDeleteNameKey],
+            )
+            .firstOrNull;
+        if (data != null) {
+          showDeleteDisplayDataDialog(context, data);
+        }
+        break;
+      case null:
+        break;
+    }
   }
 
   @override
@@ -119,10 +176,7 @@ class _ProjectSelectorState extends State<ProjectSelector> {
                     _iconButtonThatIsDisabledWhenSelectedNotfierIsEmpty(
                       Icon(Icons.delete),
                       onPressed: () {
-                        showAdminLockPopup(
-                          context: context,
-                          onAccept: () => _showBulkDeleteDialog(context),
-                        );
+                        _showBulkDeleteDialog(context);
                       },
                     ),
                   );
@@ -156,10 +210,7 @@ class _ProjectSelectorState extends State<ProjectSelector> {
                   Container(
                     color: Colors.orangeAccent,
                     child: TextButton(
-                      onPressed: () => showAdminLockPopup(
-                        context: context,
-                        onAccept: () => _showCreateProjectDialog(context),
-                      ),
+                      onPressed: () => _showCreateProjectDialog(context),
                       child: Text("create project"),
                     ),
                   ),
@@ -262,15 +313,28 @@ class DonationButton extends StatelessWidget {
   }
 }
 
-void _showCreateProjectDialog(BuildContext context) {
-  final TextEditingController controller = TextEditingController();
+Future<void> _showCreateProjectDialog(
+  BuildContext context, {
+  String? name,
+}) async {
+  final TextEditingController controller = TextEditingController(text: name);
   final formKey = GlobalKey<FormState>();
 
-  showDialog(
+  controller.addListener(() async {
+    await globalRestorationQuickstore.writeData(
+      newProjectNameKey,
+      controller.text,
+    );
+  });
+
+  return showRestorableDialog(
     context: context,
-    builder: (context) {
-      return CreateProjectDialog(formKey: formKey, controller: controller);
-    },
+    builder: (context) =>
+        CreateProjectDialog(formKey: formKey, controller: controller),
+    mainLabel: currentProjectSelectorDialogKey,
+    fieldLabels: [newProjectNameKey, newProjectImagePathKey],
+    mainLabelValue: ProjectDialog.createProjectDialog.name,
+    adminLocked: true,
   );
 }
 
@@ -291,9 +355,28 @@ class CreateProjectDialog extends StatefulWidget {
 class _CreateProjectDialogState extends State<CreateProjectDialog> {
   Future<XFile?>? _image;
   void setImage(Future<XFile?> image) {
+    writeNewImagePath(image);
     setState(() {
       _image = image;
     });
+  }
+
+  @override
+  void initState() {
+    if (globalRestorationQuickstore[newProjectImagePathKey] != null) {
+      _image = Future.value(
+        XFile(globalRestorationQuickstore[newProjectImagePathKey]),
+      );
+    }
+    super.initState();
+  }
+
+  Future<void> writeNewImagePath(Future<XFile?> fileFuture) async {
+    XFile? file = await fileFuture;
+    await globalRestorationQuickstore.writeData(
+      newProjectImagePathKey,
+      file?.path,
+    );
   }
 
   @override
@@ -604,8 +687,8 @@ class _SelectorListViewState extends State<SelectorListView> {
 
 ProjectSelectorState get _selectorState => appState.getProjectSelectorState();
 
-void _showBulkDeleteDialog(BuildContext context) {
-  showDialog(
+Future<void> _showBulkDeleteDialog(BuildContext context) async {
+  return showRestorableDialog(
     context: context,
     builder: (context) {
       List<String> toRemoveNames = _selectorState.selectedNotifier.dataAsDirs
@@ -660,6 +743,9 @@ void _showBulkDeleteDialog(BuildContext context) {
         ),
       );
     },
+    mainLabel: currentProjectSelectorDialogKey,
+    adminLocked: true,
+    mainLabelValue: ProjectDialog.bulkDeleteDialog.name,
   );
 }
 

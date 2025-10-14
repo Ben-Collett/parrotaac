@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_colorpicker/flutter_colorpicker.dart';
+import 'package:parrotaac/backend/global_restoration_data.dart';
 import 'package:parrotaac/backend/settings_utils.dart';
+import 'package:parrotaac/setting_screen.dart';
 import 'package:parrotaac/ui/util_widgets/settings_listenable.dart';
 
 class SettingsSwitchTile extends StatelessWidget {
@@ -37,27 +39,26 @@ class SettingsDropDown extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return SettingsListenable<String>(
-        label: label,
-        defaultValue: defaultValue,
-        builder: (val) {
-          return ListTile(
-            title: Text(label),
-            trailing: DropdownButton<String>(
-              value: val,
-              items: options
-                  .map(
-                    (option) => DropdownMenuItem(
-                      value: option,
-                      child: Text(option),
-                    ),
-                  )
-                  .toList(),
-              onChanged: (selection) {
-                setSetting(label, selection);
-              },
-            ),
-          );
-        });
+      label: label,
+      defaultValue: defaultValue,
+      builder: (val) {
+        return ListTile(
+          title: Text(label),
+          trailing: DropdownButton<String>(
+            value: val,
+            items: options
+                .map(
+                  (option) =>
+                      DropdownMenuItem(value: option, child: Text(option)),
+                )
+                .toList(),
+            onChanged: (selection) {
+              setSetting(label, selection);
+            },
+          ),
+        );
+      },
+    );
   }
 }
 
@@ -81,13 +82,9 @@ class SettingsColorChange extends StatelessWidget {
           trailing: MaterialButton(
             color: Color(val),
             onPressed: () {
-              _showColorPickerDialog(
-                context,
-                Color(val),
-                (color) {
-                  setSetting(label, color.toARGB32());
-                },
-              );
+              showAppbarColorPickerDialog(context, Color(val), (color) {
+                setSetting(label, color.toARGB32());
+              });
             },
           ),
         );
@@ -96,21 +93,29 @@ class SettingsColorChange extends StatelessWidget {
   }
 }
 
-void _showColorPickerDialog(
+Future<void> showAppbarColorPickerDialog(
   BuildContext context,
   Color initialColor,
   Function(Color) onChange,
-) {
-  showDialog(
-    context: context,
-    builder: (context) {
-      return AlertDialog(
-        title: Text("Appbar Color"),
-        content: SingleChildScrollView(
-          child:
-              ColorPicker(pickerColor: initialColor, onColorChanged: onChange),
-        ),
-      );
-    },
-  );
+) async {
+  await globalRestorationQuickstore.writeData(appbarColorOpenKey, true);
+  if (context.mounted) {
+    return showDialog(
+      context: context,
+      builder: (context) {
+        return AlertDialog(
+          title: Text("Appbar Color"),
+          content: SingleChildScrollView(
+            child: ColorPicker(
+              pickerColor: initialColor,
+              onColorChanged: onChange,
+            ),
+          ),
+        );
+      },
+    ).then(
+      (_) async =>
+          await globalRestorationQuickstore.removeFromKey(appbarColorOpenKey),
+    );
+  }
 }
