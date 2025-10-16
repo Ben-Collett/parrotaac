@@ -25,18 +25,19 @@ Future<void> showCreateBoardDialog(
     CreateBoard(rowCount: rowCount, colCount: colCount, name: name),
   );
   return showDialog(
-      context: context,
-      barrierDismissible: false,
-      builder: (context) {
-        return CreateBoardPopup(
-          boardHistory: boardHistory,
-          eventHandler: eventHandler,
-          history: history,
-          initialRowCount: rowCount,
-          initialColCount: colCount,
-          initialName: name,
-        );
-      }).then((_) => history?.popScreen());
+    context: context,
+    barrierDismissible: false,
+    builder: (context) {
+      return CreateBoardPopup(
+        boardHistory: boardHistory,
+        eventHandler: eventHandler,
+        history: history,
+        initialRowCount: rowCount,
+        initialColCount: colCount,
+        initialName: name,
+      );
+    },
+  ).then((_) => history?.popScreen());
 }
 
 class CreateBoardPopup extends StatefulWidget {
@@ -93,10 +94,12 @@ class _CreateBoardPopupState extends State<CreateBoardPopup> {
   @override
   void initState() {
     nameController = TextEditingController(text: widget.initialName);
-    rowCountController =
-        TextEditingController(text: widget.initialRowCount?.toString());
-    colCountController =
-        TextEditingController(text: widget.initialColCount?.toString());
+    rowCountController = TextEditingController(
+      text: widget.initialRowCount?.toString(),
+    );
+    colCountController = TextEditingController(
+      text: widget.initialColCount?.toString(),
+    );
 
     nameController.addListener(_updateName);
     rowCountController.addListener(_updateRowCount);
@@ -152,8 +155,12 @@ class _CreateBoardPopupState extends State<CreateBoardPopup> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              textInput("board name", nameController, width,
-                  hintOverride: "untitled board"),
+              textInput(
+                "board name",
+                nameController,
+                width,
+                hintOverride: "untitled board",
+              ),
               space(),
               textInput(
                 "number of rows",
@@ -171,7 +178,7 @@ class _CreateBoardPopupState extends State<CreateBoardPopup> {
                 hintOverride: "$defaultNumberOfCols",
                 inputFormatters: [FilteringTextInputFormatter.digitsOnly],
                 keyboardType: TextInputType.number,
-              )
+              ),
             ],
           ),
         ),

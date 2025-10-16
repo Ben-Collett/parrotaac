@@ -93,9 +93,9 @@ class RestorativeNavigator {
       }
     }
     if (context.mounted) {
-      return Navigator.of(context).pushReplacement(
-        MaterialPageRoute(builder: (_) => topScreen),
-      );
+      return Navigator.of(
+        context,
+      ).pushReplacement(MaterialPageRoute(builder: (_) => topScreen));
     }
   }
 
@@ -116,7 +116,9 @@ class RestorativeNavigator {
   }
 
   Future<dynamic> openProject(
-      BuildContext context, ParrotProject project) async {
+    BuildContext context,
+    ParrotProject project,
+  ) async {
     ProjectRestorationData restorationData =
         await ProjectRestorationData.fromPath(project.path);
     if (restorationData.currentBoardMode != BoardMode.normalMode) {
@@ -131,12 +133,10 @@ class RestorativeNavigator {
         return;
       }
     }
-    _quickStore.pushAndWrite(
-      {
-        _nameKey: ScreenName.grid.name,
-        "project_path": project.path,
-      },
-    );
+    _quickStore.pushAndWrite({
+      _nameKey: ScreenName.grid.name,
+      "project_path": project.path,
+    });
 
     project.settings = await ProjectSettings.fromProject(project);
 
@@ -161,7 +161,7 @@ class RestorativeNavigator {
         Future.wait([
           last.restorationData.close(),
           if (last.project.settings != null) last.project.settings!.close(),
-          if (last.restoreStream != null) last.restoreStream!.close()
+          if (last.restoreStream != null) last.restoreStream!.close(),
         ]);
       }
       screens.removeAt(screens.length - 1);
@@ -176,8 +176,9 @@ class RestorativeNavigator {
     for (final data in _quickStore.getAllData()) {
       if (data is Map && data['name'] is String) {
         final String name = data['name'];
-        final ScreenName? screenName =
-            ScreenName.values.where((n) => n.name == name).firstOrNull;
+        final ScreenName? screenName = ScreenName.values
+            .where((n) => n.name == name)
+            .firstOrNull;
         if (screenName == null) {
           continue;
         }
@@ -189,9 +190,7 @@ class RestorativeNavigator {
             doesNotNeedAdmin = true;
           case ScreenName.grid:
             topProject = ParrotProject.fromDirectory(
-              Directory(
-                data['project_path'],
-              ),
+              Directory(data['project_path']),
             );
             topProject.settings = await ProjectSettings.fromProject(topProject);
             BoardScreen boardScreen = await _getBoardScreen(topProject);
@@ -200,11 +199,7 @@ class RestorativeNavigator {
             doesNotNeedAdmin = boardScreen.isInNormalMode;
 
           case ScreenName.settings:
-            screens.add(
-              SettingsScreen(
-                project: topProject,
-              ),
-            );
+            screens.add(SettingsScreen(project: topProject));
             doesNotNeedAdmin = false;
         }
 
@@ -243,12 +238,16 @@ class RestorativeNavigator {
         .firstOrNull;
 
     final diff = RestorableButtonDiff(
-        changes: restorationData.openButtonDiff,
-        restoreStream: stream,
-        boardLinkingAction: boardLinkingAction);
+      changes: restorationData.openButtonDiff,
+      restoreStream: stream,
+      boardLinkingAction: boardLinkingAction,
+    );
     final popupHistory = BoardScreenPopupHistory(
-        restorationData.currentPopupHistory,
-        restoreSteam: stream);
+      restorationData.currentPopupHistory,
+      restoreSteam: stream,
+    );
+
+    restorationData.currentUndoStack;
 
     return BoardScreen(
       project: project,

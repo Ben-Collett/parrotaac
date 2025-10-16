@@ -35,7 +35,9 @@ class _BoardSelectScreenState extends State<BoardSelectScreen> {
   @override
   void initState() {
     _boardHistory = BoardHistoryStack(
-        maxHistorySize: 1, currentBoard: widget.startingBoard);
+      maxHistorySize: 1,
+      currentBoard: widget.startingBoard,
+    );
     _boardHistory.addListener(() {
       BoardScreenPopup? popup = widget.popupHistory?.topScreen;
       if (popup is SelectBoardScreen) {

@@ -16,7 +16,7 @@ const _apiExpirationTimeKey = "api_expiration";
 class User {
   final _UserData _userData;
   Future<http.Response> makeRequest(
-    Future<Response> Function(String) request,
+    Future<http.Response> Function(String) request,
   ) async {
     if (DateTime.now().isAfter(_userData.idExpirationTime)) {
       await _refreshIdToken();

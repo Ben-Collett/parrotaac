@@ -152,13 +152,20 @@ class _BoardScreenState extends State<BoardScreen> {
     );
 
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      eventHandler.bulkExecute(
-        restorationData.currentUndoStack,
-        updateUi: false,
-      );
+      if (!project.restored) {
+        eventHandler.bulkExecute(
+          restorationData.currentUndoStack,
+          updateUi: false,
+        );
 
-      eventHandler.setRedoStack(restorationData.currentRedoStack);
-      _sentenceController.update();
+        project.restored = true;
+
+        eventHandler.setRedoStack(restorationData.currentRedoStack);
+        _sentenceController.update();
+      } else {
+        eventHandler.setUndoStack(restorationData.currentUndoStack);
+        eventHandler.setRedoStack(restorationData.currentRedoStack);
+      }
     });
 
     super.initState();

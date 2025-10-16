@@ -22,6 +22,9 @@ final SvgPicture logo = SvgPicture.asset("assets/images/logo/white_bg.svg");
 
 class ParrotProject extends Obz with AACProject {
   String path;
+
+  ///stores if project has been updated during restoration by eventHandler
+  bool restored = false;
   ProjectSettings? settings;
 
   @override

@@ -5,7 +5,6 @@ import 'package:image_picker/image_picker.dart';
 import 'package:parrotaac/backend/global_restoration_data.dart';
 import 'package:parrotaac/backend/project/parrot_project.dart';
 import 'package:parrotaac/backend/project/project_interface.dart';
-import 'package:parrotaac/backend/simple_logger.dart';
 import 'package:parrotaac/project_selector_constants.dart';
 import 'package:parrotaac/restorative_navigator.dart';
 import 'package:parrotaac/state/application_state.dart';

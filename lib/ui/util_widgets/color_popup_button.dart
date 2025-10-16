@@ -16,8 +16,10 @@ class ColorPickerPopupButton extends StatefulWidget {
     this.onPressed,
     this.onChange,
     this.onClose,
-  }) : assert(notifier != null || initialColor != null,
-            "both notifier and initialColor can't be null");
+  }) : assert(
+         notifier != null || initialColor != null,
+         "both notifier and initialColor can't be null",
+       );
 
   @override
   State<ColorPickerPopupButton> createState() => _ColorPickerPopupButtonState();
@@ -25,11 +27,10 @@ class ColorPickerPopupButton extends StatefulWidget {
 
 class _ColorPickerPopupButtonState extends State<ColorPickerPopupButton> {
   late final ValueNotifier<Color> colorNotifier;
-  late final Color initialColor;
+  late Color initialColor;
   @override
   void initState() {
     colorNotifier = widget.notifier ?? ValueNotifier(widget.initialColor!);
-    initialColor = colorNotifier.value;
     super.initState();
   }
 
@@ -47,19 +48,22 @@ class _ColorPickerPopupButtonState extends State<ColorPickerPopupButton> {
       valueListenable: colorNotifier,
       builder: (context, value, child) {
         return MaterialButton(
-            color: value,
-            onPressed: () {
-              widget.onPressed?.call();
-              showColorPickerDialog(
-                context,
-                widget.notifier?.value ?? widget.initialColor!,
-                (color) {
-                  widget.onChange?.call(color);
-                  colorNotifier.value = color;
-                },
-              ).then((_) =>
-                  widget.onClose?.call(initialColor, colorNotifier.value));
-            });
+          color: value,
+          onPressed: () {
+            initialColor = colorNotifier.value;
+            widget.onPressed?.call();
+            showColorPickerDialog(
+              context,
+              widget.notifier?.value ?? widget.initialColor!,
+              (color) {
+                widget.onChange?.call(color);
+                colorNotifier.value = color;
+              },
+            ).then(
+              (_) => widget.onClose?.call(initialColor, colorNotifier.value),
+            );
+          },
+        );
       },
     );
   }

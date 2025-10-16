@@ -9,7 +9,7 @@ class BoardMode {
   final bool configOnButtonHold;
   final bool draggableButtons;
   final void Function(GridNotifier grid, ProjectEventHandler handler)
-      onPressedOverride;
+  onPressedOverride;
   final String asString;
 
   const BoardMode._({
@@ -21,40 +21,46 @@ class BoardMode {
   });
 
   static final builderMode = BoardMode._(
-      hideEmptySpotWidget: false,
-      configOnButtonHold: true,
-      draggableButtons: true,
-      onPressedOverride: _setGridToDefaultOnPress,
-      asString: "builder_mode");
+    hideEmptySpotWidget: false,
+    configOnButtonHold: true,
+    draggableButtons: true,
+    onPressedOverride: _setGridToDefaultOnPress,
+    asString: "builder_mode",
+  );
   static final deleteRowMode = BoardMode._(
-      hideEmptySpotWidget: false,
-      configOnButtonHold: true,
-      draggableButtons: true,
-      onPressedOverride: _setGridToDeleteRowMode,
-      asString: "delete_row_mode");
+    hideEmptySpotWidget: false,
+    configOnButtonHold: true,
+    draggableButtons: true,
+    onPressedOverride: _setGridToDeleteRowMode,
+    asString: "delete_row_mode",
+  );
   static final deleteColMode = BoardMode._(
-      hideEmptySpotWidget: false,
-      configOnButtonHold: true,
-      draggableButtons: true,
-      onPressedOverride: _setGridToDeleteColMode,
-      asString: "delete_col_mode");
+    hideEmptySpotWidget: false,
+    configOnButtonHold: true,
+    draggableButtons: true,
+    onPressedOverride: _setGridToDeleteColMode,
+    asString: "delete_col_mode",
+  );
   static final normalMode = BoardMode._(
-      hideEmptySpotWidget: true,
-      configOnButtonHold: false,
-      draggableButtons: false,
-      onPressedOverride: _setGridToDefaultOnPress,
-      asString: "normal_mode");
+    hideEmptySpotWidget: true,
+    configOnButtonHold: false,
+    draggableButtons: false,
+    onPressedOverride: _setGridToDefaultOnPress,
+    asString: "normal_mode",
+  );
 
   static List<BoardMode> get values => [
-        builderMode,
-        deleteRowMode,
-        deleteColMode,
-        normalMode,
-      ];
+    builderMode,
+    deleteRowMode,
+    deleteColMode,
+    normalMode,
+  ];
 }
 
 void _setGridToDefaultOnPress(
-    GridNotifier notfier, ProjectEventHandler handler) {
+  GridNotifier notfier,
+  ProjectEventHandler handler,
+) {
   notfier.forEach((obj) {
     if (obj is ParrotButtonNotifier) {
       obj.onPressOverride = null;

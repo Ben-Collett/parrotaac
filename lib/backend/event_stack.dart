@@ -21,8 +21,8 @@ class EventHistory {
     required this.executeEvent,
     VoidCallback? onUndoStackChange,
     VoidCallback? onRedoStackChange,
-  })  : _undoStack = QueueStack<ProjectEvent>(onChange: onUndoStackChange),
-        _redoStack = QueueStack<ProjectEvent>(onChange: onRedoStackChange);
+  }) : _undoStack = QueueStack<ProjectEvent>(onChange: onUndoStackChange),
+       _redoStack = QueueStack<ProjectEvent>(onChange: onRedoStackChange);
   void undo() {
     ProjectEvent event = _undoStack.pop();
     executeEvent(event.undoEvent(), true);
@@ -50,7 +50,8 @@ class EventHistory {
 
   void updateRedoStack(Iterable<ProjectEvent> events) =>
       _redoStack.update(events);
-
+  void updateUndoStack(Iterable<ProjectEvent> events) =>
+      _undoStack.update(events);
   ButtonData? getLastRemovedButton() {
     if (_removedButtons.isEmpty) {
       return null;

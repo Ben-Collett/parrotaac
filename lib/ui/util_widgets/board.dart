@@ -69,23 +69,23 @@ class _BoardWidgetState extends State<BoardWidget> {
   void initState() {
     _boardMode = widget.boardMode ?? ValueNotifier(BoardMode.normalMode);
 
-    Obf currentBoard = widget.project.root ??
-        Obf(
-          locale: "en",
-          name: defaultBoardName,
-          id: defaultID,
-        );
+    Obf currentBoard =
+        widget.project.root ??
+        Obf(locale: "en", name: defaultBoardName, id: defaultID);
 
-    history = widget.history ??
+    history =
+        widget.history ??
         BoardHistoryStack(
           maxHistorySize: historySize,
           currentBoard: currentBoard,
         );
 
-    _sentenceController = widget.sentenceBoxController ??
+    _sentenceController =
+        widget.sentenceBoxController ??
         SentenceBoxController(projectPath: widget.project.path);
 
-    _gridNotfier = widget.gridNotifier ??
+    _gridNotfier =
+        widget.gridNotifier ??
         GridNotifier(
           data: [],
           toWidget: (obj) {
@@ -101,7 +101,11 @@ class _BoardWidgetState extends State<BoardWidget> {
           },
           draggable: false,
           onSwap: (_, __, row, col) => _updateButtonNotfierOnDelete(
-              _gridNotfier.getWidget(row, col)!, widget.eventHandler, row, col),
+            _gridNotfier.getWidget(row, col)!,
+            widget.eventHandler,
+            row,
+            col,
+          ),
         );
 
     _gridNotfier.setData(_getButtonsFromObf(currentObf));
@@ -116,19 +120,21 @@ class _BoardWidgetState extends State<BoardWidget> {
       _gridNotfier.setData(_getButtonsFromObf(currentObf));
     });
 
-    BoardScreenPopup? popupToRecover =
-        widget.popupHistory?.removeNextToRecover();
+    BoardScreenPopup? popupToRecover = widget.popupHistory
+        ?.removeNextToRecover();
     if (popupToRecover is ButtonConfig) {
-      ParrotButtonNotifier? notifier =
-          findNotifierById(popupToRecover.buttonId);
+      ParrotButtonNotifier? notifier = findNotifierById(
+        popupToRecover.buttonId,
+      );
       if (notifier != null) {
         WidgetsBinding.instance.addPostFrameCallback(
           (_) => showConfigExistingPopup(
-              context: context,
-              controller: notifier,
-              restorableButtonDiff: widget.restorableButtonDiff,
-              popupHistory: widget.popupHistory,
-              writeHistory: false),
+            context: context,
+            controller: notifier,
+            restorableButtonDiff: widget.restorableButtonDiff,
+            popupHistory: widget.popupHistory,
+            writeHistory: false,
+          ),
         );
       }
     } else if (popupToRecover is ButtonCreate) {
@@ -146,15 +152,16 @@ class _BoardWidgetState extends State<BoardWidget> {
     history.addListener(_updateGridNoifierColor);
 
     //has to be a post framecallback to avoid updating notifier before building with it as that causes an error.
-    WidgetsBinding.instance
-        .addPostFrameCallback((_) => _updateGridNoifierColor());
+    WidgetsBinding.instance.addPostFrameCallback(
+      (_) => _updateGridNoifierColor(),
+    );
 
     super.initState();
   }
 
   void _updateGridNoifierColor() {
-    _gridNotfier.backgroundColorNotifier.value =
-        history.currentBoard.boardColor.toColor();
+    _gridNotfier.backgroundColorNotifier.value = history.currentBoard.boardColor
+        .toColor();
     _gridNotfier.emptySpotWidget = EmptySpotWidget(
       color: EmptySpotWidget.fromBackground(
         _gridNotfier.backgroundColorNotifier.value,
@@ -185,27 +192,27 @@ class _BoardWidgetState extends State<BoardWidget> {
     _gridNotfier.draggable = mode.draggableButtons;
     _gridNotfier.hideEmptySpotWidget = mode.hideEmptySpotWidget;
     _gridNotfier.toWidget = (button) => _toParrotButton(
-          button,
-          widget.eventHandler,
-          restorableButtonDiff: widget.restorableButtonDiff,
-          obf: history.currentBoard,
-        );
+      button,
+      widget.eventHandler,
+      restorableButtonDiff: widget.restorableButtonDiff,
+      obf: history.currentBoard,
+    );
     mode.onPressedOverride(_gridNotfier, widget.eventHandler);
 
     if (mode == BoardMode.builderMode) {
       _gridNotfier.onEmptyPressed = (row, col) => _showCreateNewButtonDialog(
-            row,
-            col,
-            widget.eventHandler,
-            restorableButtonDiff: widget.restorableButtonDiff,
-          );
+        row,
+        col,
+        widget.eventHandler,
+        restorableButtonDiff: widget.restorableButtonDiff,
+      );
     } else if (mode == BoardMode.deleteRowMode) {
       _gridNotfier.onEmptyPressed = (row, _) {
         widget.eventHandler.removeRow(row);
         mode.onPressedOverride(
-            _gridNotfier,
-            widget
-                .eventHandler); //updates the grid notifier to tell the buttons inside of it to delete the new row
+          _gridNotfier,
+          widget.eventHandler,
+        ); //updates the grid notifier to tell the buttons inside of it to delete the new row
         _gridNotfier.forEachIndexed((obj, int row, int col) {
           if (obj is ParrotButtonNotifier) {
             _updateButtonNotfierOnDelete(obj, widget.eventHandler, row, col);
@@ -231,7 +238,11 @@ class _BoardWidgetState extends State<BoardWidget> {
   }
 
   void _updateButtonNotfierOnDelete(
-      Object data, ProjectEventHandler eventHandler, int row, int col) {
+    Object data,
+    ProjectEventHandler eventHandler,
+    int row,
+    int col,
+  ) {
     if (data is ParrotButtonNotifier) {
       data.onDelete = () {
         eventHandler.removeButton(row, col);
@@ -248,7 +259,9 @@ class _BoardWidgetState extends State<BoardWidget> {
   }) {
     {
       ParrotButtonNotifier notifier = ParrotButtonNotifier(
-          project: widget.project, eventHandler: eventHandler);
+        project: widget.project,
+        eventHandler: eventHandler,
+      );
       restorableButtonDiff?.apply(notifier.data, project: widget.project);
       notifier.goToLinkedBoard = (_) {};
       widget.popupHistory?.pushScreen(
@@ -289,17 +302,10 @@ class _BoardWidgetState extends State<BoardWidget> {
                   notifier.data.id = Obz.generateButtonId(widget.project);
                   notifier.data.backgroundColor =
                       notifier.data.backgroundColor ??
-                          ColorData(
-                            red: 255,
-                            green: 255,
-                            blue: 255,
-                          );
-                  notifier.data.borderColor = notifier.data.borderColor ??
-                      ColorData(
-                        red: 255,
-                        green: 255,
-                        blue: 255,
-                      );
+                      ColorData(red: 255, green: 255, blue: 255);
+                  notifier.data.borderColor =
+                      notifier.data.borderColor ??
+                      ColorData(red: 255, green: 255, blue: 255);
 
                   eventHandler.addButton(row, col, notifier.data);
                   notifier.dispose();
@@ -439,8 +445,8 @@ class _BoardWidgetState extends State<BoardWidget> {
           if (showSentenceBar)
             ConstrainedBox(
               constraints: BoxConstraints(
-                  maxHeight:
-                      70), //TODO I should make a system where the size gives some but not as much as a flexible
+                maxHeight: 70,
+              ), //TODO I should make a system where the size gives some but not as much as a flexible
               child: SentenceBar(
                 sentenceBoxController: _sentenceController,
                 goBack: () {
@@ -451,13 +457,9 @@ class _BoardWidgetState extends State<BoardWidget> {
                 },
               ),
             ),
-          Expanded(
-            child: DraggableGrid(gridNotfier: _gridNotfier),
-          ),
+          Expanded(child: DraggableGrid(gridNotfier: _gridNotfier)),
         ];
-        return Column(
-          children: children,
-        );
+        return Column(children: children);
       },
     );
   }

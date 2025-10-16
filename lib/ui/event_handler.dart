@@ -70,6 +70,12 @@ class ProjectEventHandler {
     canRedo.value = events.isNotEmpty;
   }
 
+  void setUndoStack(Iterable<ProjectEvent> events) {
+    print("undo stack $events");
+    history.updateUndoStack(events);
+    canUndo.value = events.isNotEmpty;
+  }
+
   //TODO: I need to decide if adding and removing boards should go into the history and how to display those actions
   void execute(
     ProjectEvent event, {

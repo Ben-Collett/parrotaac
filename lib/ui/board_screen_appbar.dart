@@ -81,46 +81,47 @@ SettingsThemedAppbar boardScreenAppbar({
   return SettingsThemedAppbar(
     leading: leading,
     title: ValueListenableBuilder(
-        valueListenable: boardMode,
-        builder: (context, mode, child) {
-          bool inNormalMode = mode == BoardMode.normalMode;
-          IconData icon = inNormalMode ? Icons.handyman : Icons.close;
-          final builderModeButton = IconButton(
-              icon: Icon(icon),
-              onPressed: () {
-                if (inNormalMode) {
-                  showAdminLockPopup(
-                      context: context,
-                      onAccept: () {
-                        boardMode.value = BoardMode.builderMode;
-                        showSideBar.value = true;
-                      });
-                } else {
-                  boardMode.value = BoardMode.normalMode;
-                }
-              });
+      valueListenable: boardMode,
+      builder: (context, mode, child) {
+        bool inNormalMode = mode == BoardMode.normalMode;
+        IconData icon = inNormalMode ? Icons.handyman : Icons.close;
+        final builderModeButton = IconButton(
+          icon: Icon(icon),
+          onPressed: () {
+            if (inNormalMode) {
+              showAdminLockPopup(
+                context: context,
+                onAccept: () {
+                  boardMode.value = BoardMode.builderMode;
+                  showSideBar.value = true;
+                },
+              );
+            } else {
+              boardMode.value = BoardMode.normalMode;
+            }
+          },
+        );
 
-          return Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              Flexible(
-                  child: _getTitle(boardMode, titleController, eventHandler)),
-              if (!inNormalMode)
-                Flexible(
-                    child: Row(
-                  children: [undoButton, redoButton],
-                )),
-              Row(
-                children: [
-                  if (!inNormalMode) changeGridColorButton!,
-                  if (!inNormalMode) showSideBarButton,
-                  builderModeButton,
-                  settingsButton,
-                ],
-              )
-            ],
-          );
-        }),
+        return Row(
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          children: [
+            Flexible(
+              child: _getTitle(boardMode, titleController, eventHandler),
+            ),
+            if (!inNormalMode)
+              Flexible(child: Row(children: [undoButton, redoButton])),
+            Row(
+              children: [
+                if (!inNormalMode) changeGridColorButton!,
+                if (!inNormalMode) showSideBarButton,
+                builderModeButton,
+                settingsButton,
+              ],
+            ),
+          ],
+        );
+      },
+    ),
   );
 }
 
@@ -141,25 +142,27 @@ Widget _getTitle(
         return Flexible(
           child: IconButton(
             onPressed: () => showRenameTitlePopup(
-                context: context,
-                controller: titleController,
-                eventHandler: eventHandler),
+              context: context,
+              controller: titleController,
+              eventHandler: eventHandler,
+            ),
             icon: Icon(Icons.edit_outlined),
           ),
         );
       }
 
       return ValueListenableBuilder(
-          valueListenable: boardMode,
-          builder: (context, mode, _) {
-            bool editButtonShouldBeShown = mode != BoardMode.normalMode;
-            return Row(
-              children: [
-                Flexible(flex: 2, child: Text(title)),
-                if (editButtonShouldBeShown) editButton()
-              ],
-            );
-          });
+        valueListenable: boardMode,
+        builder: (context, mode, _) {
+          bool editButtonShouldBeShown = mode != BoardMode.normalMode;
+          return Row(
+            children: [
+              Flexible(flex: 2, child: Text(title)),
+              if (editButtonShouldBeShown) editButton(),
+            ],
+          );
+        },
+      );
     },
   );
 }
@@ -173,24 +176,23 @@ class ShowSideBarButton extends StatelessWidget {
     return SizedBox(
       width: 75,
       child: ValueListenableBuilder(
-          valueListenable: showSideBar,
-          builder: (context, val, child) {
-            final message = val ? "hide sidebar" : "show sidebar";
-            return TextButton(
-              onPressed: () => showSideBar.value = !val,
-              child: Text(
-                message,
-                textAlign: TextAlign.center,
-                style: TextStyle(
-                  color: computeContrastingColor(
-                    Color(
-                      getSetting(appBarColorLabel),
-                    ),
-                  ),
+        valueListenable: showSideBar,
+        builder: (context, val, child) {
+          final message = val ? "hide sidebar" : "show sidebar";
+          return TextButton(
+            onPressed: () => showSideBar.value = !val,
+            child: Text(
+              message,
+              textAlign: TextAlign.center,
+              style: TextStyle(
+                color: computeContrastingColor(
+                  Color(getSetting(appBarColorLabel)),
                 ),
               ),
-            );
-          }),
+            ),
+          );
+        },
+      ),
     );
   }
 }

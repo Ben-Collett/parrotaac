@@ -10,8 +10,11 @@ import 'package:parrotaac/ui/util_widgets/paint_button.dart';
 class BoardSidebar extends StatelessWidget {
   final ProjectEventHandler eventHandler;
   final ValueNotifier<BoardMode> boardMode;
-  const BoardSidebar(
-      {super.key, required this.eventHandler, required this.boardMode});
+  const BoardSidebar({
+    super.key,
+    required this.eventHandler,
+    required this.boardMode,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -27,7 +30,9 @@ class BoardSidebar extends StatelessWidget {
           width: shortSideLength,
           height: longSideLength,
           painter: ThreeSquarePainter(
-              circleType: CircleType.add, foregroundColor: foregroundColor),
+            circleType: CircleType.add,
+            foregroundColor: foregroundColor,
+          ),
         );
 
         final addRowButton = PaintedButton(
@@ -35,63 +40,65 @@ class BoardSidebar extends StatelessWidget {
           width: longSideLength,
           height: shortSideLength,
           painter: ThreeSquarePainter(
-              circleType: CircleType.add,
-              orientation: RectangleOrientation.horizontal,
-              foregroundColor: foregroundColor),
+            circleType: CircleType.add,
+            orientation: RectangleOrientation.horizontal,
+            foregroundColor: foregroundColor,
+          ),
         );
         return ValueListenableBuilder(
-            valueListenable: boardMode,
-            builder: (context, mode, child) {
-              final removeRowButton = Container(
-                color: boardMode.value == BoardMode.deleteRowMode
-                    ? Colors.grey
-                    : Colors.transparent,
-                child: PaintedButton(
-                  width: longSideLength,
-                  height: shortSideLength,
-                  onPressed: () {
-                    boardMode.value = mode == BoardMode.deleteRowMode
-                        ? BoardMode.builderMode
-                        : BoardMode.deleteRowMode;
-                  },
-                  painter: ThreeSquarePainter(
-                    orientation: RectangleOrientation.horizontal,
-                    circleType: CircleType.subtract,
-                    foregroundColor: foregroundColor,
-                  ),
+          valueListenable: boardMode,
+          builder: (context, mode, child) {
+            final removeRowButton = Container(
+              color: boardMode.value == BoardMode.deleteRowMode
+                  ? Colors.grey
+                  : Colors.transparent,
+              child: PaintedButton(
+                width: longSideLength,
+                height: shortSideLength,
+                onPressed: () {
+                  boardMode.value = mode == BoardMode.deleteRowMode
+                      ? BoardMode.builderMode
+                      : BoardMode.deleteRowMode;
+                },
+                painter: ThreeSquarePainter(
+                  orientation: RectangleOrientation.horizontal,
+                  circleType: CircleType.subtract,
+                  foregroundColor: foregroundColor,
                 ),
-              );
-              final removeColButton = Container(
-                color: boardMode.value == BoardMode.deleteColMode
-                    ? Colors.grey
-                    : Colors.transparent,
-                child: PaintedButton(
-                  onPressed: () {
-                    boardMode.value = mode == BoardMode.deleteColMode
-                        ? BoardMode.builderMode
-                        : BoardMode.deleteColMode;
-                  },
-                  height: longSideLength,
-                  width: shortSideLength,
-                  painter: ThreeSquarePainter(
-                    circleType: CircleType.subtract,
-                    foregroundColor: foregroundColor,
-                  ),
+              ),
+            );
+            final removeColButton = Container(
+              color: boardMode.value == BoardMode.deleteColMode
+                  ? Colors.grey
+                  : Colors.transparent,
+              child: PaintedButton(
+                onPressed: () {
+                  boardMode.value = mode == BoardMode.deleteColMode
+                      ? BoardMode.builderMode
+                      : BoardMode.deleteColMode;
+                },
+                height: longSideLength,
+                width: shortSideLength,
+                painter: ThreeSquarePainter(
+                  circleType: CircleType.subtract,
+                  foregroundColor: foregroundColor,
                 ),
-              );
+              ),
+            );
 
-              return ColoredBox(
-                color: Color(getSetting(appBarColorLabel)),
-                child: Column(
-                  children: [
-                    addColButton,
-                    addRowButton,
-                    removeColButton,
-                    removeRowButton
-                  ],
-                ),
-              );
-            });
+            return ColoredBox(
+              color: Color(getSetting(appBarColorLabel)),
+              child: Column(
+                children: [
+                  addColButton,
+                  addRowButton,
+                  removeColButton,
+                  removeRowButton,
+                ],
+              ),
+            );
+          },
+        );
       },
     );
   }

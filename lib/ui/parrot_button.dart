@@ -32,8 +32,8 @@ class ParrotButtonNotifier extends ChangeNotifier {
   VoidCallback? onPressOverride;
 
   set preferredAudioSource(PreferredAudioSourceType preferredAudioSource) {
-    _data.extendedProperties[preferredAudioSourceKey] =
-        preferredAudioSource.toString();
+    _data.extendedProperties[preferredAudioSourceKey] = preferredAudioSource
+        .toString();
   }
 
   bool get parrottActionModeEnabled {
@@ -49,7 +49,8 @@ class ParrotButtonNotifier extends ChangeNotifier {
 
   ParrotButtonShape get shape {
     return ParrotButtonShape.fromString(
-            data.extendedProperties[parrotButtonShapeKey]) ??
+          data.extendedProperties[parrotButtonShapeKey],
+        ) ??
         defaultButtonShape;
   }
 
@@ -139,21 +140,18 @@ class ParrotButtonNotifier extends ChangeNotifier {
   SentenceBoxController? boxController;
 
   ///must have a buttonData or a project or both
-  ParrotButtonNotifier(
-      {ButtonData? data,
-      bool holdToConfig = false,
-      void Function(Obf)? goToLinkedBoard,
-      this.boxController,
-      this.goHome,
-      this.project,
-      this.onPressOverride,
-      required this.eventHandler,
-      this.onDelete})
-      : _data = data ??
-            ButtonData(
-              id: Obz.generateButtonId(project),
-            ),
-        goToLinkedBoard = goToLinkedBoard ?? _defaultGoToLinkedBoard;
+  ParrotButtonNotifier({
+    ButtonData? data,
+    bool holdToConfig = false,
+    void Function(Obf)? goToLinkedBoard,
+    this.boxController,
+    this.goHome,
+    this.project,
+    this.onPressOverride,
+    required this.eventHandler,
+    this.onDelete,
+  }) : _data = data ?? ButtonData(id: Obz.generateButtonId(project)),
+       goToLinkedBoard = goToLinkedBoard ?? _defaultGoToLinkedBoard;
   AudioSource get audioSource {
     return _data.getSource(projectPath: projectPath);
   }
@@ -207,8 +205,8 @@ class ParrotButton extends StatelessWidget {
       if (buttonData.linkedBoard == null) {
         String? id = buttonData.loadBoardData?.id;
         if (id != null) {
-          buttonData.linkedBoard =
-              controller.eventHandler.project.findBoardById(id);
+          buttonData.linkedBoard = controller.eventHandler.project
+              .findBoardById(id);
         }
       }
       if (buttonData.linkedBoard != null) {
@@ -221,12 +219,12 @@ class ParrotButton extends StatelessWidget {
   }
 
   void onLongPress(BuildContext context) => showConfigExistingPopup(
-        context: context,
-        controller: controller,
-        restorableButtonDiff: restorableButtonDiff,
-        currentBoard: currentBoard,
-        popupHistory: popupHistory,
-      );
+    context: context,
+    controller: controller,
+    restorableButtonDiff: restorableButtonDiff,
+    currentBoard: currentBoard,
+    popupHistory: popupHistory,
+  );
 
   @override
   Widget build(BuildContext context) {
@@ -273,9 +271,9 @@ class StatelessParrotButton extends StatelessWidget {
     if (buttonData.label != null) {
       //for some reason dragging changes the text style/decorations if everything is not explicitly set
       text = Center(
-          child: Text(
-        buttonData.label!,
-        style: TextStyle(
+        child: Text(
+          buttonData.label!,
+          style: TextStyle(
             color: Colors.black,
             fontSize: 14,
             decoration: TextDecoration.none,
@@ -283,8 +281,10 @@ class StatelessParrotButton extends StatelessWidget {
             fontWeight: FontWeight.normal,
             textBaseline: TextBaseline.alphabetic,
             wordSpacing: .5,
-            letterSpacing: .25),
-      ));
+            letterSpacing: .25,
+          ),
+        ),
+      );
     }
 
     VoidCallback? onLongPress;
@@ -294,7 +294,8 @@ class StatelessParrotButton extends StatelessWidget {
       };
     }
 
-    ParrotButtonShape shape = ParrotButtonShape.fromString(
+    ParrotButtonShape shape =
+        ParrotButtonShape.fromString(
           buttonData.extendedProperties[parrotButtonShapeKey],
         ) ??
         defaultButtonShape;
