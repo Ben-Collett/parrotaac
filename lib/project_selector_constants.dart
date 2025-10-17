@@ -11,6 +11,7 @@ enum ProjectDialog {
   createProjectDialog,
   bulkDeleteDialog,
   normalDeleteDialog,
+  supportDialog,
   loginDialog;
 
   static ProjectDialog? fromName(dynamic name) =>

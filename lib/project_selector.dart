@@ -14,6 +14,7 @@ import 'package:parrotaac/ui/painters/heart.dart';
 import 'package:parrotaac/ui/popups/lock_popups/admin_lock.dart';
 import 'package:parrotaac/ui/popups/login_popup.dart';
 import 'package:parrotaac/ui/popups/show_restorable_popup.dart';
+import 'package:parrotaac/ui/popups/support_popup.dart';
 import 'package:parrotaac/ui/settings/settings_themed_appbar.dart';
 import 'package:parrotaac/ui/util_widgets/multi_listenable_builder.dart';
 import 'package:parrotaac/utils.dart';
@@ -124,6 +125,8 @@ class _ProjectSelectorState extends State<ProjectSelector> {
           showDeleteDisplayDataDialog(context, data);
         }
         break;
+      case ProjectDialog.supportDialog:
+        _showSupportPopup(context);
       case null:
         break;
     }
@@ -297,7 +300,7 @@ class DonationButton extends StatelessWidget {
     return Padding(
       padding: const EdgeInsets.all(2.0),
       child: ElevatedButton(
-        onPressed: () {},
+        onPressed: () => _showSupportPopup(context),
         style: ElevatedButton.styleFrom(
           padding: EdgeInsets.only(left: 8, right: 8),
         ),
@@ -746,6 +749,23 @@ Future<void> _showBulkDeleteDialog(BuildContext context) async {
     adminLocked: true,
     mainLabelValue: ProjectDialog.bulkDeleteDialog.name,
   );
+}
+
+Future<void> _showSupportPopup(BuildContext context) async {
+  await globalRestorationQuickstore.writeData(
+    currentProjectSelectorDialogKey,
+    ProjectDialog.supportDialog.name,
+  );
+  if (context.mounted) {
+    return showSupportDialog(
+      context,
+      quickStore: globalRestorationQuickstore,
+    ).then((_) async {
+      await globalRestorationQuickstore.removeFromKey(
+        currentProjectSelectorDialogKey,
+      );
+    });
+  }
 }
 
 Future<void> _bulkDelete(BuildContext context) async {
