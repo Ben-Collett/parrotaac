@@ -47,6 +47,7 @@ class ProjectDirsListener extends ChangeNotifier {
       for (final action in _onDeleteListeners) {
         action(data);
       }
+      notifyListeners();
     } else {
       SimpleLogger().logError("removed display data that doesn't exist: $data");
     }
