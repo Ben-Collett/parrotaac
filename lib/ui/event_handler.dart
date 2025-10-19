@@ -71,7 +71,6 @@ class ProjectEventHandler {
   }
 
   void setUndoStack(Iterable<ProjectEvent> events) {
-    print("undo stack $events");
     history.updateUndoStack(events);
     canUndo.value = events.isNotEmpty;
   }

@@ -38,9 +38,7 @@ TextEditingController generateStoredTextController(
   );
 
   out.addListener(() async {
-    if (storage[label] != out.text) {
-      await storage.writeData(label, out.text);
-    }
+    await storage.writeData(label, out.text);
   });
 
   return out;

@@ -1,6 +1,7 @@
 import 'dart:io';
 
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:parrotaac/backend/global_restoration_data.dart';
 import 'package:parrotaac/backend/project/parrot_project.dart';
@@ -8,6 +9,7 @@ import 'package:parrotaac/backend/project/project_interface.dart';
 import 'package:parrotaac/project_selector_constants.dart';
 import 'package:parrotaac/restorative_navigator.dart';
 import 'package:parrotaac/state/application_state.dart';
+import 'package:parrotaac/state/get_stored_notifiers.dart';
 import 'package:parrotaac/state/project_dir_state.dart';
 import 'package:parrotaac/state/project_selector_state.dart';
 import 'package:parrotaac/ui/painters/heart.dart';
@@ -16,6 +18,7 @@ import 'package:parrotaac/ui/popups/login_popup.dart';
 import 'package:parrotaac/ui/popups/show_restorable_popup.dart';
 import 'package:parrotaac/ui/popups/support_popup.dart';
 import 'package:parrotaac/ui/settings/settings_themed_appbar.dart';
+import 'package:parrotaac/ui/util_widgets/gap.dart';
 import 'package:parrotaac/ui/util_widgets/multi_listenable_builder.dart';
 import 'package:parrotaac/utils.dart';
 
@@ -106,10 +109,7 @@ class _ProjectSelectorState extends State<ProjectSelector> {
         showSigninPopup(context);
         break;
       case ProjectDialog.createProjectDialog:
-        _showCreateProjectDialog(
-          context,
-          name: globalRestorationQuickstore[newProjectNameKey],
-        );
+        _showCreateProjectDialog(context);
         break;
       case ProjectDialog.bulkDeleteDialog:
         _showBulkDeleteDialog(context);
@@ -315,40 +315,28 @@ class DonationButton extends StatelessWidget {
   }
 }
 
-Future<void> _showCreateProjectDialog(
-  BuildContext context, {
-  String? name,
-}) async {
-  final TextEditingController controller = TextEditingController(text: name);
+Future<void> _showCreateProjectDialog(BuildContext context) async {
   final formKey = GlobalKey<FormState>();
-
-  controller.addListener(() async {
-    await globalRestorationQuickstore.writeData(
-      newProjectNameKey,
-      controller.text,
-    );
-  });
 
   return showRestorableDialog(
     context: context,
-    builder: (context) =>
-        CreateProjectDialog(formKey: formKey, controller: controller),
+    builder: (context) => CreateProjectDialog(formKey: formKey),
     mainLabel: currentProjectSelectorDialogKey,
-    fieldLabels: [newProjectNameKey, newProjectImagePathKey],
+    fieldLabels: [
+      newProjectNameKey,
+      newProjectImagePathKey,
+      newRowCountkey,
+      newColCountkey,
+    ],
     mainLabelValue: ProjectDialog.createProjectDialog.name,
     adminLocked: true,
   );
 }
 
 class CreateProjectDialog extends StatefulWidget {
-  const CreateProjectDialog({
-    super.key,
-    required this.formKey,
-    required this.controller,
-  });
+  const CreateProjectDialog({super.key, required this.formKey});
 
   final GlobalKey<FormState> formKey;
-  final TextEditingController controller;
 
   @override
   State<CreateProjectDialog> createState() => _CreateProjectDialogState();
@@ -356,6 +344,12 @@ class CreateProjectDialog extends StatefulWidget {
 
 class _CreateProjectDialogState extends State<CreateProjectDialog> {
   Future<XFile?>? _image;
+  late final TextEditingController titleController;
+  late final TextEditingController rowCountController;
+  late final TextEditingController colCountController;
+  static const defaultRowCount = 3;
+  static const defaultColCount = 3;
+
   void setImage(Future<XFile?> image) {
     writeNewImagePath(image);
     setState(() {
@@ -365,12 +359,34 @@ class _CreateProjectDialogState extends State<CreateProjectDialog> {
 
   @override
   void initState() {
+    titleController = generateStoredTextController(
+      globalRestorationQuickstore,
+      newProjectNameKey,
+    );
+
+    rowCountController = generateStoredTextController(
+      globalRestorationQuickstore,
+      newRowCountkey,
+    );
+
+    colCountController = generateStoredTextController(
+      globalRestorationQuickstore,
+      newColCountkey,
+    );
     if (globalRestorationQuickstore[newProjectImagePathKey] != null) {
       _image = Future.value(
         XFile(globalRestorationQuickstore[newProjectImagePathKey]),
       );
     }
     super.initState();
+  }
+
+  @override
+  void dispose() {
+    titleController.dispose();
+    rowCountController.dispose();
+    colCountController.dispose();
+    super.dispose();
   }
 
   Future<void> writeNewImagePath(Future<XFile?> fileFuture) async {
@@ -408,7 +424,7 @@ class _CreateProjectDialogState extends State<CreateProjectDialog> {
                           .toList();
                       List<Widget> column = [
                         TextFormField(
-                          controller: widget.controller,
+                          controller: titleController,
                           validator: (text) => validate(text, displayNames),
                           decoration: InputDecoration(
                             border: OutlineInputBorder(),
@@ -426,9 +442,12 @@ class _CreateProjectDialogState extends State<CreateProjectDialog> {
                                 return SizedBox(width: 0, height: 0);
                               }
                               XFile data = snapshot.requireData!;
-                              return ConstrainedBox(
-                                constraints: BoxConstraints(maxHeight: 100),
-                                child: imageFromPath(data.path),
+                              return Padding(
+                                padding: const EdgeInsets.all(8.0),
+                                child: ConstrainedBox(
+                                  constraints: BoxConstraints(maxHeight: 100),
+                                  child: imageFromPath(data.path),
+                                ),
                               );
                             },
                           ),
@@ -438,6 +457,50 @@ class _CreateProjectDialogState extends State<CreateProjectDialog> {
                         TextButton(
                           child: Text("select project image"),
                           onPressed: () => setImage(getImage()),
+                        ),
+                      );
+                      column.add(
+                        Column(
+                          children: [
+                            Text("root board starting size:"),
+                            SizedBox(
+                              width: maxWidth,
+                              height: 40,
+                              child: TextFormField(
+                                controller: rowCountController,
+                                inputFormatters: [
+                                  FilteringTextInputFormatter.digitsOnly,
+                                ],
+                                keyboardType: TextInputType.number,
+
+                                decoration: InputDecoration(
+                                  hintText: "$defaultRowCount",
+                                  border: OutlineInputBorder(),
+
+                                  labelText: "Row Count",
+                                ),
+                              ),
+                            ),
+                            VerticalGap(maxHeight: 8),
+
+                            SizedBox(
+                              width: maxWidth,
+                              height: 40,
+                              child: TextFormField(
+                                controller: colCountController,
+
+                                inputFormatters: [
+                                  FilteringTextInputFormatter.digitsOnly,
+                                ],
+                                keyboardType: TextInputType.number,
+                                decoration: InputDecoration(
+                                  hintText: "$defaultColCount",
+                                  border: OutlineInputBorder(),
+                                  labelText: "Column Count",
+                                ),
+                              ),
+                            ),
+                          ],
                         ),
                       );
 
@@ -471,11 +534,25 @@ class _CreateProjectDialogState extends State<CreateProjectDialog> {
               }
 
               final path = await determineValidProjectPath(
-                widget.controller.text,
+                titleController.text,
               );
+
+              int rowCount =
+                  int.tryParse(rowCountController.text) ?? defaultRowCount;
+
+              int colCount =
+                  int.tryParse(colCountController.text) ?? defaultColCount;
+
+              if (colCount == 0 && rowCount != 0) {
+                colCount = 1;
+              } else if (rowCount == 0 && colCount != 0) {
+                colCount = 1;
+              }
               await writeDefaultProject(
-                widget.controller.text,
+                titleController.text,
                 path: path,
+                rowCount: rowCount,
+                colCount: colCount,
                 projectImagePath: imagePath,
               );
 

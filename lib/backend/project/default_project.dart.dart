@@ -11,9 +11,11 @@ Future<ParrotProject> writeDefaultProject(
   String projectName, {
   required String path,
   String? projectImagePath,
+  required int rowCount,
+  required int colCount,
 }) async {
   ParrotProject project = ParrotProject(
-    boards: [Obf.fromJsonString(defaultRootObf)],
+    boards: [Obf.fromJsonString(defaultRootBoardFromSize(rowCount, colCount))],
     path: path,
     name: projectName,
   );

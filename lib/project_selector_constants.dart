@@ -1,5 +1,7 @@
 const currentProjectSelectorDialogKey = "current project dialog";
 const newProjectNameKey = "selector new project name";
+const newRowCountkey = "selector new row count";
+const newColCountkey = "selector new col count";
 const newProjectImagePathKey = "selector new project image path";
 const selectedProjectNamesKey = "selector selected names";
 const normalDeleteNameKey = "selector normal delete name";
