@@ -388,22 +388,7 @@ class _GridCellState extends State<GridCell> {
 
     if (widget.value.value == null &&
         widget.gridNotifier.emptySpotWidget != null) {
-      child = DragTarget<Cell>(
-        builder: (context, List<Cell?> acceptData, List<Object?> rejectData) =>
-            Listener(
-              onPointerDown: (_) => widget.gridNotifier.onEmptyPressed?.call(
-                widget.value.row,
-                widget.value.col,
-              ),
-              child: widget.gridNotifier.emptySpotWidget!,
-            ),
-        onAcceptWithDetails: (d) => widget.gridNotifier.move(
-          oldRow: d.data.row,
-          oldCol: d.data.col,
-          newRow: widget.value.row,
-          newCol: widget.value.col,
-        ),
-      );
+      child = EmptySpotDragTarget(widget: widget);
     } else if (widget.value.value != null &&
         widget.gridNotifier.toWidget != null &&
         widget.gridNotifier.draggable) {
@@ -426,6 +411,92 @@ class _GridCellState extends State<GridCell> {
     }
 
     return child;
+  }
+}
+
+class EmptySpotDragTarget extends StatefulWidget {
+  const EmptySpotDragTarget({super.key, required this.widget});
+
+  final GridCell widget;
+
+  @override
+  State<EmptySpotDragTarget> createState() => _EmptySpotDragTargetState();
+}
+
+class _EmptySpotDragTargetState extends State<EmptySpotDragTarget> {
+  bool _isHovering = false;
+
+  @override
+  Widget build(BuildContext context) {
+    return DragTarget<Cell>(
+      onWillAcceptWithDetails: (data) {
+        setState(() => _isHovering = true);
+        return true;
+      },
+      onLeave: (_) {
+        setState(() => _isHovering = false);
+      },
+      onAcceptWithDetails: (details) {
+        setState(() => _isHovering = false);
+        widget.widget.gridNotifier.move(
+          oldRow: details.data.row,
+          oldCol: details.data.col,
+          newRow: widget.widget.value.row,
+          newCol: widget.widget.value.col,
+        );
+      },
+      builder: (context, List<Cell?> accepted, List<Object?> rejected) {
+        if (_isHovering) {
+          return ColoredBox(color: Colors.lightGreenAccent);
+        }
+        return InteractiveEmptySpotWidget(widget: widget.widget);
+      },
+    );
+  }
+}
+
+class InteractiveEmptySpotWidget extends StatefulWidget {
+  const InteractiveEmptySpotWidget({super.key, required this.widget});
+
+  final GridCell widget;
+
+  @override
+  State<InteractiveEmptySpotWidget> createState() =>
+      _InteractiveEmptySpotWidgetState();
+}
+
+class _InteractiveEmptySpotWidgetState
+    extends State<InteractiveEmptySpotWidget> {
+  late final ValueNotifier<Color> backgroundColorNotifier;
+  @override
+  void initState() {
+    backgroundColorNotifier = ValueNotifier(Colors.white);
+    super.initState();
+  }
+
+  @override
+  void dispose() {
+    backgroundColorNotifier.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return ValueListenableBuilder(
+      valueListenable: widget.widget.gridNotifier.backgroundColorNotifier,
+      builder: (context, value, child) {
+        return Material(
+          color: value,
+          child: InkWell(
+            onTap: () => widget.widget.gridNotifier.onEmptyPressed?.call(
+              widget.widget.value.row,
+              widget.widget.value.col,
+            ),
+            child: widget.widget.gridNotifier.emptySpotWidget!,
+          ),
+        );
+      },
+    );
   }
 }
 

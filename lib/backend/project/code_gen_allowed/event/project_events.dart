@@ -1,3 +1,5 @@
+import 'dart:ui';
+
 import 'package:json_annotation/json_annotation.dart';
 import 'package:openboard_wrapper/button_data.dart';
 import 'package:openboard_wrapper/color_data.dart';
@@ -12,6 +14,7 @@ import 'package:parrotaac/extensions/color_extensions.dart';
 import 'package:parrotaac/extensions/obf_extensions.dart';
 import 'package:parrotaac/ui/event_handler.dart';
 import 'package:parrotaac/ui/parrot_button.dart';
+import 'package:parrotaac/ui/widgets/empty_spot.dart';
 part 'project_events.g.dart';
 
 abstract class ProjectEvent {
@@ -682,6 +685,11 @@ class ChangeBoardColor extends ProjectEvent {
     if (handler.autoUpdateUi) {
       handler.gridNotfier.backgroundColorNotifier.value = board.boardColor
           .toColor();
+      handler.gridNotfier.emptySpotWidget = EmptySpotWidget(
+        color: EmptySpotWidget.fromBackground(
+          handler.gridNotfier.backgroundColorNotifier.value,
+        ),
+      );
     }
   }
 }
