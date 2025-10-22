@@ -2,6 +2,7 @@ import 'dart:convert';
 import 'package:http/http.dart' as http;
 import 'package:parrotaac/backend/server/firebase_responses.dart';
 import 'package:parrotaac/backend/server/user.dart';
+import 'package:parrotaac/backend/simple_logger.dart';
 
 import 'firebase_constants.dart';
 
@@ -27,7 +28,7 @@ class FirebaseAuthApi {
         CreateAccountResponse.fromJson(jsonDecode(response.body)),
       );
     } else {
-      print('Error: ${response.body}');
+      SimpleLogger().logError('Error: ${response.body}');
       return null;
     }
   }
@@ -53,7 +54,7 @@ class FirebaseAuthApi {
       );
       return User.fromLogin(loginResponse);
     } else {
-      print('Error: ${response.body}');
+      SimpleLogger().logError('Error: ${response.body}');
       return null;
     }
   }

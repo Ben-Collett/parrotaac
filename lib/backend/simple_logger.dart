@@ -11,7 +11,7 @@ class SimpleLogger {
 
   factory SimpleLogger() => _instance;
 
-  void logInfo(String message) {
+  void logInfo(dynamic message) {
     _logger.i(message);
   }
 

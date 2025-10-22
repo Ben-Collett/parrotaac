@@ -1,5 +1,8 @@
 import 'package:flutter/foundation.dart';
+import 'package:http/http.dart' as http;
 import 'package:parrotaac/backend/server/firebase_auth.dart';
+import 'package:parrotaac/backend/server/firebase_database.dart';
+import 'package:parrotaac/extensions/http_extensions.dart';
 
 import 'user.dart';
 
@@ -17,7 +20,18 @@ Future<void> restoreUser() async {
 
 Future<void> createAccountAndSignIn(String email, String password) async {
   User? user = await FirebaseAuthApi.signUp(email, password);
+
   if (user != null) {
+    final http.Response response = await addUserToDatabase(user);
+    assert(response.isSuccessfulResponse, """
+      response was not valid for adding user to database
+      response_header: ${response.headers}
+      response_body: ${response.body}
+      request_headers: ${response.request?.headers}
+      request_url: ${response.request?.url}
+
+      """);
+
     currentUser.value = user;
   }
 }

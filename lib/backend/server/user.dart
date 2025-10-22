@@ -9,12 +9,15 @@ import 'package:parrotaac/extensions/http_extensions.dart';
 import 'firebase_constants.dart';
 
 const _emailKey = 'email';
+const _userIdKey = 'local_id';
 const _refreshTokenKey = "refresh_token";
 const _idTokenKey = "id_token";
 const _apiExpirationTimeKey = "api_expiration";
 
 class User {
   final _UserData _userData;
+  String get email => _userData.email;
+  String get uid => _userData.uid;
   Future<http.Response> makeRequest(
     Future<http.Response> Function(String) request,
   ) async {
@@ -111,6 +114,7 @@ class User {
       ),
       FlutterSecureStorage().write(key: _idTokenKey, value: _userData.idToken),
       FlutterSecureStorage().write(key: _emailKey, value: _userData.email),
+      FlutterSecureStorage().write(key: _userIdKey, value: uid),
     ]);
   }
 
@@ -120,6 +124,7 @@ class User {
       FlutterSecureStorage().delete(key: _idTokenKey),
       FlutterSecureStorage().delete(key: _apiExpirationTimeKey),
       FlutterSecureStorage().delete(key: _emailKey),
+      FlutterSecureStorage().delete(key: _userIdKey),
     ]);
   }
 
@@ -129,6 +134,7 @@ class User {
           email: response.email,
           refreshToken: response.refreshToken,
           idToken: response.idToken,
+          uid: response.localId,
           idExpirationTime: _calcExpirationTime(int.parse(response.expiresIn)),
         ),
       );
@@ -149,6 +155,7 @@ class User {
 
 class _UserData {
   final String email;
+  final String uid;
   String refreshToken;
   String idToken;
   DateTime idExpirationTime;
@@ -157,6 +164,7 @@ class _UserData {
     required this.email,
     required this.refreshToken,
     required this.idToken,
+    required this.uid,
     required this.idExpirationTime,
   });
 
@@ -167,6 +175,7 @@ class _UserData {
       store.read(key: _idTokenKey),
       store.read(key: _refreshTokenKey),
       store.read(key: _apiExpirationTimeKey),
+      store.read(key: _userIdKey),
     ]);
 
     if (results.contains(null)) {
@@ -178,6 +187,7 @@ class _UserData {
       idToken: results[1]!,
       refreshToken: results[2]!,
       idExpirationTime: DateTime.tryParse(results[3]!) ?? DateTime.now(),
+      uid: results[4]!,
     );
   }
 
