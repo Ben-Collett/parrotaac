@@ -17,7 +17,6 @@ import 'package:parrotaac/audio_player.dart';
 import 'package:parrotaac/audio_recorder.dart';
 import 'package:parrotaac/backend/history_stack.dart';
 import 'package:parrotaac/backend/project/parrot_project.dart';
-import 'package:parrotaac/backend/project/temp_files.dart';
 import 'package:parrotaac/backend/simple_logger.dart';
 import 'package:parrotaac/backend/symbol_sets/symbol_set.dart';
 import 'package:parrotaac/extensions/color_extensions.dart';
@@ -673,19 +672,17 @@ class _ButtonConfigPopupState extends State<ButtonConfigPopup> {
                 }
 
                 final projectPath = buttonController.projectPath!;
-                final audioPath = tmpAudioPath(projectPath);
+                final audioPath = buttonController.project!.audioPath;
                 if (!isRecording) {
                   final audioDir = Directory(audioPath);
                   audioDir.createSync(recursive: true);
                   String name = recordedAudioString;
 
-                  Iterable<String> existingNames = Directory(audioPath)
-                      .listSync()
-                      .whereType<File>()
-                      .map((f) => f.path)
-                      .map(p.basenameWithoutExtension);
+                  List<String> existingNames = await _audioFileNames;
 
                   name = determineNoncollidingPath(name, existingNames);
+                  existingNames.add(name);
+
                   MyAudioRecorder().start(
                     parentDirectory: audioDir,
                     fileName: name,

@@ -191,23 +191,6 @@ class _BoardScreenState extends State<BoardScreen> {
     }
   }
 
-  Future<void> _finalizeTempFiles() async {
-    await _finalizeTempImages();
-    await _finalizeTempAudioFiles();
-  }
-
-  Future<void> _finalizeTempImages() async {
-    Map<String, String> paths = widget.project.mapTempImageToPermantSpot();
-    widget.project.moveFiles(paths);
-    widget.project.updateImagePathReferencesInProject(paths);
-  }
-
-  Future<void> _finalizeTempAudioFiles() async {
-    Map<String, String> paths = widget.project.mapTempAudioToPermantSpot();
-    widget.project.moveFiles(paths);
-    widget.project.updateAudioPathReferencesInProject(paths);
-  }
-
   Future<void> writeToDisk(Iterable<String> boardsToWrite) async {
     await widget.project.write(updatedBoards: boardsToWrite.toSet());
   }

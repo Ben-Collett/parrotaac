@@ -9,7 +9,6 @@ import 'package:openboard_wrapper/sound_data.dart';
 import 'package:parrotaac/backend/project/board/parrot_board.dart';
 import 'package:parrotaac/backend/project/manifest_utils.dart';
 import 'package:parrotaac/backend/project/project_settings.dart';
-import 'package:parrotaac/backend/project/temp_files.dart';
 import 'package:parrotaac/file_utils.dart';
 import 'package:parrotaac/utils.dart';
 import 'package:path/path.dart' as p;
@@ -87,71 +86,6 @@ class ParrotProject extends Obz with AACProject {
       return null;
     }
     return ParrotProject.fromDirectory(dir);
-  }
-
-  void deleteTempFiles() {
-    Directory dir = Directory(tmpImagePath(path));
-    if (dir.existsSync()) {
-      dir.deleteSync();
-    }
-    Directory audio = Directory(tmpAudioPath(path));
-    if (audio.existsSync()) {
-      audio.deleteSync();
-    }
-  }
-
-  Future<Iterable<File>> getTempImages() {
-    Directory tempImages = Directory(tmpImagePath(path));
-
-    return tempImages.exists().then((exist) {
-      if (exist) {
-        return tempImages.listSync().whereType<File>();
-      } else {
-        return [];
-      }
-    });
-  }
-
-  Future<Iterable<File>> getTempAudio() {
-    Directory tempAudio = Directory(tmpAudioPath(path));
-
-    return tempAudio.exists().then((exist) {
-      if (exist) {
-        return tempAudio.listSync().whereType<File>();
-      } else {
-        return [];
-      }
-    });
-  }
-
-  ///maps all the temporary images in projectPath/image/tmp to locations in projectPath/image. Doesn't actually move the files
-  Map<String, String> mapTempImageToPermantSpot() {
-    Map<String, String> out = {};
-    String imagesPath = p.join(path, 'images');
-    Directory images = Directory(imagesPath);
-    if (!images.existsSync()) {
-      return {};
-    }
-    out = mapDirectoryContentToOtherDir(
-      inputDir: Directory(tmpImagePath(path)),
-      outputDir: images,
-    );
-    return out;
-  }
-
-  ///maps all the temporary images in projectPath/audio/tmp to locations in projectPath/image. Doesn't actually move the files
-  Map<String, String> mapTempAudioToPermantSpot() {
-    Map<String, String> out = {};
-    String audioPath = p.join(path, 'audio');
-    Directory audio = Directory(audioPath);
-    if (!audio.existsSync()) {
-      return {};
-    }
-    out = mapDirectoryContentToOtherDir(
-      inputDir: Directory(tmpAudioPath(path)),
-      outputDir: audio,
-    );
-    return out;
   }
 
   ///[map] tells the function where to move the old file from to it's new path
