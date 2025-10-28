@@ -34,7 +34,9 @@ class ProjectRestorationData {
       _quickStoreName,
       path: path,
     );
+
     if (quickStore.isNotInitialized) await quickStore.initialize();
+
     return ProjectRestorationData._(quickStore);
   }
 

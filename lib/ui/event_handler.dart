@@ -7,6 +7,7 @@ import 'package:parrotaac/backend/event_stack.dart';
 import 'package:parrotaac/backend/history_stack.dart';
 import 'package:parrotaac/backend/project/code_gen_allowed/event/project_events.dart';
 import 'package:parrotaac/backend/project/parrot_project.dart';
+import 'package:parrotaac/backend/project/patch.dart';
 import 'package:parrotaac/extensions/color_extensions.dart';
 import 'package:parrotaac/extensions/map_extensions.dart';
 import 'package:parrotaac/ui/board_modes.dart';
@@ -22,6 +23,7 @@ class ProjectEventHandler {
   bool gridNeedsUpdate = false;
   bool autoUpdateUi = true;
   final BoardHistoryStack boardHistory;
+  final Patch? currentPatch;
 
   final ValueNotifier<BoardMode> modeNotifier;
 
@@ -54,6 +56,7 @@ class ProjectEventHandler {
     required this.modeNotifier,
     required this.titleController,
     required this.boxController,
+    this.currentPatch,
     this.restoreStream,
   });
 
@@ -74,6 +77,8 @@ class ProjectEventHandler {
     history.updateUndoStack(events);
     canUndo.value = events.isNotEmpty;
   }
+
+  List<ProjectEvent> currentlyExecutedEvents() => history.undoList;
 
   //TODO: I need to decide if adding and removing boards should go into the history and how to display those actions
   void execute(
@@ -203,18 +208,18 @@ class ProjectEventHandler {
     }
 
     _updatedBoardCount.increment(currentBoard.id);
-    history.add(
-      ConfigButton(
-        boardId: currentBoard.id,
-        buttonId: buttonId,
-        diff: diff,
-        undoChanges: undoDiff,
-        originalImage: originalImageJson,
-        originalSound: originalSoundJson,
-        newSound: newSoundJson,
-        newImage: newImageJson,
-      ),
+    final event = ConfigButton(
+      boardId: currentBoard.id,
+      buttonId: buttonId,
+      diff: diff,
+      undoChanges: undoDiff,
+      originalImage: originalImageJson,
+      originalSound: originalSoundJson,
+      newSound: newSoundJson,
+      newImage: newImageJson,
     );
+    history.add(event);
+    event.updatePatch(this);
     canUndo.value = true;
     canRedo.value = false;
   }

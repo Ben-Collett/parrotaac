@@ -1,3 +1,4 @@
+//TODO: I need some sort of resource ref count to handle deleting files
 import 'dart:io';
 
 import 'package:flutter/foundation.dart';
@@ -20,6 +21,7 @@ import 'package:parrotaac/backend/project/temp_files.dart';
 import 'package:parrotaac/backend/simple_logger.dart';
 import 'package:parrotaac/backend/symbol_sets/symbol_set.dart';
 import 'package:parrotaac/extensions/color_extensions.dart';
+import 'package:parrotaac/extensions/directory_extensions.dart';
 import 'package:parrotaac/extensions/image_extensions.dart';
 import 'package:parrotaac/extensions/map_extensions.dart';
 import 'package:parrotaac/file_utils.dart';
@@ -235,6 +237,8 @@ class _ButtonConfigPopupState extends State<ButtonConfigPopup> {
   late final BoardLinkingActionMode startingMode;
   late final PreferredAudioSourceType startingAudioSource;
   late final Obf currentBoard;
+  late final Future<List<String>> _audioFileNames;
+  late final Future<List<String>> _imageFileNames;
 
   ColorData? get currentBackgroundColor =>
       widget.buttonController.data.backgroundColor;
@@ -252,10 +256,22 @@ class _ButtonConfigPopupState extends State<ButtonConfigPopup> {
     super.dispose();
   }
 
-  ///the last image set after opening the create screen, this will be null until the user sets an image, even if the board being edited already had an image
-  File? lastSetTempImage;
+  File? lastSetImage;
   @override
   void initState() {
+    String toName(FileSystemEntity entity) =>
+        p.basenameWithoutExtension(entity.path);
+    List<String> mapToName(List<FileSystemEntity> entities) =>
+        entities.map(toName).toList();
+
+    _audioFileNames = Directory(
+      "${project?.path}/sounds",
+    ).toListFuture().then(mapToName);
+
+    _imageFileNames = Directory(
+      "${project?.path}/images",
+    ).toListFuture().then(mapToName);
+
     buttonController = widget.buttonController;
     _lastLinkedBoard = BoardHistoryStack(
       currentBoard: buttonController.data.linkedBoard,
@@ -273,6 +289,9 @@ class _ButtonConfigPopupState extends State<ButtonConfigPopup> {
     });
 
     buttonController.enableParrotActionModeIfDisabled();
+    if (buttonController.data.image?.path != null) {
+      lastSetImage = File(buttonController.data.image!.path!);
+    }
     _selectedAudioPath = ValueNotifier(buttonController.data.sound?.path);
     _labelController.text = buttonController.data.label ?? "";
     _voclizationController.text = buttonController.data.voclization ?? "";
@@ -617,15 +636,22 @@ class _ButtonConfigPopupState extends State<ButtonConfigPopup> {
               return;
             }
 
-            _selectedAudioPath.value = await writeTempAudio(
-              Directory(buttonController.projectPath!),
-              audio,
+            List<String> fileNames = await _audioFileNames;
+            final path = determineNoncollidingPath(
+              p.join(project!.audioPath, p.basename(audio.path)),
+              fileNames,
             );
 
-            final String? path = _selectedAudioPath.value;
-            assert(path != null, "can't get duration from null path");
+            await Directory(p.dirname(path)).create(recursive: true);
+            SimpleLogger().logDebug("moving ${audio.path} to $path");
+            await File(audio.path).copy(path);
 
-            final Duration duration = await _getDuration(project?.path, path!);
+            //TODO: if audio path ends up being deleted I need to keep track of that somehow?
+            fileNames.add(path);
+
+            _selectedAudioPath.value = path;
+
+            final Duration duration = await _getDuration(project?.path, path);
             _setSound(
               SoundData(
                 duration: duration.inSeconds,
@@ -659,7 +685,7 @@ class _ButtonConfigPopupState extends State<ButtonConfigPopup> {
                       .map((f) => f.path)
                       .map(p.basenameWithoutExtension);
 
-                  name = determineNoncollidingName(name, existingNames);
+                  name = determineNoncollidingPath(name, existingNames);
                   MyAudioRecorder().start(
                     parentDirectory: audioDir,
                     fileName: name,
@@ -670,11 +696,7 @@ class _ButtonConfigPopupState extends State<ButtonConfigPopup> {
                   );
                 } else {
                   MyAudioRecorder().stop();
-                  if (_selectedAudioPath.value != null) {
-                    File(
-                      p.join(projectPath, _selectedAudioPath.value!),
-                    ).deleteSync();
-                  }
+
                   assert(
                     currentRecordingPath != null,
                     "recording audio path can't be null",
@@ -775,15 +797,18 @@ class _ButtonConfigPopupState extends State<ButtonConfigPopup> {
   }
 
   Future<void> _changeImage(XFile newImage) async {
-    lastSetTempImage?.deleteSync();
-    String path = await writeTempImage(
-      Directory(buttonController.projectPath!),
-      newImage,
+    List<String> imageName = await _imageFileNames;
+    final fullPath = determineNoncollidingPath(
+      p.join(project!.imagePath, p.basename(newImage.path)),
+      imageName,
     );
+    String path = p.join("images", p.basename(fullPath));
 
-    final fullPath = p.join(buttonController.projectPath!, path);
+    await Directory(p.dirname(fullPath)).create(recursive: true);
+    await File(newImage.path).copy(fullPath);
+
     longTermFutureCache.invalidate(fullPath);
-    lastSetTempImage = File(fullPath);
+    lastSetImage = File(fullPath);
 
     ImageData image = ImageData(path: path, id: Obz.generateImageId(project));
 

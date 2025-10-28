@@ -46,21 +46,21 @@ Future<String> determineProjectDirectoryName(String path) async {
   String toName(String path) => p.basenameWithoutExtension(path);
 
   Iterable<String> usedNames = dirs.map(toPath).map(toName);
-  return determineNoncollidingName(name, usedNames);
+  return determineNoncollidingPath(name, usedNames);
 }
 
 Future<String> determineProjectName(String path) async {
   String name = p.basenameWithoutExtension(path);
   List<Directory> dirs = await projectDirectories;
   List<String> usedNames = await Future.wait(dirs.map(getProjectName));
-  return determineNoncollidingName(name, usedNames);
+  return determineNoncollidingPath(name, usedNames);
 }
 
 Future<String> determineValidProjectPath(String name) async {
   name = sanitzeFileName(name);
   Iterable<Directory> dirs = await projectDirs();
   Iterable<String> names = dirs.map((d) => d.path).map(p.basename);
-  name = determineNoncollidingName(name, names);
+  name = determineNoncollidingPath(name, names);
   return p.join(await projectTargetDirectory, name);
 }
 

@@ -5,6 +5,7 @@ import 'package:openboard_wrapper/button_data.dart';
 import 'package:openboard_wrapper/obf.dart';
 import 'package:parrotaac/backend/history_stack.dart';
 import 'package:parrotaac/backend/project/parrot_project.dart';
+import 'package:parrotaac/backend/project/patch.dart';
 import 'package:parrotaac/backend/project_restore_write_stream.dart';
 import 'package:parrotaac/backend/state_restoration_utils.dart';
 import 'package:parrotaac/ui/board_screen_appbar.dart';
@@ -53,6 +54,7 @@ class _BoardScreenState extends State<BoardScreen> {
   late final TextEditingController _titleController;
   final ValueNotifier<bool> canUndo = ValueNotifier(false);
   final ValueNotifier<bool> canRedo = ValueNotifier(false);
+  final Patch currentPatch = Patch(actions: []);
 
   late final ProjectEventHandler eventHandler;
 
@@ -107,9 +109,13 @@ class _BoardScreenState extends State<BoardScreen> {
         _updateButtonPositionsInObf();
         _updateObfName();
         Set<String> boardsToWrite = eventHandler.updatedBoardsIds.toSet();
+        currentPatch.actions.addAll(eventHandler.currentlyExecutedEvents());
+        await currentPatch.writeZip("/tmp/hi.zip");
+
+        currentPatch.clear();
         eventHandler.clear();
-        await _finalizeTempFiles();
-        widget.project.deleteTempFiles();
+        //await _finalizeTempFiles();
+        //widget.project.deleteTempFiles();
         await writeToDisk(boardsToWrite);
       }
     });
@@ -145,6 +151,7 @@ class _BoardScreenState extends State<BoardScreen> {
       boxController: _sentenceController,
       canUndo: canUndo,
       canRedo: canRedo,
+      currentPatch: currentPatch,
       boardHistory: _boardHistory,
       modeNotifier: _boardMode,
       titleController: _titleController,
@@ -190,16 +197,14 @@ class _BoardScreenState extends State<BoardScreen> {
   }
 
   Future<void> _finalizeTempImages() async {
-    Map<String, String> paths = await widget.project
-        .mapTempImageToPermantSpot();
-    await widget.project.moveFiles(paths);
+    Map<String, String> paths = widget.project.mapTempImageToPermantSpot();
+    widget.project.moveFiles(paths);
     widget.project.updateImagePathReferencesInProject(paths);
   }
 
   Future<void> _finalizeTempAudioFiles() async {
-    Map<String, String> paths = await widget.project
-        .mapTempAudioToPermantSpot();
-    await widget.project.moveFiles(paths);
+    Map<String, String> paths = widget.project.mapTempAudioToPermantSpot();
+    widget.project.moveFiles(paths);
     widget.project.updateAudioPathReferencesInProject(paths);
   }
 

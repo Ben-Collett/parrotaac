@@ -4,8 +4,8 @@ import 'package:parrotaac/file_utils.dart';
 void main() {
   test('test determine name', () {
     List<String> dirs = ['this', 'this_1', 'is'];
-    expect('this_2', determineNoncollidingName('this', dirs));
-    expect('bye', determineNoncollidingName('bye', dirs));
-    expect('is_1', determineNoncollidingName('is', dirs));
+    expect('this_2', determineNoncollidingPath('this', dirs));
+    expect('bye', determineNoncollidingPath('bye', dirs));
+    expect('is_1', determineNoncollidingPath('is', dirs));
   });
 }

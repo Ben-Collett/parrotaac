@@ -18,7 +18,7 @@ mixin AACProject {
   ///this method when overridden should always override displayData.name
   Future<bool> rename(String name);
   void renameToNonCollidingName(List<String> names) {
-    rename(determineNoncollidingName(name, names));
+    rename(determineNoncollidingPath(name, names));
   }
 }
 

@@ -22,6 +22,8 @@ final SvgPicture logo = SvgPicture.asset("assets/images/logo/white_bg.svg");
 
 class ParrotProject extends Obz with AACProject {
   String path;
+  String get audioPath => p.join(path, "sounds");
+  String get imagePath => p.join(path, "images");
 
   ///stores if project has been updated during restoration by eventHandler
   bool restored = false;
@@ -98,8 +100,32 @@ class ParrotProject extends Obz with AACProject {
     }
   }
 
+  Future<Iterable<File>> getTempImages() {
+    Directory tempImages = Directory(tmpImagePath(path));
+
+    return tempImages.exists().then((exist) {
+      if (exist) {
+        return tempImages.listSync().whereType<File>();
+      } else {
+        return [];
+      }
+    });
+  }
+
+  Future<Iterable<File>> getTempAudio() {
+    Directory tempAudio = Directory(tmpAudioPath(path));
+
+    return tempAudio.exists().then((exist) {
+      if (exist) {
+        return tempAudio.listSync().whereType<File>();
+      } else {
+        return [];
+      }
+    });
+  }
+
   ///maps all the temporary images in projectPath/image/tmp to locations in projectPath/image. Doesn't actually move the files
-  Future<Map<String, String>> mapTempImageToPermantSpot() async {
+  Map<String, String> mapTempImageToPermantSpot() {
     Map<String, String> out = {};
     String imagesPath = p.join(path, 'images');
     Directory images = Directory(imagesPath);
@@ -114,7 +140,7 @@ class ParrotProject extends Obz with AACProject {
   }
 
   ///maps all the temporary images in projectPath/audio/tmp to locations in projectPath/image. Doesn't actually move the files
-  Future<Map<String, String>> mapTempAudioToPermantSpot() async {
+  Map<String, String> mapTempAudioToPermantSpot() {
     Map<String, String> out = {};
     String audioPath = p.join(path, 'audio');
     Directory audio = Directory(audioPath);
@@ -129,15 +155,18 @@ class ParrotProject extends Obz with AACProject {
   }
 
   ///[map] tells the function where to move the old file from to it's new path
-  Future<void> moveFiles(Map<String, String> map) async {
+  ///returns the moved files
+  Iterable<File> moveFiles(Map<String, String> map) {
+    List<File> files = [];
     for (MapEntry entry in map.entries) {
       File file = File(entry.key);
       if (file.existsSync()) {
         Directory(p.dirname(entry.value)).createSync(recursive: true);
-        file.copySync(entry.value);
+        files.add(file.copySync(entry.value));
         file.deleteSync(recursive: true);
       }
     }
+    return files;
   }
 
   ///[map] should map the old location to the new location
@@ -209,7 +238,7 @@ class ParrotProject extends Obz with AACProject {
           board.path ?? p.join("boards/", sanitzeFileName(board.name));
 
       //technically this also disallows files with the same name in different directories
-      path = determineNoncollidingName(path, usedFilePaths);
+      path = determineNoncollidingPath(path, usedFilePaths);
       usedFilePaths.add(p.basenameWithoutExtension(path));
 
       path = p.setExtension(path, '.obf');

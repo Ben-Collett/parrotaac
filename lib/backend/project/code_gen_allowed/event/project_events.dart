@@ -1,5 +1,3 @@
-import 'dart:ui';
-
 import 'package:json_annotation/json_annotation.dart';
 import 'package:openboard_wrapper/button_data.dart';
 import 'package:openboard_wrapper/color_data.dart';
@@ -8,13 +6,13 @@ import 'package:openboard_wrapper/image_data.dart';
 import 'package:openboard_wrapper/obf.dart';
 import 'package:openboard_wrapper/sound_data.dart';
 import 'package:parrotaac/backend/map_utils.dart';
-import 'package:parrotaac/backend/simple_logger.dart';
 import 'package:parrotaac/extensions/button_data_extensions.dart';
 import 'package:parrotaac/extensions/color_extensions.dart';
 import 'package:parrotaac/extensions/obf_extensions.dart';
 import 'package:parrotaac/ui/event_handler.dart';
 import 'package:parrotaac/ui/parrot_button.dart';
 import 'package:parrotaac/ui/widgets/empty_spot.dart';
+import 'package:path/path.dart' as p;
 part 'project_events.g.dart';
 
 abstract class ProjectEvent {
@@ -120,6 +118,7 @@ class AddBoard extends ProjectEvent {
 @JsonSerializable()
 class RemoveBoard extends ProjectEvent {
   final String id;
+
   RemoveBoard(this.id);
 
   factory RemoveBoard.fromJson(Map<String, dynamic> json) =>
@@ -144,7 +143,6 @@ class RemoveBoard extends ProjectEvent {
   void execute(ProjectEventHandler handler) {
     Obf? board = handler.project.findBoardById(id);
     if (board == null) {
-      SimpleLogger().logWarning("removing non existent board");
       return;
     }
     handler.project.removeBoard(board);
@@ -205,6 +203,33 @@ class ConfigButton extends ProjectEvent {
   });
   factory ConfigButton.fromJson(Map<String, dynamic> json) =>
       _$ConfigButtonFromJson(deepCastMapToJsonMap(json)!);
+  void updatePatch(ProjectEventHandler handler) {
+    if (newImage != null) {
+      ImageData newImage = ImageData.decodeJson(this.newImage!);
+      ImageData? originalImage;
+      if (this.originalImage != null) {
+        originalImage = ImageData.decodeJson(this.originalImage!);
+      }
+      if (originalImage?.path != newImage.path) {
+        handler.currentPatch?.addImageFile(
+          p.join(handler.project.path, newImage.path),
+        );
+      }
+    }
+    if (newSound != null) {
+      SoundData newSound = SoundData.decode(this.newSound!);
+      SoundData? originalSound;
+      if (this.originalSound != null) {
+        originalSound = SoundData.decode(this.originalSound!);
+      }
+      if (originalSound?.path != newSound.path) {
+        handler.currentPatch?.addAudioFile(
+          p.join(handler.project.path, newSound.path),
+        );
+      }
+    }
+  }
+
   @override
   Map<String, dynamic> toJson() => _$ConfigButtonToJson(this);
   @override
@@ -226,15 +251,32 @@ class ConfigButton extends ProjectEvent {
 
   @override
   void execute(ProjectEventHandler handler) {
+    updatePatch(handler);
+
     final board = handler.project.findBoardById(boardId);
     final button = board?.findButtonById(buttonId);
     SoundData? sound;
     if (newSound != null) {
       sound = SoundData.decode(newSound!);
     }
+
     ImageData? image;
     if (newImage != null) {
       image = ImageData.decodeJson(newImage!);
+    }
+
+    if (originalImage != null) {
+      ImageData original = ImageData.decodeJson(originalImage!);
+      if (original.path != null) {
+        handler.currentPatch?.removeImageFile(original.path!);
+      }
+    }
+
+    if (originalSound != null) {
+      SoundData original = SoundData.decode(originalSound!);
+      if (original.path != null) {
+        handler.currentPatch?.removeAudioFile(original.path!);
+      }
     }
 
     button?.merge(diff, project: handler.project);
@@ -450,10 +492,20 @@ class AddButton extends ProjectEvent {
     ImageData? image;
     if (imageData != null) {
       image = ImageData.decodeJson(imageData!);
+      if (image.path != null) {
+        handler.currentPatch?.addImageFile(
+          p.join(handler.project.path, image.path!),
+        );
+      }
     }
     SoundData? sound;
     if (soundData != null) {
       sound = SoundData.decode(soundData!);
+      if (sound.path != null) {
+        handler.currentPatch?.addAudioFile(
+          p.join(handler.project.path, sound.path!),
+        );
+      }
     }
 
     Obf? board = handler.project.findBoardById(boardId);
@@ -500,7 +552,14 @@ class RemoveButton extends ProjectEvent {
   @override
   void execute(ProjectEventHandler handler) {
     Obf board = handler.fromIdOrCurrent(boardId);
-    handler.history.addToRemovedButtons(board.grid.getButtonData(row, col)!);
+    ButtonData buttonData = board.grid.getButtonData(row, col)!;
+    if (buttonData.image?.path != null) {
+      handler.currentPatch?.removeImageFile(buttonData.image!.path!);
+    }
+    if (buttonData.sound?.path != null) {
+      handler.currentPatch?.removeAudioFile(buttonData.sound!.path!);
+    }
+    handler.history.addToRemovedButtons(buttonData);
     if (board == handler.currentBoard && handler.autoUpdateUi) {
       handler.gridNotfier.removeAt(row, col);
     }

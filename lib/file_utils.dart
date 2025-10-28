@@ -14,8 +14,9 @@ String windowsPathToPosix(String path) {
   return p.posix.joinAll(split);
 }
 
-String determineNoncollidingName(String inputPath, Iterable<String> dirNames) {
+String determineNoncollidingPath(String inputPath, Iterable<String> dirNames) {
   final String extension = p.extension(inputPath);
+
   final String dirName = p.dirname(inputPath);
   String fileName = p.basenameWithoutExtension(inputPath);
   while (dirNames.contains(fileName)) {
