@@ -642,10 +642,8 @@ class _ButtonConfigPopupState extends State<ButtonConfigPopup> {
             );
 
             await Directory(p.dirname(path)).create(recursive: true);
-            SimpleLogger().logDebug("moving ${audio.path} to $path");
             await File(audio.path).copy(path);
 
-            //TODO: if audio path ends up being deleted I need to keep track of that somehow?
             fileNames.add(path);
 
             _selectedAudioPath.value = path;

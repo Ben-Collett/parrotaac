@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:openboard_wrapper/button_data.dart';
 import 'package:openboard_wrapper/obf.dart';
 import 'package:parrotaac/backend/history_stack.dart';
+import 'package:parrotaac/backend/project/file_cleanup_data.dart';
 import 'package:parrotaac/backend/project/parrot_project.dart';
 import 'package:parrotaac/backend/project/patch.dart';
 import 'package:parrotaac/backend/project_restore_write_stream.dart';
@@ -110,7 +111,14 @@ class _BoardScreenState extends State<BoardScreen> {
         _updateObfName();
         Set<String> boardsToWrite = eventHandler.updatedBoardsIds.toSet();
         currentPatch.actions.addAll(eventHandler.currentlyExecutedEvents());
-        await currentPatch.writeZip("/tmp/hi.zip");
+
+        project.removedUnrefrencedButtons();
+        project.removedUnrefrencedImageData();
+        project.removedUnrefrencedSoundData();
+        final cleanupData = await FileCleanupData.fromProject(project);
+
+        await cleanupData.cleanUp();
+        await currentPatch.writeZip("/tmp/hi.zip"); //TODO upload patch instead
 
         currentPatch.clear();
         eventHandler.clear();

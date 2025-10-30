@@ -204,27 +204,43 @@ class ConfigButton extends ProjectEvent {
   factory ConfigButton.fromJson(Map<String, dynamic> json) =>
       _$ConfigButtonFromJson(deepCastMapToJsonMap(json)!);
   void updatePatch(ProjectEventHandler handler) {
-    if (newImage != null) {
-      ImageData newImage = ImageData.decodeJson(this.newImage!);
-      ImageData? originalImage;
-      if (this.originalImage != null) {
-        originalImage = ImageData.decodeJson(this.originalImage!);
+    ImageData? newImage;
+    ImageData? oldImage;
+    SoundData? newSound;
+    SoundData? oldSound;
+
+    if (this.newImage != null) {
+      newImage = ImageData.decodeJson(this.newImage!);
+    }
+    if (originalImage != null) {
+      oldImage = ImageData.decodeJson(originalImage!);
+    }
+    if (this.newSound != null) {
+      newSound = SoundData.decode(this.newSound!);
+    }
+    if (originalSound != null) {
+      oldSound = SoundData.decode(originalSound!);
+    }
+
+    //if both are null I shouldn't need to remove or add anything if only one or more is not null then I need to add or delete.
+    if (oldImage?.path != newImage?.path) {
+      if (newImage != null) {
+        handler.currentPatch?.addImageFile(_fullPath(handler, newImage.path!));
       }
-      if (originalImage?.path != newImage.path) {
-        handler.currentPatch?.addImageFile(
-          p.join(handler.project.path, newImage.path),
+      if (oldImage != null) {
+        handler.currentPatch?.removeImageFile(
+          _fullPath(handler, oldImage.path!),
         );
       }
     }
-    if (newSound != null) {
-      SoundData newSound = SoundData.decode(this.newSound!);
-      SoundData? originalSound;
-      if (this.originalSound != null) {
-        originalSound = SoundData.decode(this.originalSound!);
+
+    if (oldSound?.path != newSound?.path) {
+      if (newSound != null) {
+        handler.currentPatch?.addAudioFile(_fullPath(handler, newSound.path!));
       }
-      if (originalSound?.path != newSound.path) {
-        handler.currentPatch?.addAudioFile(
-          p.join(handler.project.path, newSound.path),
+      if (oldSound != null) {
+        handler.currentPatch?.removeAudioFile(
+          _fullPath(handler, oldSound.path!),
         );
       }
     }
@@ -263,20 +279,6 @@ class ConfigButton extends ProjectEvent {
     ImageData? image;
     if (newImage != null) {
       image = ImageData.decodeJson(newImage!);
-    }
-
-    if (originalImage != null) {
-      ImageData original = ImageData.decodeJson(originalImage!);
-      if (original.path != null) {
-        handler.currentPatch?.removeImageFile(original.path!);
-      }
-    }
-
-    if (originalSound != null) {
-      SoundData original = SoundData.decode(originalSound!);
-      if (original.path != null) {
-        handler.currentPatch?.removeAudioFile(original.path!);
-      }
     }
 
     button?.merge(diff, project: handler.project);
@@ -493,18 +495,14 @@ class AddButton extends ProjectEvent {
     if (imageData != null) {
       image = ImageData.decodeJson(imageData!);
       if (image.path != null) {
-        handler.currentPatch?.addImageFile(
-          p.join(handler.project.path, image.path!),
-        );
+        handler.currentPatch?.addImageFile(_fullPath(handler, image.path!));
       }
     }
     SoundData? sound;
     if (soundData != null) {
       sound = SoundData.decode(soundData!);
       if (sound.path != null) {
-        handler.currentPatch?.addAudioFile(
-          p.join(handler.project.path, sound.path!),
-        );
+        handler.currentPatch?.addAudioFile(_fullPath(handler, sound.path!));
       }
     }
 
@@ -554,7 +552,9 @@ class RemoveButton extends ProjectEvent {
     Obf board = handler.fromIdOrCurrent(boardId);
     ButtonData buttonData = board.grid.getButtonData(row, col)!;
     if (buttonData.image?.path != null) {
-      handler.currentPatch?.removeImageFile(buttonData.image!.path!);
+      handler.currentPatch?.removeImageFile(
+        _fullPath(handler, buttonData.image!.path!),
+      );
     }
     if (buttonData.sound?.path != null) {
       handler.currentPatch?.removeAudioFile(buttonData.sound!.path!);
@@ -752,3 +752,6 @@ class ChangeBoardColor extends ProjectEvent {
     }
   }
 }
+
+String _fullPath(ProjectEventHandler handler, String path) =>
+    p.join(handler.project.path, path);

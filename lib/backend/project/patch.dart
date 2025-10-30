@@ -2,23 +2,20 @@ import 'dart:convert';
 import 'dart:io';
 import 'package:archive/archive_io.dart';
 import 'package:parrotaac/backend/project/code_gen_allowed/event/project_events.dart';
+import 'package:parrotaac/backend/simple_logger.dart';
+import 'package:parrotaac/extensions/map_extensions.dart';
 import 'package:parrotaac/ui/event_handler.dart';
 import 'package:path/path.dart' as p;
 
 class Patch {
-  final List<String> newImages;
-  final List<String> newAudio;
+  final Map<String, int> newImages = {};
+  final Map<String, int> newAudio = {};
   final List<ProjectEvent> actions;
 
-  Patch({
-    List<String>? newImages,
-    List<String>? newAudio,
-    required this.actions,
-  }) : newAudio = newAudio ?? [],
-       newImages = newImages ?? [];
-
+  Patch({required this.actions});
   Future<void> _addImages(ZipFileEncoder encoder) async {
     List<Future> futures = [];
+    final newImages = this.newImages.keys;
     for (final imagePath in newImages) {
       futures.add(
         encoder.addFile(File(imagePath), 'images/${p.basename(imagePath)}'),
@@ -29,19 +26,21 @@ class Patch {
   }
 
   void addImageFile(String path) {
-    newImages.add(path);
+    newImages.increment(path);
   }
 
   void addAudioFile(String path) {
-    newAudio.add(path);
+    newAudio.increment(path);
   }
 
   void removeAudioFile(String path) {
-    newAudio.remove(path);
+    newAudio.decrement(path);
+    newAudio.removeKeyIfBelowThreshold(key: path, threshold: 1);
   }
 
   void removeImageFile(String path) {
-    newImages.remove(path);
+    newImages.decrement(path);
+    newImages.removeKeyIfBelowThreshold(key: path, threshold: 1);
   }
 
   void addAction(ProjectEvent action) {
@@ -57,6 +56,7 @@ class Patch {
   Future<void> _addAudio(ZipFileEncoder encoder) async {
     List<Future> futures = [];
 
+    final newAudio = this.newAudio.keys;
     for (final audio in newAudio) {
       futures.add(encoder.addFile(File(audio), 'audio/${p.basename(audio)}'));
     }
