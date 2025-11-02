@@ -2,10 +2,15 @@ import 'dart:convert';
 import 'dart:io';
 import 'package:archive/archive_io.dart';
 import 'package:parrotaac/backend/project/code_gen_allowed/event/project_events.dart';
-import 'package:parrotaac/backend/simple_logger.dart';
+import 'package:parrotaac/backend/project/parrot_project.dart';
+import 'package:parrotaac/extensions/directory_extensions.dart';
+import 'package:parrotaac/extensions/file_extensions.dart';
+import 'package:parrotaac/extensions/list_extensions.dart';
 import 'package:parrotaac/extensions/map_extensions.dart';
+import 'package:parrotaac/extensions/object_extensions.dart';
 import 'package:parrotaac/ui/event_handler.dart';
 import 'package:path/path.dart' as p;
+import 'package:path_provider/path_provider.dart';
 
 class Patch {
   final Map<String, int> newImages = {};
@@ -77,12 +82,92 @@ class Patch {
     await tmpActions.delete();
   }
 
-  Future<void> apply(ProjectEventHandler handler) {
-    throw UnimplementedError();
+  ///patchFile should be a path .zip file following the patch format
+  static Future<void> applyPatch(
+    String patchFilePath,
+    ProjectEventHandler handler,
+  ) async {
+    final patchFile = File(patchFilePath);
+    if (!await patchFile.exists()) {
+      return;
+    }
+
+    final inputStream = InputFileStream(patchFile.path);
+    final Archive archive = ZipDecoder().decodeStream(inputStream);
+
+    final tempDir = await getTemporaryDirectory();
+    final extractPath = p.join(
+      tempDir.path,
+      "parrot_patch_tmp_dir_${DateTime.now().microsecondsSinceEpoch}",
+    );
+    await extractArchiveToDisk(archive, extractPath);
+    final patchDir = Directory(extractPath);
+    List<FileSystemEntity> patchContent = patchDir.listSync();
+
+    Future fileCopy = _copyAudioAndImageFiles(patchContent, handler.project);
+    final List<ProjectEvent> events = await _readActions(patchContent);
+    await fileCopy;
+
+    Future<void> patchDeletion = patchDir.delete(recursive: true);
+
+    handler.bulkExecute(events, updateUi: false);
+    handler.fullUIUpdate();
+    handler.clear();
+    await patchDeletion;
   }
 
-  static Patch fromZip(File file) {
-    throw UnimplementedError();
+  static Future<void> _copyAudioAndImageFiles(
+    List<FileSystemEntity> patchContent,
+    ParrotProject project,
+  ) async {
+    final outputImagePath = project.imagePath;
+    final outputAudioPath = project.audioPath;
+    Directory? patchImages = patchContent
+        .findFromName("images")
+        ?.safeCast<Directory>();
+
+    Directory? patchAudio = patchContent
+        .findFromName("audio")
+        ?.safeCast<Directory>();
+
+    final Future<void> copyImages = _copyContents(
+      sourceDir: patchImages,
+      targetDir: Directory(outputImagePath),
+    );
+
+    final Future<void> copyAudio = _copyContents(
+      sourceDir: patchAudio,
+      targetDir: Directory(outputAudioPath),
+    );
+
+    await Future.wait([copyAudio, copyImages]);
+  }
+
+  static Future<List<ProjectEvent>> _readActions(
+    List<FileSystemEntity> patchDir,
+  ) async {
+    File? actionFile = patchDir.findFromName("actions")?.safeCast<File>();
+    if (actionFile == null) {
+      return [];
+    }
+    List<ProjectEvent> events = [];
+    void addEvent(String line) {
+      Map<String, dynamic> json = jsonDecode(line);
+      ProjectEvent? event = ProjectEvent.decode(json);
+      if (event != null) {
+        events.add(event);
+      }
+    }
+
+    await actionFile.forEachLine(addEvent);
+    return events;
+  }
+
+  static Future<void> _copyContents({
+    Directory? sourceDir,
+    required Directory targetDir,
+  }) async {
+    return sourceDir?.copyContentTo(targetDir);
   }
 
   //TODO: track version

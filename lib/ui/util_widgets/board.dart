@@ -7,6 +7,7 @@ import 'package:parrotaac/backend/history_stack.dart';
 import 'package:parrotaac/backend/project/parrot_project.dart';
 import 'package:parrotaac/backend/project_restore_write_stream.dart';
 import 'package:parrotaac/extensions/color_extensions.dart';
+import 'package:parrotaac/extensions/list_extensions.dart';
 import 'package:parrotaac/extensions/obf_extensions.dart';
 import 'package:parrotaac/ui/board_modes.dart';
 import 'package:parrotaac/ui/board_screen_popup_history.dart';
@@ -55,7 +56,6 @@ class _BoardWidgetState extends State<BoardWidget> {
   static const int historySize = 100;
   late final GridNotifier<ParrotButton> _gridNotfier;
   late final SentenceBoxController _sentenceController;
-  Set<ParrotButtonNotifier> buttonSet = {};
   late final ValueNotifier<BoardMode> _boardMode;
   Obf get currentObf => history.currentBoard;
   set currentObf(Obf obf) => history.push(obf);
@@ -108,8 +108,10 @@ class _BoardWidgetState extends State<BoardWidget> {
           ),
         );
 
-    _gridNotfier.setData(_getButtonsFromObf(currentObf));
-    _updateButtonSet();
+    _gridNotfier.setData(
+      getButtonsFromObf(currentObf),
+      cleanUp: _disposeNotifiers,
+    );
 
     _updateGridSettingsFromBoardMode();
     _boardMode.addListener(_updateGridSettingsFromBoardMode);
@@ -117,7 +119,10 @@ class _BoardWidgetState extends State<BoardWidget> {
     history.beforeChange = _updateObfData;
     history.addListener(() {
       widget.restoreStream?.updateHistory(history.toIdList());
-      _gridNotfier.setData(_getButtonsFromObf(currentObf));
+      _gridNotfier.setData(
+        getButtonsFromObf(currentObf),
+        cleanUp: _disposeNotifiers,
+      );
     });
 
     BoardScreenPopup? popupToRecover = widget.popupHistory
@@ -158,6 +163,9 @@ class _BoardWidgetState extends State<BoardWidget> {
 
     super.initState();
   }
+
+  void _disposeNotifiers(Iterable<dynamic> toDispose) =>
+      toDispose.disposeNotifiers();
 
   void _updateGridNoifierColor() {
     _gridNotfier.backgroundColorNotifier.value = history.currentBoard.boardColor
@@ -352,45 +360,15 @@ class _BoardWidgetState extends State<BoardWidget> {
     }
   }
 
-  List<List<Object?>> _getButtonsFromObf(Obf obf) {
-    List<List<Object?>> buttons = [];
-    final int rowCount = obf.grid.numberOfRows;
-    final int colCount = obf.grid.numberOfColumns;
-    for (int i = 0; i < rowCount; i++) {
-      buttons.add([]);
-      for (int j = 0; j < colCount; j++) {
-        ButtonData? button = obf.grid.getButtonData(i, j);
-        if (button != null) {
-          buttons.last.add(
-            ParrotButtonNotifier(
-              data: button,
-              eventHandler: widget.eventHandler,
-              boxController: _sentenceController,
-              goToLinkedBoard: _changeObf,
-              goHome: _goToRootBoard,
-              onDelete: () {
-                widget.eventHandler.removeButton(i, j);
-              },
-              project: widget.project,
-            ),
-          );
-        } else {
-          buttons.last.add(null);
-        }
-      }
-    }
-    return buttons;
-  }
+  List<List<Object?>> getButtonsFromObf(Obf obf) =>
+      widget.eventHandler.getButtonsFromObf(obf);
 
   @override
   void dispose() {
-    _updateButtonSet();
-    void disposeNotfier(n) => n.dispose;
-
     if (widget.gridNotifier == null) {
+      _gridNotfier.data.flatten().disposeNotifiers();
       _gridNotfier.dispose();
     }
-    buttonSet.forEach(disposeNotfier);
     if (widget.boardMode == null) {
       _boardMode.dispose();
     }
@@ -402,25 +380,6 @@ class _BoardWidgetState extends State<BoardWidget> {
     }
 
     super.dispose();
-  }
-
-  void _updateButtonSet() {
-    void disposeNotfier(n) => n.dispose;
-    final buttonSetFromGrid = _buttonSetFromGrid(_gridNotfier.data);
-    buttonSet.difference(buttonSetFromGrid).forEach(disposeNotfier);
-    buttonSet = buttonSetFromGrid;
-  }
-
-  Set<ParrotButtonNotifier> _buttonSetFromGrid(List<List<Object?>> buttons) {
-    Set<ParrotButtonNotifier> out = {};
-    for (List<Object?> row in buttons) {
-      for (Object? button in row) {
-        if (button is ParrotButtonNotifier) {
-          out.add(button);
-        }
-      }
-    }
-    return out;
   }
 
   void _updateButtonPositionsInObf(Obf obf) {

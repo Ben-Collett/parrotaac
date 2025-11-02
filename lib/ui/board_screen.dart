@@ -12,6 +12,7 @@ import 'package:parrotaac/backend/state_restoration_utils.dart';
 import 'package:parrotaac/ui/board_screen_appbar.dart';
 import 'package:parrotaac/ui/board_sidebar.dart';
 import 'package:parrotaac/ui/event_handler.dart';
+import 'package:parrotaac/ui/popups/loading.dart';
 import 'package:parrotaac/ui/popups/lock_popups/admin_lock.dart';
 import 'package:parrotaac/ui/util_widgets/board.dart';
 import 'package:parrotaac/ui/util_widgets/draggable_grid.dart';
@@ -118,7 +119,7 @@ class _BoardScreenState extends State<BoardScreen> {
         final cleanupData = await FileCleanupData.fromProject(project);
 
         await cleanupData.cleanUp();
-        await currentPatch.writeZip("/tmp/hi.zip"); //TODO upload patch instead
+        //await currentPatch.writeZip("/tmp/hi.zip"); //TODO upload patch instead
 
         currentPatch.clear();
         eventHandler.clear();
@@ -183,7 +184,19 @@ class _BoardScreenState extends State<BoardScreen> {
       }
     });
 
+    //WidgetsBinding.instance.addPostFrameCallback((_) {
+    // applyPatch("/tmp/hi.zip");
+    //});
+
     super.initState();
+  }
+
+  void applyPatch(String path) {
+    showLoadingDialogUntilCompleted(
+      context: context,
+      message: "applying patch",
+      future: Patch.applyPatch(path, eventHandler),
+    );
   }
 
   void _updateButtonNotfierOnDelete(

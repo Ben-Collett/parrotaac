@@ -12,8 +12,22 @@ void showLoadingDialog(BuildContext context, String message) async {
       return AlertDialog(
         title: Text(message),
         content: SizedBox.square(
-            dimension: containerSize, child: const CircularProgressIndicator()),
+          dimension: containerSize,
+          child: const CircularProgressIndicator(),
+        ),
       );
     },
   );
+}
+
+void showLoadingDialogUntilCompleted({
+  required BuildContext context,
+  required String message,
+  required Future future,
+}) async {
+  showLoadingDialog(context, message);
+  await future;
+  if (context.mounted) {
+    Navigator.of(context).pop();
+  }
 }

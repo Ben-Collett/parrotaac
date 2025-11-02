@@ -8,8 +8,11 @@ import 'package:parrotaac/backend/history_stack.dart';
 import 'package:parrotaac/backend/project/code_gen_allowed/event/project_events.dart';
 import 'package:parrotaac/backend/project/parrot_project.dart';
 import 'package:parrotaac/backend/project/patch.dart';
+import 'package:parrotaac/backend/simple_logger.dart';
 import 'package:parrotaac/extensions/color_extensions.dart';
+import 'package:parrotaac/extensions/list_extensions.dart';
 import 'package:parrotaac/extensions/map_extensions.dart';
+import 'package:parrotaac/extensions/obf_extensions.dart';
 import 'package:parrotaac/ui/board_modes.dart';
 import 'package:parrotaac/ui/util_widgets/draggable_grid.dart';
 
@@ -19,7 +22,7 @@ import 'widgets/sentence_box.dart';
 
 class ProjectEventHandler {
   final ParrotProject project;
-  final GridNotifier gridNotfier;
+  final GridNotifier<ParrotButton> gridNotfier;
   bool gridNeedsUpdate = false;
   bool autoUpdateUi = true;
   final BoardHistoryStack boardHistory;
@@ -61,10 +64,7 @@ class ProjectEventHandler {
   });
 
   void bulkExecute(Iterable<ProjectEvent> events, {bool updateUi = true}) {
-    bool originalAutoUpdate = autoUpdateUi;
-    autoUpdateUi = updateUi;
-    void playEvent(ProjectEvent event) => execute(event);
-    autoUpdateUi = originalAutoUpdate;
+    void playEvent(ProjectEvent event) => execute(event, updateUI: updateUi);
     events.forEach(playEvent);
   }
 
@@ -93,7 +93,7 @@ class ProjectEventHandler {
       autoUpdateUi = updateUI;
     }
 
-    if (event.returnToBoardId != null) {
+    if (event.returnToBoardId != null && autoUpdateUi) {
       Obf? board = project.findBoardById(event.returnToBoardId!);
       if (board != null) {
         boardHistory.push(board);
@@ -163,6 +163,18 @@ class ProjectEventHandler {
     updateUI: false,
   );
 
+  void fullUIUpdate() {
+    _updateButtons();
+    gridNotfier.update();
+    gridNotfier.backgroundColorNotifier.value = currentBoard.boardColor
+        .toColor();
+
+    gridNotfier.setData(
+      getButtonsFromObf(currentBoard),
+      cleanUp: (oldData) => oldData.disposeNotifiers(),
+    );
+  }
+
   ///should only be called if history.getLastRemovedButton is not null, i.e. there has been a button removed to recover
   void recoverButton(int row, int col, {Obf? board}) {
     board = board ?? currentBoard;
@@ -170,8 +182,6 @@ class ProjectEventHandler {
     if (autoUpdateUi && board == currentBoard) {
       _addButton(board, lastRemoved, row, col);
     }
-
-    board.grid.setButtonData(row: row, col: col, data: lastRemoved);
   }
 
   void removeButton(int row, int col, {Obf? board}) {
@@ -269,6 +279,14 @@ class ProjectEventHandler {
 
   Obf fromIdOrCurrent(String boardId) {
     return project.findBoardById(boardId) ?? currentBoard;
+  }
+
+  void _updateButtons() {
+    gridNotfier.forEach((obj) {
+      if (obj is ParrotButtonNotifier) {
+        obj.update();
+      }
+    });
   }
 
   void recoverCol(int? col, {Obf? board}) {
@@ -379,6 +397,23 @@ class ProjectEventHandler {
       colCount: board.grid.numberOfColumns,
     ),
   );
+  List<List<Object?>> getButtonsFromObf(Obf obf) {
+    List<List<Object?>> buttons = [];
+    final int rowCount = obf.grid.numberOfRows;
+    final int colCount = obf.grid.numberOfColumns;
+    for (int i = 0; i < rowCount; i++) {
+      buttons.add([]);
+      for (int j = 0; j < colCount; j++) {
+        ButtonData? button = obf.grid.getButtonData(i, j);
+        if (button != null) {
+          buttons.last.add(makeButtonNotifier(button, i, j));
+        } else {
+          buttons.last.add(null);
+        }
+      }
+    }
+    return buttons;
+  }
 
   void removeBoard(Obf board) => execute(RemoveBoard(board.id));
 

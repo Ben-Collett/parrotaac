@@ -1,6 +1,7 @@
 import 'dart:io';
 
 import 'package:archive/archive_io.dart';
+import 'package:parrotaac/extensions/file_system_entity_extensions.dart';
 import 'package:path/path.dart' as p;
 
 //TODO: this function needs improved, I could use an exeteranl dependacny,like legalize, however everything I can find is under LGPL so I would need to learn about licensing for that. I could probably just use there regexes.
@@ -53,7 +54,7 @@ Future<void> writeDirectoryAsObz({
     throw Exception('Input directory does not exist: $sourceDirPath');
   }
 
-  final dirName = p.basename(inputDir.path);
+  final dirName = inputDir.baseName;
   final outputFileName = '$dirName.obz';
 
   final outputFilePath = p.join(outputDirPath, outputFileName);

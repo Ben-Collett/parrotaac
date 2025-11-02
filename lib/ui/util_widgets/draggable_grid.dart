@@ -2,6 +2,7 @@ import 'dart:collection';
 import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:parrotaac/backend/value_wrapper.dart';
+import 'package:parrotaac/extensions/list_extensions.dart';
 import 'package:parrotaac/ui/painters/painted_color_box.dart';
 
 class GridNotifier<T extends Widget> extends ChangeNotifier {
@@ -219,10 +220,19 @@ class GridNotifier<T extends Widget> extends ChangeNotifier {
     return out;
   }
 
-  void setData(List<List<Object?>> data) {
+  ///cleanUp allows you to modify the old data before it is lost primarily intended for disposing of notifiers
+  void setData(
+    List<List<Object?>> data, {
+    Function(Iterable<dynamic> originalData)? cleanUp,
+  }) {
+    Iterable<dynamic> originalData = [];
+    if (cleanUp != null) {
+      originalData = this.data.flatten();
+    }
     _data = data;
     _invalidateWidgetListCache();
     notifyListeners();
+    cleanUp?.call(originalData);
   }
 
   void move({
