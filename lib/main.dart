@@ -50,11 +50,11 @@ class _MainScreenState extends State<MainScreen> {
   @override
   void initState() {
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      if (alreadyAuthenticated ||
-          LockType.fromString(
-                getSetting<String>(adminLockLabel) ?? LockType.none.label,
-              ) ==
-              LockType.none) {
+      final lockType = LockType.fromString(
+        getSetting<String>(adminLockLabel) ?? LockType.none.label,
+      );
+
+      if (alreadyAuthenticated || lockType == LockType.none) {
         RestorativeNavigator().fullyInitialized = true;
         return;
       }

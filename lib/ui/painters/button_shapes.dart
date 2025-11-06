@@ -19,6 +19,7 @@ enum ParrotButtonShape {
   const ParrotButtonShape(this.label);
 }
 
+//WARNING: in the case the duration is tweed the animation's will also need tweaked as the extend past there normal confines into the borders to make the animation feel "smoother"
 const animationDuration = Duration(milliseconds: 600);
 const animationStartThreshold =
     .11; //start animation want 11% done, this avoids playing the animation when user just taps
@@ -31,15 +32,16 @@ class ShapedButton extends StatefulWidget {
   final Color borderColor;
   final VoidCallback? onPressed;
   final VoidCallback? onLongPress;
-  const ShapedButton(
-      {super.key,
-      this.image,
-      this.text,
-      this.onPressed,
-      this.onLongPress,
-      required this.backgroundColor,
-      required this.shape,
-      required this.borderColor});
+  const ShapedButton({
+    super.key,
+    this.image,
+    this.text,
+    this.onPressed,
+    this.onLongPress,
+    required this.backgroundColor,
+    required this.shape,
+    required this.borderColor,
+  });
 
   @override
   State<ShapedButton> createState() => _ShapedButtonState();
@@ -58,8 +60,10 @@ class _ShapedButtonState extends State<ShapedButton>
   void initState() {
     _backgroundColor = ValueWrapper(widget.backgroundColor);
     _borderColor = ValueWrapper(widget.borderColor);
-    _repaintNotifier =
-        AnimationNotifier(vsync: this, duration: animationDuration);
+    _repaintNotifier = AnimationNotifier(
+      vsync: this,
+      duration: animationDuration,
+    );
     _repaintNotifier.addListener(() {
       if (_repaintNotifier.value == 1 && _mouseInside) {
         widget.onLongPress?.call();
@@ -133,10 +137,14 @@ class _ShapedButtonState extends State<ShapedButton>
             textHeightPreportion: textHeight,
           );
         }
-        final imageRect =
-            painter.imagePaintArea(size, painter.computeBorderSize(size));
-        final textRect =
-            painter.textPaintArea(size, painter.computeBorderSize(size));
+        final imageRect = painter.imagePaintArea(
+          size,
+          painter.computeBorderSize(size),
+        );
+        final textRect = painter.textPaintArea(
+          size,
+          painter.computeBorderSize(size),
+        );
         const tenPercent = 0.1;
         const fifteenPercent = 0.15;
         return MouseRegion(
@@ -164,17 +172,10 @@ class _ShapedButtonState extends State<ShapedButton>
             onTapUp: (details) async {
               if (widget.onPressed != null) {
                 //create artificial delay so button looks darkend on press
+
+                _repaintNotifier.reverse();
                 await Future.delayed(Duration(milliseconds: 60));
                 _restorePreviousColors();
-                _repaintNotifier.reverse();
-                widget.onPressed?.call();
-              }
-            },
-            onLongPress: () {
-              if (widget.onPressed != null) {
-                _restorePreviousColors();
-              }
-              if (widget.onLongPress == null) {
                 widget.onPressed?.call();
               }
             },
@@ -183,14 +184,12 @@ class _ShapedButtonState extends State<ShapedButton>
                 SizedBox(
                   width: size.width,
                   height: size.height,
-                  child: CustomPaint(
-                    painter: painter as CustomPainter,
-                  ),
+                  child: CustomPaint(painter: painter as CustomPainter),
                 ),
                 if (widget.image != null)
                   Positioned.fromRect(rect: imageRect, child: widget.image!),
                 if (widget.text != null)
-                  Positioned.fromRect(rect: textRect, child: widget.text!)
+                  Positioned.fromRect(rect: textRect, child: widget.text!),
               ],
             ),
           ),
@@ -218,18 +217,19 @@ class _FolderButtonPainter extends CustomPainter with _ParrotButtonPainter {
   final double imageWidthPreportion;
   final bool paintPaintAreas;
   final AnimationController animationController;
-  _FolderButtonPainter(
-      {required this.backgroundColor,
-      required this.borderColor,
-      required this.animationController,
-      super.repaint,
-      this.borderWidthPreportion = 0.05,
-      this.tabTopWidthPreportion = 0.25,
-      this.tabBottomWidthPreportion = 0.3,
-      this.tabHeightPreportion = 0.09,
-      this.imageWidthPreportion = .85,
-      this.paintPaintAreas = false,
-      this.textHeightPreportion});
+  _FolderButtonPainter({
+    required this.backgroundColor,
+    required this.borderColor,
+    required this.animationController,
+    super.repaint,
+    this.borderWidthPreportion = 0.05,
+    this.tabTopWidthPreportion = 0.25,
+    this.tabBottomWidthPreportion = 0.3,
+    this.tabHeightPreportion = 0.09,
+    this.imageWidthPreportion = .85,
+    this.paintPaintAreas = false,
+    this.textHeightPreportion,
+  });
   @override
   double computeBorderSize(Size size) =>
       computeBorderSizeFromPreportion(size, borderWidthPreportion);
@@ -287,7 +287,7 @@ class _FolderButtonPainter extends CustomPainter with _ParrotButtonPainter {
       topRight,
       tabRightBottom,
       tabRightTop,
-      finish
+      finish,
     ];
 
     return pathFromPoints(points);
@@ -323,8 +323,12 @@ class _FolderButtonPainter extends CustomPainter with _ParrotButtonPainter {
     if (scale < animationStartThreshold) return;
     final matrix = Matrix4.identity()..scale(scale);
     path = path.transform(matrix.storage);
-    path = path.shift(Offset(size.width / 2 - size.width / 2 * scale,
-        size.height / 2 - size.height / 2 * scale));
+    path = path.shift(
+      Offset(
+        size.width / 2 - size.width / 2 * scale,
+        size.height / 2 - size.height / 2 * scale,
+      ),
+    );
 
     canvas.drawPath(path, paint);
   }
@@ -341,6 +345,7 @@ class _SquareButtonPainter extends CustomPainter with _ParrotButtonPainter {
   final double imageWidthPreportion;
   double? textHeightPreportion;
   final bool paintPaintAreas;
+  final double roundnessPreportion;
 
   ///[textHeightPreportion] and [imageHeightPreportion] are only respected if there is an image and text.
   _SquareButtonPainter({
@@ -350,6 +355,7 @@ class _SquareButtonPainter extends CustomPainter with _ParrotButtonPainter {
     required this.animationController,
     this.borderWidthPreportion = .05,
     this.imageWidthPreportion = .85,
+    this.roundnessPreportion = .1,
     this.textHeightPreportion,
     this.paintPaintAreas = false,
   });
@@ -357,10 +363,13 @@ class _SquareButtonPainter extends CustomPainter with _ParrotButtonPainter {
   void paint(Canvas canvas, Size size) {
     Paint paint = Paint()..color = backgroundColor.value;
     final double borderSize = computeBorderSize(size);
-    _drawBackground(canvas, size, paint);
-    _drawBorder(paint, canvas, borderSize, size);
-    _drawAnimation(canvas, size, paint);
-
+    final radius = Radius.circular(
+      roundnessPreportion * min(size.width, size.height),
+    );
+    final RRect rrect = computeRRect(size, borderSize, radius);
+    _drawBackground(canvas, rrect, paint);
+    _drawAnimation(canvas, size, radius, paint);
+    _drawBorder(paint, canvas, borderSize, rrect, size);
     if (paintPaintAreas) {
       paint.color = Colors.green;
       canvas.drawRect(imagePaintArea(size, borderSize), paint);
@@ -369,18 +378,47 @@ class _SquareButtonPainter extends CustomPainter with _ParrotButtonPainter {
     }
   }
 
-  void _drawAnimation(Canvas canvas, Size size, Paint paint) {
+  void _drawAnimation(Canvas canvas, Size size, Radius radius, Paint paint) {
     final scale = animationController.value;
     if (scale < animationStartThreshold) return;
+    final borderSize = computeBorderSize(size);
+
+    final scaledRadius = Radius.circular(radius.x * scale);
+    //width and height overshoot by 1.2 borderSize as that makes the animation look smoother and it gets covered up border, plus it avoids having to worry about the corners to much
+    final width = (size.width - borderSize * .8) * scale;
+    final height = (size.height - borderSize * .8) * scale;
     final center = Offset(size.width / 2, size.height / 2);
-    paint.color = Color.fromARGB(150, 255, 255, 255);
-    final toDraw = Rect.fromCenter(
-      center: center,
-      width: size.width * scale - computeBorderSize(size) * scale,
-      height: size.height * scale - computeBorderSize(size) * scale,
+
+    final rect = Rect.fromCenter(center: center, width: width, height: height);
+
+    final scaledRect = RRect.fromRectAndRadius(rect, scaledRadius);
+    paint
+      ..color = const Color.fromARGB(150, 255, 255, 255)
+      ..style = PaintingStyle.fill
+      ..isAntiAlias = true;
+
+    canvas.drawRRect(scaledRect, paint);
+  }
+
+  RRect scaleRRect(RRect rrect, double scale) {
+    final Rect rect = rrect.outerRect;
+    final Offset center = rect.center;
+    final double newWidth = rect.width * scale;
+    final double newHeight = rect.height * scale;
+
+    // scale the radius (assuming circular corners)
+    final Radius newRadius = Radius.elliptical(
+      rrect.blRadiusX * scale,
+      rrect.blRadiusY * scale,
     );
 
-    canvas.drawRect(toDraw, paint);
+    final Rect newRect = Rect.fromCenter(
+      center: center,
+      width: newWidth,
+      height: newHeight,
+    );
+
+    return RRect.fromRectAndRadius(newRect, newRadius);
   }
 
   @override
@@ -390,11 +428,12 @@ class _SquareButtonPainter extends CustomPainter with _ParrotButtonPainter {
   @override
   Rect imagePaintArea(Size size, double borderSize) =>
       determineImagePaintAreaRect(
-          size: size,
-          borderSize: borderSize,
-          imageWidthPreportion: imageWidthPreportion,
-          borderWidthPreportion: borderWidthPreportion,
-          textHeightPreportion: textHeightPreportion);
+        size: size,
+        borderSize: borderSize,
+        imageWidthPreportion: imageWidthPreportion,
+        borderWidthPreportion: borderWidthPreportion,
+        textHeightPreportion: textHeightPreportion,
+      );
 
   @override
   Rect textPaintArea(Size size, double borderSize) {
@@ -407,14 +446,26 @@ class _SquareButtonPainter extends CustomPainter with _ParrotButtonPainter {
     );
   }
 
-  void _drawBackground(Canvas canvas, Size size, Paint paint) {
-    canvas.drawRect(Offset.zero & size, paint);
+  RRect computeRRect(Size size, double borderWidth, Radius radius) {
+    //have to subtract one borderWidth from the width and height to offset the borders
+    final width = size.width - borderWidth;
+    final height = size.height - borderWidth;
+
+    return RRect.fromRectAndRadius(
+      Rect.fromLTWH(borderWidth / 2, borderWidth / 2, width, height),
+      radius,
+    );
+  }
+
+  void _drawBackground(Canvas canvas, RRect rrect, Paint paint) {
+    canvas.drawRRect(rrect, paint);
   }
 
   void _drawBorder(
     Paint paint,
     Canvas canvas,
     double borderWidth,
+    RRect rrect,
     Size size,
   ) {
     final startingWidth = paint.strokeWidth;
@@ -425,14 +476,7 @@ class _SquareButtonPainter extends CustomPainter with _ParrotButtonPainter {
     paint.color = borderColor.value;
     paint.style = PaintingStyle.stroke;
 
-    //have to subtract one borderWidth from the width and height to offset the borders
-    final width = size.width - borderWidth;
-    final height = size.height - borderWidth;
-
-    canvas.drawRect(
-      Rect.fromLTWH(borderWidth / 2, borderWidth / 2, width, height),
-      paint,
-    );
+    canvas.drawRRect(rrect, paint);
 
     paint.color = startingColor;
     paint.strokeWidth = startingWidth;
@@ -465,14 +509,10 @@ Rect determineImagePaintAreaRect({
   final imageHeight = imageHeightPreportion * size.height;
 
   final imageStart = size.width / 2 - imageWidth / 2;
-  return Rect.fromLTWH(
-    imageStart,
-    borderSize,
-    imageWidth,
-    imageHeight,
-  );
+  return Rect.fromLTWH(imageStart, borderSize, imageWidth, imageHeight);
 }
 
 double computeBorderSizeFromPreportion(
-        Size size, double borderWidthPreportion) =>
-    min(size.width, size.height) * borderWidthPreportion;
+  Size size,
+  double borderWidthPreportion,
+) => min(size.width, size.height) * borderWidthPreportion;
