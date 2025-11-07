@@ -5,7 +5,6 @@ import 'package:flutter/material.dart';
 import 'package:parrotaac/backend/value_wrapper.dart';
 import 'package:parrotaac/extensions/color_extensions.dart';
 import 'package:parrotaac/state/my_anmiation_notifier.dart';
-import 'package:parrotaac/ui/painters/path_from_points.dart';
 
 enum ParrotButtonShape {
   folder("folder"),
@@ -107,6 +106,7 @@ class _ShapedButtonState extends State<ShapedButton>
 
   @override
   Widget build(BuildContext context) {
+    const bool paintPaintAreas = false;
     return LayoutBuilder(
       builder: (context, constraints) {
         final size = Size(constraints.maxWidth, constraints.maxHeight);
@@ -116,7 +116,7 @@ class _ShapedButtonState extends State<ShapedButton>
         } else if (widget.image == null) {
           textHeight = 1;
         } else {
-          //TODO: I really need to dynamically determine this so the sentence bar look better on different size screens
+          //TODO: I really need to dynamically detersize.shortestSidemine this so the sentence bar look better on different size screens
           textHeight = 0.25;
         }
         final _ParrotButtonPainter painter;
@@ -125,6 +125,7 @@ class _ShapedButtonState extends State<ShapedButton>
             animationController: _repaintNotifier,
             backgroundColor: _backgroundColor,
             repaint: _repaintNotifier,
+            paintPaintAreas: paintPaintAreas,
             borderColor: _borderColor,
             textHeightPreportion: textHeight,
           );
@@ -132,6 +133,7 @@ class _ShapedButtonState extends State<ShapedButton>
           painter = _FolderButtonPainter(
             backgroundColor: _backgroundColor,
             animationController: _repaintNotifier,
+            paintPaintAreas: paintPaintAreas,
             repaint: _repaintNotifier,
             borderColor: _borderColor,
             textHeightPreportion: textHeight,
@@ -215,6 +217,7 @@ class _FolderButtonPainter extends CustomPainter with _ParrotButtonPainter {
   final double tabTopWidthPreportion;
   final double tabBottomWidthPreportion;
   final double imageWidthPreportion;
+  final double roundnessPreportion;
   final bool paintPaintAreas;
   final AnimationController animationController;
   _FolderButtonPainter({
@@ -224,9 +227,10 @@ class _FolderButtonPainter extends CustomPainter with _ParrotButtonPainter {
     super.repaint,
     this.borderWidthPreportion = 0.05,
     this.tabTopWidthPreportion = 0.25,
-    this.tabBottomWidthPreportion = 0.3,
-    this.tabHeightPreportion = 0.09,
+    this.tabBottomWidthPreportion = 0.34,
+    this.tabHeightPreportion = 0.08,
     this.imageWidthPreportion = .85,
+    this.roundnessPreportion = .1,
     this.paintPaintAreas = false,
     this.textHeightPreportion,
   });
@@ -236,16 +240,18 @@ class _FolderButtonPainter extends CustomPainter with _ParrotButtonPainter {
 
   @override
   Rect imagePaintArea(Size size, double borderSize) {
-    size = Size(size.width, size.height * (1 - tabHeightPreportion));
+    final tabHeight = size.height * tabHeightPreportion;
+    size = Size(size.width, size.height - tabHeight);
     Rect rect = determineImagePaintAreaRect(
       size: size,
       borderSize: borderSize,
       borderWidthPreportion: borderWidthPreportion,
       imageWidthPreportion: imageWidthPreportion,
+      roundnessPreportion: roundnessPreportion,
       textHeightPreportion: textHeightPreportion,
     );
     if (rect == Rect.zero) return rect;
-    rect = rect.shift(Offset(0, tabHeightPreportion * size.height));
+    rect = rect.shift(Offset(0, tabHeight));
 
     return rect;
   }
@@ -253,44 +259,40 @@ class _FolderButtonPainter extends CustomPainter with _ParrotButtonPainter {
   @override
   Rect textPaintArea(Size size, double borderSize) {
     if (textHeightPreportion == null) return Rect.zero;
+    final radius = roundnessPreportion * min(size.width, size.height);
     final imageArea = imagePaintArea(size, borderSize);
-    double top = imageArea == Rect.zero
-        ? size.height * tabHeightPreportion + computeBorderSize(size) / 2
-        : imageArea.bottom;
+    double top = imageArea.bottom;
 
-    return Rect.fromLTWH(
-      borderSize,
-      top,
-      size.width - borderSize * 2,
+    final height = min(
       textHeightPreportion! * size.height,
+      size.height - top - borderSize,
+    );
+    return Rect.fromLTWH(
+      borderSize + radius / 2,
+      top,
+      size.width - borderSize * 2 - radius,
+      height,
     );
   }
 
   Path _folderPath(Size size, double strokeWidth) {
+    size = Size(size.width - strokeWidth, size.height - strokeWidth);
     final tabHeight = tabHeightPreportion * size.height;
-    final tabBottomWidth = tabBottomWidthPreportion * size.width;
     final tabTopWidth = tabTopWidthPreportion * size.width;
+    final bodyHeight = size.height - tabHeight;
+    final bodyWidth = size.width;
 
-    final shift = strokeWidth / 2;
+    final tabSize = Size(tabTopWidth, tabHeight);
+    final bodySize = Size(bodyWidth, bodyHeight);
+    final tabBottomWidth = tabBottomWidthPreportion * size.width;
+    final radius = roundnessPreportion * size.shortestSide;
 
-    final topLeft = Offset(shift, shift);
-    final bottomLeft = Offset(shift, size.height - shift);
-    final bottomRight = Offset(size.width - shift, size.height - shift);
-    final topRight = Offset(size.width - shift, tabHeight);
-    final tabRightBottom = Offset(tabBottomWidth, tabHeight);
-    final tabRightTop = Offset(tabTopWidth - shift, shift);
-    final finish = Offset(0, shift);
-    final points = [
-      topLeft,
-      bottomLeft,
-      bottomRight,
-      topRight,
-      tabRightBottom,
-      tabRightTop,
-      finish,
-    ];
-
-    return pathFromPoints(points);
+    return _computeFolderPath(
+      bodySize: bodySize,
+      tabSize: tabSize,
+      tabBottomWidth: tabBottomWidth,
+      radius: radius,
+    ).shift(Offset(strokeWidth / 2, strokeWidth / 2));
   }
 
   @override
@@ -321,7 +323,7 @@ class _FolderButtonPainter extends CustomPainter with _ParrotButtonPainter {
     paint.color = Color.fromARGB(150, 255, 255, 255);
     final scale = animationController.value;
     if (scale < animationStartThreshold) return;
-    final matrix = Matrix4.identity()..scale(scale);
+    final matrix = Matrix4.diagonal3Values(scale, scale, 1.0);
     path = path.transform(matrix.storage);
     path = path.shift(
       Offset(
@@ -363,9 +365,7 @@ class _SquareButtonPainter extends CustomPainter with _ParrotButtonPainter {
   void paint(Canvas canvas, Size size) {
     Paint paint = Paint()..color = backgroundColor.value;
     final double borderSize = computeBorderSize(size);
-    final radius = Radius.circular(
-      roundnessPreportion * min(size.width, size.height),
-    );
+    final radius = Radius.circular(roundnessPreportion * size.shortestSide);
     final RRect rrect = computeRRect(size, borderSize, radius);
     _drawBackground(canvas, rrect, paint);
     _drawAnimation(canvas, size, radius, paint);
@@ -433,15 +433,17 @@ class _SquareButtonPainter extends CustomPainter with _ParrotButtonPainter {
         imageWidthPreportion: imageWidthPreportion,
         borderWidthPreportion: borderWidthPreportion,
         textHeightPreportion: textHeightPreportion,
+        roundnessPreportion: roundnessPreportion,
       );
 
   @override
   Rect textPaintArea(Size size, double borderSize) {
     if (textHeightPreportion == null) return Rect.zero;
+    final radius = roundnessPreportion * size.shortestSide;
     return Rect.fromLTWH(
-      borderSize,
+      borderSize + radius / 2,
       imagePaintArea(size, borderSize).bottom,
-      size.width - borderSize * 2,
+      size.width - borderSize * 2 - radius,
       textHeightPreportion! * size.height,
     );
   }
@@ -495,6 +497,7 @@ Rect determineImagePaintAreaRect({
   required double borderWidthPreportion,
   double? imageWidthPreportion,
   double? textHeightPreportion,
+  double roundnessPreportion = 0,
 }) {
   if (imageWidthPreportion == null) return Rect.zero;
   if (textHeightPreportion == 1) return Rect.zero;
@@ -505,7 +508,13 @@ Rect determineImagePaintAreaRect({
     imageHeightPreportion =
         1 - borderWidthPreportion * 2 - textHeightPreportion;
   }
-  final imageWidth = imageWidthPreportion * size.width;
+
+  final radius = roundnessPreportion * size.shortestSide;
+
+  final imageWidth = min(
+    imageWidthPreportion * size.width,
+    size.width - 2 * radius,
+  );
   final imageHeight = imageHeightPreportion * size.height;
 
   final imageStart = size.width / 2 - imageWidth / 2;
@@ -515,4 +524,50 @@ Rect determineImagePaintAreaRect({
 double computeBorderSizeFromPreportion(
   Size size,
   double borderWidthPreportion,
-) => min(size.width, size.height) * borderWidthPreportion;
+) => size.shortestSide * borderWidthPreportion;
+
+Path _computeFolderPath({
+  required Size bodySize,
+  required Size tabSize,
+  required double tabBottomWidth,
+  required double radius,
+}) {
+  final path = Path();
+  final width = bodySize.width;
+  final baseHeight = bodySize.height;
+  final tabWidth = tabSize.width;
+  final tabHeight = tabSize.height;
+  final height = baseHeight + tabHeight;
+
+  const forceCreateNewSubPath = false;
+
+  path.moveTo(tabWidth, 0);
+
+  Rect rect = Rect.fromLTWH(0, 0, radius * 2, radius * 2);
+  path.arcTo(rect, 3 * pi / 2, -pi / 2, forceCreateNewSubPath);
+
+  rect = Rect.fromLTWH(0, height - radius * 2, radius * 2, radius * 2);
+  path.arcTo(rect, pi, -pi / 2, forceCreateNewSubPath);
+
+  rect = Rect.fromLTWH(
+    width - radius * 2,
+    height - radius * 2,
+    radius * 2,
+    radius * 2,
+  );
+  path.arcTo(rect, pi / 2, -pi / 2, forceCreateNewSubPath);
+
+  rect = Rect.fromLTWH(width - radius * 2, tabHeight, radius * 2, radius * 2);
+  path.arcTo(rect, 2 * pi, -pi / 2, false);
+  path.lineTo(tabBottomWidth, tabHeight);
+
+  // Draw along the tab top to the start of the tab notch
+  path.lineTo(tabBottomWidth, tabHeight);
+
+  // Small rounding between tab bottom and top edge (optional for smoothing)
+  path.quadraticBezierTo(tabBottomWidth - radius / 10, tabHeight, tabWidth, 0);
+
+  path.close();
+
+  return path;
+}
