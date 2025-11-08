@@ -169,10 +169,7 @@ class _BoardScreenState extends State<BoardScreen> {
 
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (!project.restored) {
-        eventHandler.bulkExecute(
-          restorationData.currentUndoStack,
-          updateUi: false,
-        );
+        eventHandler.bulkExecute(restorationData.currentUndoStack);
 
         project.restored = true;
 
