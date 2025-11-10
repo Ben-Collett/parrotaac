@@ -15,6 +15,7 @@ import 'package:parrotaac/ui/board_screen_popup_history.dart';
 import 'package:parrotaac/ui/event_handler.dart';
 import 'package:parrotaac/ui/painters/button_shapes.dart';
 import 'package:parrotaac/ui/popups/button_config.dart';
+import 'package:parrotaac/ui/util_widgets/ranged_padding.dart';
 import 'package:parrotaac/ui/widgets/sentence_box.dart';
 import 'actions/button_actions.dart';
 import 'restore_button_diff.dart';
@@ -238,11 +239,14 @@ class ParrotButton extends StatelessWidget {
     return ListenableBuilder(
       listenable: controller,
       builder: (context, _) {
-        return StatelessParrotButton(
-          onTap: onTap,
-          onLongPress: onLongPress,
-          projectPath: controller.projectPath,
-          buttonData: controller.data,
+        return PreportinalPadding(
+          preportion: .02,
+          child: StatelessParrotButton(
+            onTap: onTap,
+            onLongPress: onLongPress,
+            projectPath: controller.projectPath,
+            buttonData: controller.data,
+          ),
         );
       },
     );
