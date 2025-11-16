@@ -1,9 +1,8 @@
 import 'package:flutter/material.dart';
-import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:parrotaac/board_selector.dart';
+import 'package:parrotaac/project_selector.dart';
 
 void main() {
-  runApp(ProviderScope(child: const MyApp()));
+  runApp(const MyApp());
 }
 
 class MyApp extends StatelessWidget {
@@ -11,10 +10,7 @@ class MyApp extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return const MaterialApp(
-      title: 'Parrot AAC',
-      home: MainScreen(),
-    );
+    return const MaterialApp(title: 'Parrot AAC', home: MainScreen());
   }
 }
 
@@ -25,8 +21,9 @@ class MainScreen extends StatelessWidget {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-          title: const Text('board selector'),
-          backgroundColor: Color(0xFFAFABDF)),
+        title: const Text('board selector'),
+        backgroundColor: Color(0xFFAFABDF),
+      ),
       body: ProjectSelector(),
     );
   }

@@ -138,6 +138,7 @@ class _BoardSelectScreenState extends State<BoardSelectScreen> {
         project: widget.project,
         eventHandler: widget.eventHandler,
         showSentenceBar: false,
+        selectionHistory: null,
         history: _boardHistory,
       ),
     );

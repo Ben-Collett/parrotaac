@@ -3,14 +3,25 @@ import 'dart:math';
 import 'package:flutter/material.dart';
 import 'package:parrotaac/extensions/canvas_extensions.dart';
 import 'package:parrotaac/extensions/color_extensions.dart';
+import 'package:parrotaac/ui/util_widgets/draggable_grid.dart';
 
-class EmptySpotWidget extends StatelessWidget {
+class EmptySpotWidget extends StatelessWidget
+    with SelectIndecatorStatusDimensions {
   final Color color;
   const EmptySpotWidget({super.key, this.color = Colors.lightBlue});
 
   static Color fromBackground(Color color) {
     //TODO: I need to make sure that there is still a contrast for colorblind people using luminosity
     return color.isBluish() ? Colors.red : Colors.lightBlue;
+  }
+
+  @override
+  Offset selectIndecatorOffset(Size size) {
+    final shortSide = size.shortestSide;
+    final shift =
+        _EmptyPainter.computePaddingSize(shortSide) +
+        2 * _EmptyPainter.computeBorderStrokeSize(shortSide);
+    return Offset(shift, shift);
   }
 
   @override
@@ -23,23 +34,25 @@ class _EmptyPainter extends CustomPainter {
   final Color color;
 
   _EmptyPainter({required this.color});
+
+  static const maxBorderWidth = 6;
+  static const paddingPreportion = .005;
+  static const borderWidthPreportion = .03;
+
+  static double computeBorderStrokeSize(double shortSide) =>
+      min(borderWidthPreportion * shortSide, maxBorderWidth).toDouble();
+  static double computePaddingSize(double shortSide) =>
+      paddingPreportion * shortSide;
+
   @override
   void paint(Canvas canvas, Size size) {
-    const borderWidth = .03;
-    const maxBorderWidth = 6;
-    const padding = .005;
-
-    final smallerSide = min(size.width, size.height);
-    final borderStrokeSize = min(
-      borderWidth * smallerSide,
-      maxBorderWidth,
-    ).toDouble();
-
+    final smallerSide = size.shortestSide;
+    final borderStrokeSize = computeBorderStrokeSize(size.shortestSide);
     final radius = Radius.circular(borderStrokeSize);
 
     final plusSignThinkness = borderStrokeSize * .7;
 
-    final paddingSize = padding * smallerSide;
+    final paddingSize = computePaddingSize(smallerSide);
     final paint = Paint()
       ..strokeWidth = borderStrokeSize
       ..color = color

@@ -22,6 +22,8 @@ enum LockType {
   final String label;
   const LockType(this.label);
 
+  bool get isNone => this == none;
+
   @override
   String toString() {
     return label;

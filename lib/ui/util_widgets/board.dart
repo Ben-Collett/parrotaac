@@ -6,8 +6,12 @@ import 'package:openboard_wrapper/obz.dart';
 import 'package:parrotaac/backend/history_stack.dart';
 import 'package:parrotaac/backend/project/parrot_project.dart';
 import 'package:parrotaac/backend/project_restore_write_stream.dart';
+import 'package:parrotaac/backend/selection_data.dart';
+import 'package:parrotaac/backend/selection_history.dart';
 import 'package:parrotaac/extensions/color_extensions.dart';
 import 'package:parrotaac/extensions/list_extensions.dart';
+import 'package:parrotaac/extensions/notifier_extensions.dart';
+import 'package:parrotaac/extensions/null_extensions.dart';
 import 'package:parrotaac/extensions/obf_extensions.dart';
 import 'package:parrotaac/ui/board_modes.dart';
 import 'package:parrotaac/ui/board_screen_popup_history.dart';
@@ -24,7 +28,8 @@ import 'package:parrotaac/ui/widgets/sentence_box.dart';
 class BoardWidget extends StatefulWidget {
   final ParrotProject project;
   final ValueNotifier<BoardMode>? boardMode;
-  final GridNotifier<ParrotButton>? gridNotifier;
+
+  final GridNotifier<ParrotButtonNotifier, ParrotButton>? gridNotifier;
   final ProjectEventHandler eventHandler;
   final SentenceBoxController? sentenceBoxController;
   final BoardHistoryStack? history;
@@ -32,10 +37,12 @@ class BoardWidget extends StatefulWidget {
   final ProjectRestoreStream? restoreStream;
   final BoardScreenPopupHistory? popupHistory;
   final RestorableButtonDiff? restorableButtonDiff;
+  final WorkingSelectionHistory? selectionHistory;
   const BoardWidget({
     super.key,
     required this.project,
     required this.eventHandler,
+    required this.selectionHistory,
     this.boardMode,
     this.gridNotifier,
     this.restoreStream,
@@ -54,7 +61,7 @@ class _BoardWidgetState extends State<BoardWidget> {
   static const String defaultBoardName = "default name";
   static const String defaultID = "board";
   static const int historySize = 100;
-  late final GridNotifier<ParrotButton> _gridNotfier;
+  late final GridNotifier<ParrotButtonNotifier, ParrotButton> _gridNotifier;
   late final SentenceBoxController _sentenceController;
   late final ValueNotifier<BoardMode> _boardMode;
   Obf get currentObf => history.currentBoard;
@@ -84,7 +91,7 @@ class _BoardWidgetState extends State<BoardWidget> {
         widget.sentenceBoxController ??
         SentenceBoxController(projectPath: widget.project.path);
 
-    _gridNotfier =
+    _gridNotifier =
         widget.gridNotifier ??
         GridNotifier(
           data: [],
@@ -100,26 +107,29 @@ class _BoardWidgetState extends State<BoardWidget> {
             return null;
           },
           draggable: false,
-          onSwap: (_, __, row, col) => _updateButtonNotfierOnDelete(
-            _gridNotfier.getWidget(row, col)!,
+          onSwap: (p1, p2) => _updateButtonNotfierOnDelete(
+            _gridNotifier.getWidget(p2.row, p2.col)!,
             widget.eventHandler,
-            row,
-            col,
+            p2.row,
+            p2.col,
           ),
         );
 
-    _gridNotfier.setData(
+    _gridNotifier.setData(
       getButtonsFromObf(currentObf),
       cleanUp: _disposeNotifiers,
     );
 
-    _updateGridSettingsFromBoardMode();
-    _boardMode.addListener(_updateGridSettingsFromBoardMode);
+    _gridNotifier.rawUpdateSelectMode(
+      widget.selectionHistory?.isNotEmpty ?? false,
+    );
+
+    _boardMode.executeAndAddListener(_updateGridSettingsFromBoardMode);
 
     history.beforeChange = _updateObfData;
     history.addListener(() {
       widget.restoreStream?.updateHistory(history.toIdList());
-      _gridNotfier.setData(
+      _gridNotifier.setData(
         getButtonsFromObf(currentObf),
         cleanUp: _disposeNotifiers,
       );
@@ -131,7 +141,7 @@ class _BoardWidgetState extends State<BoardWidget> {
       ParrotButtonNotifier? notifier = findNotifierById(
         popupToRecover.buttonId,
       );
-      if (notifier != null) {
+      notifier.existThen((notifier) {
         WidgetsBinding.instance.addPostFrameCallback(
           (_) => showConfigExistingPopup(
             context: context,
@@ -141,7 +151,7 @@ class _BoardWidgetState extends State<BoardWidget> {
             writeHistory: false,
           ),
         );
-      }
+      });
     } else if (popupToRecover is ButtonCreate) {
       WidgetsBinding.instance.addPostFrameCallback(
         (_) => _showCreateNewButtonDialog(
@@ -161,18 +171,58 @@ class _BoardWidgetState extends State<BoardWidget> {
       (_) => _updateGridNoifierColor(),
     );
 
+    widget.selectionHistory.existThen((val) {
+      _gridNotifier.selectionController.addListener(_writeSelectionChange);
+      history.executeAndAddListener(_updateSelection);
+      _boardMode.addListener(_clearSelectionIfNormalMode);
+      val.addListener(_updateSelectMode);
+    });
+
     super.initState();
+  }
+
+  void _writeSelectionChange() async {
+    assert(
+      widget.selectionHistory != null,
+      "should not call  _writeSelectionChange with a null selection history",
+    );
+    assert(
+      widget.gridNotifier != null,
+      "should not call  _writeSelectionChange with a null grid notifier",
+    );
+
+    final selectionController = widget.gridNotifier!.selectionController;
+    await widget.selectionHistory!.updateData(
+      currentObf.id,
+      (oldData) => oldData.setTo(selectionController.data),
+    );
+  }
+
+  void _updateSelection() {
+    assert(
+      widget.selectionHistory != null,
+      "should not call _updateSelection with a null selection history",
+    );
+
+    final selectionHistory = widget.selectionHistory!;
+    final SelectionData selectionData = selectionHistory
+        .findSelectionFromId(currentObf.id)
+        .ifNotFoundDefaultTo(SelectionData());
+
+    widget.gridNotifier?.selectionController.data.setTo(selectionData);
   }
 
   void _disposeNotifiers(Iterable<dynamic> toDispose) =>
       toDispose.disposeNotifiers();
 
   void _updateGridNoifierColor() {
-    _gridNotfier.backgroundColorNotifier.value = history.currentBoard.boardColor
+    _gridNotifier.backgroundColorNotifier.value = history
+        .currentBoard
+        .boardColor
         .toColor();
-    _gridNotfier.emptySpotWidget = EmptySpotWidget(
+    _gridNotifier.emptySpotWidget = EmptySpotWidget(
       color: EmptySpotWidget.fromBackground(
-        _gridNotfier.backgroundColorNotifier.value,
+        _gridNotifier.backgroundColorNotifier.value,
       ),
     );
   }
@@ -184,9 +234,9 @@ class _BoardWidgetState extends State<BoardWidget> {
   }
 
   ParrotButtonNotifier? findNotifierById(String id) {
-    for (int i = 0; i < _gridNotfier.rows; i++) {
-      for (int j = 0; j < _gridNotfier.columns; j++) {
-        final notifier = _gridNotfier.data[i][j];
+    for (int i = 0; i < _gridNotifier.rows; i++) {
+      for (int j = 0; j < _gridNotifier.columns; j++) {
+        final notifier = _gridNotifier.data[i][j];
         if (notifier is ParrotButtonNotifier && notifier.data.id == id) {
           return notifier;
         }
@@ -197,52 +247,51 @@ class _BoardWidgetState extends State<BoardWidget> {
 
   void _updateGridSettingsFromBoardMode() {
     BoardMode mode = _boardMode.value;
-    _gridNotfier.draggable = mode.draggableButtons;
-    _gridNotfier.hideEmptySpotWidget = mode.hideEmptySpotWidget;
-    _gridNotfier.toWidget = (button) => _toParrotButton(
+    _gridNotifier.draggable = mode.draggableButtons;
+    _gridNotifier.hideEmptySpotWidget = mode.hideEmptySpotWidget;
+    _gridNotifier.toWidget = (button) => _toParrotButton(
       button,
       widget.eventHandler,
       restorableButtonDiff: widget.restorableButtonDiff,
       obf: history.currentBoard,
     );
-    mode.onPressedOverride(_gridNotfier, widget.eventHandler);
+    mode.updateOnPressed(_gridNotifier);
 
     if (mode == BoardMode.builderMode) {
-      _gridNotfier.onEmptyPressed = (row, col) => _showCreateNewButtonDialog(
+      _gridNotifier.onEmptyPressed = (row, col) => _showCreateNewButtonDialog(
         row,
         col,
         widget.eventHandler,
         restorableButtonDiff: widget.restorableButtonDiff,
       );
-    } else if (mode == BoardMode.deleteRowMode) {
-      _gridNotfier.onEmptyPressed = (row, _) {
-        widget.eventHandler.removeRow(row);
-        mode.onPressedOverride(
-          _gridNotfier,
-          widget.eventHandler,
-        ); //updates the grid notifier to tell the buttons inside of it to delete the new row
-        _gridNotfier.forEachIndexed((obj, int row, int col) {
-          if (obj is ParrotButtonNotifier) {
-            _updateButtonNotfierOnDelete(obj, widget.eventHandler, row, col);
-          }
-        });
-      };
-    } else if (mode == BoardMode.deleteColMode) {
-      _gridNotfier.onEmptyPressed = (_, col) {
-        widget.eventHandler.removeCol(col);
-        mode.onPressedOverride(
-          _gridNotfier,
-          widget.eventHandler,
-        ); //updates the grid notifier to tell the buttons inside of it to delete the new col.
-        _gridNotfier.forEachIndexed((obj, int row, int col) {
-          if (obj is ParrotButtonNotifier) {
-            _updateButtonNotfierOnDelete(obj, widget.eventHandler, row, col);
-          }
-        });
-      };
-    } else {
-      _gridNotfier.onEmptyPressed = null;
+
+      widget.selectionHistory.existThen((selectionHistory) {
+        _gridNotifier.selectMode = selectionHistory.isNotEmpty;
+      });
     }
+  }
+
+  Future<void> _clearSelectionIfNormalMode() async {
+    assert(
+      widget.selectionHistory != null,
+      "should not call _clearSelectionIfNormalMode when the selectionHistory is null",
+    );
+    if (_boardMode.value == BoardMode.normalMode) {
+      await widget.selectionHistory!.clear();
+    }
+  }
+
+  void _updateSelectMode() {
+    if (widget.selectionHistory?.isNotEmpty ?? false) {
+      _gridNotifier.selectMode = true;
+      return;
+    }
+    final val = _boardMode.value;
+    if (val == BoardMode.builderMode || val == BoardMode.normalMode) {
+      _gridNotifier.selectMode = false;
+      return;
+    }
+    _gridNotifier.selectMode = true;
   }
 
   void _updateButtonNotfierOnDelete(
@@ -360,14 +409,14 @@ class _BoardWidgetState extends State<BoardWidget> {
     }
   }
 
-  List<List<Object?>> getButtonsFromObf(Obf obf) =>
+  List<List<ParrotButtonNotifier?>> getButtonsFromObf(Obf obf) =>
       widget.eventHandler.getButtonsFromObf(obf);
 
   @override
   void dispose() {
     if (widget.gridNotifier == null) {
-      _gridNotfier.data.flatten().disposeNotifiers();
-      _gridNotfier.dispose();
+      _gridNotifier.data.flatten().disposeNotifiers();
+      _gridNotifier.dispose();
     }
     if (widget.boardMode == null) {
       _boardMode.dispose();
@@ -379,12 +428,16 @@ class _BoardWidgetState extends State<BoardWidget> {
       history.dispose();
     }
 
+    widget.selectionHistory.existThen((val) {
+      val.removeListener(_updateSelectMode);
+    });
+
     super.dispose();
   }
 
   void _updateButtonPositionsInObf(Obf obf) {
     List<List<ButtonData?>> order = [];
-    for (List<ParrotButton?> row in _gridNotfier.widgets) {
+    for (List<ParrotButton?> row in _gridNotifier.widgets) {
       order.add(row.map((b) => b?.buttonData).toList());
       for (ParrotButton? button in row) {
         if (button != null && !obf.buttons.contains(button.buttonData)) {
@@ -416,7 +469,7 @@ class _BoardWidgetState extends State<BoardWidget> {
                 },
               ),
             ),
-          Expanded(child: DraggableGrid(gridNotfier: _gridNotfier)),
+          Expanded(child: DraggableGrid(gridNotfier: _gridNotifier)),
         ];
         return Column(children: children);
       },

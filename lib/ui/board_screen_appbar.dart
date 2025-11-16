@@ -1,11 +1,13 @@
 import 'package:flutter/material.dart';
 import 'package:parrotaac/backend/history_stack.dart';
 import 'package:parrotaac/backend/project/parrot_project.dart';
+import 'package:parrotaac/backend/selection_history.dart';
 import 'package:parrotaac/backend/settings_utils.dart';
 import 'package:parrotaac/restorative_navigator.dart';
 import 'package:parrotaac/ui/appbar_widgets/compute_contrasting_color.dart';
 import 'package:parrotaac/ui/event_handler.dart';
 import 'package:parrotaac/ui/settings/labels.dart';
+import 'package:parrotaac/ui/util_widgets/coditional_text_button.dart';
 import 'package:parrotaac/ui/util_widgets/color_popup_button.dart';
 import 'package:parrotaac/ui/util_widgets/draggable_grid.dart';
 import 'package:parrotaac/ui/util_widgets/icon_button_on_notfier.dart';
@@ -19,11 +21,12 @@ import 'settings/settings_themed_appbar.dart';
 
 SettingsThemedAppbar boardScreenAppbar({
   required BuildContext context,
-  required ValueNotifier boardMode,
+  required ValueNotifier<BoardMode> boardMode,
   required TextEditingController titleController,
   required ProjectEventHandler eventHandler,
   required ParrotProject project,
   required ValueNotifier<bool> showSideBar,
+  required WorkingSelectionHistory selectionHistory,
   BoardHistoryStack? boardHistory,
   GridNotifier? grid,
   Widget? leading,
@@ -77,6 +80,16 @@ SettingsThemedAppbar boardScreenAppbar({
   );
 
   final showSideBarButton = ShowSideBarButton(showSideBar: showSideBar);
+  final deselectAllButton = _DeselectAllButton(
+    history: selectionHistory,
+    grid: grid,
+    mode: boardMode,
+  );
+  final deleteSelectedButton = _DeleteSelectedButton(
+    mode: boardMode,
+    history: selectionHistory,
+    handler: eventHandler,
+  );
 
   return SettingsThemedAppbar(
     leading: leading,
@@ -113,6 +126,8 @@ SettingsThemedAppbar boardScreenAppbar({
             Row(
               children: [
                 if (!inNormalMode) changeGridColorButton!,
+                if (!inNormalMode) deleteSelectedButton,
+                if (!inNormalMode) deselectAllButton,
                 if (!inNormalMode) showSideBarButton,
                 builderModeButton,
                 settingsButton,
@@ -157,8 +172,8 @@ Widget _getTitle(
           bool editButtonShouldBeShown = mode != BoardMode.normalMode;
           return Row(
             children: [
-              Flexible(flex: 2, child: Text(title)),
               if (editButtonShouldBeShown) editButton(),
+              Flexible(flex: 2, child: Text(title)),
             ],
           );
         },
@@ -185,14 +200,126 @@ class ShowSideBarButton extends StatelessWidget {
               message,
               textAlign: TextAlign.center,
               style: TextStyle(
-                color: computeContrastingColor(
-                  getAppbarColor(),
-                ),
+                color: computeContrastingColor(getAppbarColor()),
               ),
             ),
           );
         },
       ),
+    );
+  }
+}
+
+class _DeselectAllButton extends StatelessWidget {
+  final ValueNotifier<BoardMode> mode;
+  final WorkingSelectionHistory history;
+  final GridNotifier? grid;
+
+  const _DeselectAllButton({
+    required this.mode,
+    required this.history,
+    required this.grid,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final color = computeContrastingColor(Color(getSetting(appBarColorLabel)));
+    return ConditionallyEnabledTextButton(
+      listenable: history,
+      condition: () => history.isNotEmpty,
+      onPressed: clear,
+      style: TextButton.styleFrom(foregroundColor: color),
+      child: Column(
+        children: [
+          Text("deselect", textAlign: TextAlign.center),
+          Text("all", textAlign: TextAlign.center),
+        ],
+      ),
+    );
+  }
+
+  void clear() {
+    grid?.selectionController.clear();
+    history.clear();
+  }
+}
+
+class _DeleteSelectedButton extends StatelessWidget {
+  final ValueNotifier<BoardMode> mode;
+  final WorkingSelectionHistory history;
+  final ProjectEventHandler handler;
+
+  const _DeleteSelectedButton({
+    required this.mode,
+    required this.history,
+    required this.handler,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final color = computeContrastingColor(Color(getSetting(appBarColorLabel)));
+    return ConditionallyEnabledTextButton(
+      listenable: Listenable.merge([history, handler.gridNotfier]),
+      onPressed: handler.removeSelected,
+      style: TextButton.styleFrom(foregroundColor: color),
+      condition: () => history.deletableIsSelected,
+      child: Column(
+        children: [
+          Text("delete", textAlign: TextAlign.center),
+          Text("selected", textAlign: TextAlign.center),
+        ],
+      ),
+    );
+  }
+}
+
+class _HistoryListeningButton extends StatefulWidget {
+  final WorkingSelectionHistory history;
+  final VoidCallback onPressed;
+  final Widget child;
+  const _HistoryListeningButton({
+    required this.history,
+    required this.onPressed,
+    required this.child,
+  });
+
+  @override
+  State<_HistoryListeningButton> createState() =>
+      _HistoryListeningButtonState();
+}
+
+class _HistoryListeningButtonState extends State<_HistoryListeningButton> {
+  late final ValueNotifier<bool> notifier;
+  @override
+  void initState() {
+    notifier = ValueNotifier(widget.history.isNotEmpty);
+    widget.history.addListener(_updateNotifier);
+    super.initState();
+  }
+
+  @override
+  void dispose() {
+    widget.history.removeListener(_updateNotifier);
+    notifier.dispose();
+    super.dispose();
+  }
+
+  void _updateNotifier() {
+    notifier.value = widget.history.isNotEmpty;
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final color = computeContrastingColor(Color(getSetting(appBarColorLabel)));
+    return ValueListenableBuilder(
+      valueListenable: notifier,
+      builder: (context, enabled, child) {
+        return TextButton(
+          onPressed: enabled ? widget.onPressed : null,
+          style: TextButton.styleFrom(foregroundColor: color),
+          child: widget.child,
+        );
+      },
     );
   }
 }

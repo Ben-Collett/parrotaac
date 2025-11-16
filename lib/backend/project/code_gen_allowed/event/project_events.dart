@@ -1,3 +1,5 @@
+import 'dart:convert';
+
 import 'package:json_annotation/json_annotation.dart';
 import 'package:openboard_wrapper/button_data.dart';
 import 'package:openboard_wrapper/color_data.dart';
@@ -5,10 +7,19 @@ import 'package:openboard_wrapper/grid_data.dart';
 import 'package:openboard_wrapper/image_data.dart';
 import 'package:openboard_wrapper/obf.dart';
 import 'package:openboard_wrapper/sound_data.dart';
+import 'package:parrotaac/backend/collection_utils/set_utils.dart';
 import 'package:parrotaac/backend/map_utils.dart';
+import 'package:parrotaac/backend/selection_data.dart';
+import 'package:parrotaac/backend/selection_history.dart';
+import 'package:parrotaac/backend/simple_logger.dart';
+import 'package:parrotaac/backend/swap_data.dart';
 import 'package:parrotaac/extensions/button_data_extensions.dart';
 import 'package:parrotaac/extensions/color_extensions.dart';
+import 'package:parrotaac/extensions/iterable_extensions.dart';
+import 'package:parrotaac/extensions/list_extensions.dart';
+import 'package:parrotaac/extensions/map_extensions.dart';
 import 'package:parrotaac/extensions/obf_extensions.dart';
+import 'package:parrotaac/extensions/set_extensions.dart';
 import 'package:parrotaac/ui/event_handler.dart';
 import 'package:parrotaac/ui/parrot_button.dart';
 import 'package:parrotaac/ui/widgets/empty_spot.dart';
@@ -20,14 +31,17 @@ abstract class ProjectEvent {
   String? get returnToBoardId;
 
   ///if returnToBoardId is null this getter must be overridden
-  String get boardToWrite => returnToBoardId!;
-  static ProjectEvent? decode(Map<String, dynamic> json) {
+  List<String> get boardsToWrite => [returnToBoardId!];
+  static ProjectEvent? decode(String jsonString) {
+    final json = jsonDecode(jsonString);
     ProjectEvent? event;
     EventType? type = EventType.fromString(json["type"]);
 
-    Map<String, dynamic>? content = castMapToJsonMap(json["content"]);
+    Map<String, dynamic>? content = deepCastMapToJsonMap(json["content"]);
     if (type != null && content != null) {
       return type.create(content);
+    } else {
+      SimpleLogger().logWarning("malformed event: $json");
     }
     return event;
   }
@@ -36,6 +50,10 @@ abstract class ProjectEvent {
 
   Map<String, dynamic> encode() {
     return {"version": 1, "type": type.asString, "content": toJson()};
+  }
+
+  String encodeToJsonString() {
+    return jsonEncode(encode());
   }
 
   Map<String, dynamic> toJson();
@@ -57,9 +75,11 @@ enum EventType {
   renameBoard("rename_board", RenameBoard.fromJson),
   addButton("add_button", AddButton.fromJson),
   removeButton("remove_button", RemoveButton.fromJson),
+  bulkRemove("bulk_remove", BulkRemove.fromJson),
+  bulkRecover("bulk_recover", BulkRecover.fromJson),
   recoverButton("recover_button", RecoverButton.fromJson),
   changeBoardColor("change_board_color", ChangeBoardColor.fromJson),
-  swapButtons("swap_buttons", SwapButtons.fromJson);
+  swapEvent("swap_buttons", SwapEvent.fromJson);
 
   const EventType(this.asString, this.create);
 
@@ -100,7 +120,7 @@ class AddBoard extends ProjectEvent {
   EventType get type => EventType.addBoard;
 
   @override
-  String get boardToWrite => id;
+  List<String> get boardsToWrite => [id];
 
   @override
   void execute(ProjectEventHandler handler) {
@@ -137,7 +157,7 @@ class RemoveBoard extends ProjectEvent {
   String? get returnToBoardId => null;
 
   @override
-  String get boardToWrite => id;
+  List<String> get boardsToWrite => [id];
 
   @override
   void execute(ProjectEventHandler handler) {
@@ -169,7 +189,7 @@ class RestoreBoard extends ProjectEvent {
   EventType get type => EventType.restoreBoard;
 
   @override
-  String get boardToWrite => id;
+  List<String> get boardsToWrite => [id];
 
   @override
   void execute(ProjectEventHandler handler) {
@@ -512,6 +532,10 @@ class AddButton extends ProjectEvent {
 
     button.image = button.image ?? image;
     button.sound = button.sound ?? sound;
+
+    board?.grid.setButtonData(row: row, col: col, data: button);
+    board?.buttons.add(button);
+
     if (board == handler.currentBoard) {
       if (handler.autoUpdateUi) {
         handler.gridNotfier.setWidget(
@@ -521,8 +545,6 @@ class AddButton extends ProjectEvent {
         );
       }
     }
-    board?.grid.setButtonData(row: row, col: col, data: button);
-    board?.buttons.add(button);
   }
 }
 
@@ -550,16 +572,25 @@ class RemoveButton extends ProjectEvent {
   @override
   void execute(ProjectEventHandler handler) {
     Obf board = handler.fromIdOrCurrent(boardId);
-    ButtonData buttonData = board.grid.getButtonData(row, col)!;
-    if (buttonData.image?.path != null) {
+    ButtonData? buttonData = board.grid.getButtonData(row, col);
+
+    //button data doesn't break anything if it is null but it is wasted IO and computation, if there is ever the need this assert can be removed.
+    assert(
+      buttonData != null,
+      "removing null button, this is an unnecessary call",
+    );
+
+    if (buttonData?.image?.path != null) {
       handler.currentPatch?.removeImageFile(
-        _fullPath(handler, buttonData.image!.path!),
+        _fullPath(handler, buttonData!.image!.path!),
       );
     }
-    if (buttonData.sound?.path != null) {
-      handler.currentPatch?.removeAudioFile(buttonData.sound!.path!);
+    if (buttonData?.sound?.path != null) {
+      handler.currentPatch?.removeAudioFile(buttonData!.sound!.path!);
     }
-    handler.history.addToRemovedButtons(buttonData);
+    if (buttonData != null) {
+      handler.history.addToRemovedButtons(buttonData);
+    }
     if (board == handler.currentBoard && handler.autoUpdateUi) {
       handler.gridNotfier.removeAt(row, col);
     }
@@ -657,55 +688,290 @@ class RecoverRow extends ProjectEvent {
 }
 
 @JsonSerializable()
-class SwapButtons extends ProjectEvent {
-  final String boardId;
-  final int oldRow, oldCol;
-  final int newRow, newCol;
+class SwapEvent extends ProjectEvent {
+  final SwapData swapData;
+
   @override
   String? get returnToBoardId => boardId;
-  SwapButtons({
-    required this.boardId,
-    required this.oldRow,
-    required this.newRow,
-    required this.oldCol,
-    required this.newCol,
-  });
+  final String boardId;
+
+  SwapEvent({required this.boardId, required this.swapData});
 
   @override
-  ProjectEvent undoEvent() => SwapButtons(
-    boardId: boardId,
-    oldRow: newRow,
-    newRow: oldRow,
-    oldCol: newCol,
-    newCol: oldCol,
-  );
+  ProjectEvent undoEvent() => this;
 
-  factory SwapButtons.fromJson(Map<String, dynamic> json) =>
-      _$SwapButtonsFromJson(json);
+  factory SwapEvent.fromJson(Map<String, dynamic> json) =>
+      _$SwapEventFromJson(json);
 
   @override
-  Map<String, dynamic> toJson() => _$SwapButtonsToJson(this);
+  Map<String, dynamic> toJson() => _$SwapEventToJson(this);
 
   @override
-  EventType get type => EventType.swapButtons;
+  List<String> get boardsToWrite => {swapData.s1.id, swapData.s2.id}.toList();
+
+  @override
+  EventType get type => EventType.swapEvent;
 
   @override
   void execute(ProjectEventHandler handler) {
-    Obf board = handler.fromIdOrCurrent(boardId);
-    if (board == handler.currentBoard) {
-      if (handler.autoUpdateUi) {
-        handler.gridNotfier.swap(oldRow, oldCol, newRow, newCol);
+    swapData.performSwap(handler.project);
+    final updateUi = handler.autoUpdateUi;
+    final currentBoardId = handler.currentBoard.id;
+    if (boardId == currentBoardId) {
+      if (updateUi) {
+        handler.fullUIUpdate();
       }
     }
 
-    ButtonData? b1 = board.grid.getButtonData(oldRow, oldCol);
-    board.grid.setButtonData(
-      row: oldRow,
-      col: oldCol,
-      data: board.grid.getButtonData(newRow, newCol),
-    );
-    board.grid.setButtonData(row: newRow, col: newCol, data: b1);
+    final s1 = swapData.s1;
+    final s2 = swapData.s2;
+    final SelectionDataInterface sel1;
+    final SelectionDataInterface sel2;
+    if (s1.id == currentBoardId) {
+      sel1 = handler.gridNotfier.selectionController;
+    } else {
+      sel1 =
+          handler.selectionHistory.findSelectionFromId(s1.id)?.copy() ??
+          SelectionData();
+    }
+
+    if (s2.id == currentBoardId) {
+      sel2 = handler.gridNotfier.selectionController;
+    } else {
+      sel2 =
+          handler.selectionHistory.findSelectionFromId(s2.id)?.copy() ??
+          SelectionData();
+    }
+
+    SwapData.swapSelection(sel1, sel2, s1, s2);
+
+    if (s1.id != currentBoardId) {
+      handler.selectionHistory.updateData(s1.id, (data) {
+        data.setTo(sel1 as SelectionData);
+      });
+    }
+    if (s2.id != currentBoardId && s1.id != s2.id) {
+      handler.selectionHistory.updateData(s2.id, (data) {
+        data.setTo(sel2 as SelectionData);
+      });
+    }
   }
+}
+
+@JsonSerializable()
+class BulkRemove extends ProjectEvent {
+  final Map<String, Set<int>> rowsToRemove;
+  final Map<String, Set<int>> colsToRemove;
+
+  @JsonKey(fromJson: _buttonsFromJson, toJson: _toJson)
+  final Map<String, Set<RowColPair>> buttonsToRemove;
+  BulkRemove({
+    Map<String, Set<int>>? rowsToRemove,
+    Map<String, Set<int>>? colsToRemove,
+    Map<String, Set<RowColPair>>? buttonsToRemove,
+  }) : rowsToRemove = rowsToRemove ?? {},
+       colsToRemove = colsToRemove ?? {},
+       buttonsToRemove = buttonsToRemove ?? {};
+
+  factory BulkRemove.fromSelection(WorkingSelectionHistory selectionHistory) {
+    final selectedRows = selectionHistory.selectedRows().mapValue(
+      (vals) => vals.toSet(),
+    );
+    final selectedCols = selectionHistory.selectedCols().mapValue(
+      (vals) => vals.toSet(),
+    );
+
+    final selectedButtons = selectionHistory.selectedButtons;
+
+    return BulkRemove(
+      rowsToRemove: selectedRows,
+      colsToRemove: selectedCols,
+      buttonsToRemove: selectedButtons,
+    );
+  }
+
+  static Map<String, Set<RowColPair>> _buttonsFromJson(Map json) {
+    final Map<String, Set<RowColPair>> out = {};
+    for (final entry in json.entries) {
+      final Set<RowColPair> temp = {};
+      if (entry.value is Iterable) {
+        for (dynamic val in entry.value) {
+          temp.addIfNotNull(RowColPair.fromJson(val));
+        }
+      }
+      out[entry.key] = temp;
+    }
+    return out;
+  }
+
+  static Map<String, dynamic> _toJson(Map<String, Set<RowColPair>> toConvert) {
+    final Map<String, dynamic> out = {};
+    for (MapEntry<String, Set<RowColPair>> entry in toConvert.entries) {
+      out[entry.key] = entry.value.mapToJsonEncodedList();
+    }
+    return out;
+  }
+
+  factory BulkRemove.fromJson(Map<String, dynamic> json) =>
+      _$BulkRemoveFromJson(json);
+
+  @override
+  Map<String, dynamic> toJson() => _$BulkRemoveToJson(this);
+
+  @override
+  void execute(ProjectEventHandler handler) {
+    Map<String, Obf?> seenBoards = {};
+
+    _bulkRemove<RowColPair>(
+      removeEntry: (board, pairs) {
+        for (final pair in pairs) {
+          RemoveButton(
+            boardId: board.id,
+            col: pair.col,
+            row: pair.row,
+          ).execute(handler);
+        }
+      },
+      handler: handler,
+      map: buttonsToRemove,
+      boardCache: seenBoards,
+    );
+
+    _bulkRemove<int>(
+      removeEntry: (board, rows) {
+        final descending = rows.descendingOrder;
+        for (final row in descending) {
+          RemoveRow(id: board.id, row: row).execute(handler);
+        }
+      },
+      handler: handler,
+      map: rowsToRemove,
+      boardCache: seenBoards,
+    );
+
+    _bulkRemove<int>(
+      removeEntry: (board, cols) {
+        final descending = cols.descendingOrder;
+        for (final col in descending) {
+          RemoveColumn(id: board.id, col: col).execute(handler);
+        }
+      },
+      handler: handler,
+      map: colsToRemove,
+      boardCache: seenBoards,
+    );
+  }
+
+  void _bulkRemove<T>({
+    required Function(Obf, Set<T>) removeEntry,
+    required ProjectEventHandler handler,
+    required Map<String, Set<T>> map,
+    required Map<String, Obf?> boardCache,
+  }) {
+    final project = handler.project;
+    for (MapEntry entry in map.entries) {
+      final id = entry.key;
+      final value = entry.value;
+      Obf? board = boardCache.containsKey(entry.key)
+          ? boardCache[entry.key]
+          : project.findBoardById(id);
+
+      boardCache[id] = board;
+      if (board != null) {
+        removeEntry(board, value);
+      }
+    }
+  }
+
+  @override
+  String? get returnToBoardId => null;
+
+  @override
+  List<String> get boardsToWrite => mergeToSet<String>([
+    colsToRemove.keys,
+    rowsToRemove.keys,
+    buttonsToRemove.keys,
+  ]).toList();
+
+  @override
+  EventType get type => EventType.bulkRemove;
+
+  @override
+  ProjectEvent undoEvent() => BulkRecover(
+    rowsToRecover: rowsToRemove,
+    colsToRecover: colsToRemove,
+    buttonsToRecover: buttonsToRemove,
+  );
+}
+
+@JsonSerializable()
+class BulkRecover extends ProjectEvent {
+  final Map<String, Set<int>> rowsToRecover;
+  final Map<String, Set<int>> colsToRecover;
+
+  @JsonKey(fromJson: BulkRemove._buttonsFromJson, toJson: BulkRemove._toJson)
+  final Map<String, Set<RowColPair>> buttonsToRecover;
+
+  BulkRecover({
+    required this.rowsToRecover,
+    required this.colsToRecover,
+    required this.buttonsToRecover,
+  });
+
+  @override
+  void execute(ProjectEventHandler handler) {
+    //WARNING: order of recovering rows and columns must match the order of removal in reverse
+
+    for (final entries in colsToRecover.entries) {
+      final toRecover = entries.value.ascendingOrder;
+      for (final col in toRecover) {
+        RecoverColumn(id: entries.key, col: col).execute(handler);
+      }
+    }
+
+    for (final entries in rowsToRecover.entries) {
+      final toRecover = entries.value.ascendingOrder;
+      for (final row in toRecover) {
+        RecoverRow(id: entries.key, row: row).execute(handler);
+      }
+    }
+
+    for (final entries in buttonsToRecover.entries) {
+      final toRecover = entries.value;
+      for (final button in toRecover) {
+        RecoverButton(
+          boardId: entries.key,
+          row: button.row,
+          col: button.col,
+        ).execute(handler);
+      }
+    }
+  }
+
+  @override
+  String? get returnToBoardId => null;
+
+  @override
+  List<String> get boardsToWrite => mergeToSet<String>([
+    colsToRecover.keys,
+    rowsToRecover.keys,
+    buttonsToRecover.keys,
+  ]).toList();
+
+  @override
+  Map<String, dynamic> toJson() => _$BulkRecoverToJson(this);
+  factory BulkRecover.fromJson(Map<String, dynamic> json) =>
+      _$BulkRecoverFromJson(json);
+
+  @override
+  EventType get type => EventType.bulkRecover;
+
+  @override
+  ProjectEvent undoEvent() => BulkRemove(
+    rowsToRemove: rowsToRecover,
+    colsToRemove: colsToRecover,
+    buttonsToRemove: buttonsToRecover,
+  );
 }
 
 @JsonSerializable()

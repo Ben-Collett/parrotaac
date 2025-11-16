@@ -8,10 +8,14 @@ import 'package:parrotaac/backend/history_stack.dart';
 import 'package:parrotaac/backend/project/code_gen_allowed/event/project_events.dart';
 import 'package:parrotaac/backend/project/parrot_project.dart';
 import 'package:parrotaac/backend/project/patch.dart';
+import 'package:parrotaac/backend/selection_data.dart';
+import 'package:parrotaac/backend/selection_history.dart';
 import 'package:parrotaac/backend/simple_logger.dart';
+import 'package:parrotaac/backend/swap_data.dart';
 import 'package:parrotaac/extensions/color_extensions.dart';
 import 'package:parrotaac/extensions/list_extensions.dart';
 import 'package:parrotaac/extensions/map_extensions.dart';
+import 'package:parrotaac/extensions/null_extensions.dart';
 import 'package:parrotaac/extensions/obf_extensions.dart';
 import 'package:parrotaac/ui/board_modes.dart';
 import 'package:parrotaac/ui/util_widgets/draggable_grid.dart';
@@ -22,10 +26,12 @@ import 'widgets/sentence_box.dart';
 
 class ProjectEventHandler {
   final ParrotProject project;
-  final GridNotifier<ParrotButton> gridNotfier;
+  final GridNotifier<ParrotButtonNotifier, ParrotButton> gridNotfier;
   bool gridNeedsUpdate = false;
   bool autoUpdateUi = true;
+  bool autoUpdateSelection = true;
   final BoardHistoryStack boardHistory;
+  final WorkingSelectionHistory selectionHistory;
   final Patch? currentPatch;
 
   final ValueNotifier<BoardMode> modeNotifier;
@@ -52,6 +58,7 @@ class ProjectEventHandler {
 
   ProjectEventHandler({
     required this.project,
+    required this.selectionHistory,
     required this.gridNotfier,
     required this.boardHistory,
     required this.canUndo,
@@ -63,8 +70,13 @@ class ProjectEventHandler {
     this.restoreStream,
   });
 
-  void bulkExecute(Iterable<ProjectEvent> events, {bool updateUi = true}) {
-    void playEvent(ProjectEvent event) => execute(event, updateUI: updateUi);
+  void bulkExecute(
+    Iterable<ProjectEvent> events, {
+    bool updateUi = true,
+    bool updateSelection = true,
+  }) {
+    void playEvent(ProjectEvent event) =>
+        execute(event, updateUI: updateUi, updateSelection: updateSelection);
     events.forEach(playEvent);
   }
 
@@ -78,6 +90,8 @@ class ProjectEventHandler {
     canUndo.value = events.isNotEmpty;
   }
 
+  void _addBoardToHistory(Obf board) => boardHistory.push(board);
+
   List<ProjectEvent> currentlyExecutedEvents() => history.undoList;
 
   //TODO: I need to decide if adding and removing boards should go into the history and how to display those actions
@@ -86,28 +100,27 @@ class ProjectEventHandler {
     bool addToHistory = true,
     bool undoing = false,
     bool? updateUI,
+    bool? updateSelection,
   }) {
-    bool originalAutoUpdate = autoUpdateUi;
+    final originalAutoUpdate = autoUpdateUi;
+    final originalUpdateSelection = autoUpdateSelection;
 
-    if (updateUI != null) {
-      autoUpdateUi = updateUI;
-    }
+    autoUpdateUi = updateUI ?? autoUpdateUi;
+    autoUpdateSelection = updateSelection ?? autoUpdateSelection;
 
-    if (event.returnToBoardId != null && autoUpdateUi) {
-      Obf? board = project.findBoardById(event.returnToBoardId!);
-      if (board != null) {
-        boardHistory.push(board);
-      }
+    if (event.returnToBoardId.isNotNull && autoUpdateUi) {
+      project
+          .findBoardById(event.returnToBoardId!)
+          .ifFoundThen(_addBoardToHistory);
     }
 
     if (!undoing) {
-      _updatedBoardCount.increment(event.boardToWrite);
+      _updatedBoardCount.incrementAll(event.boardsToWrite);
     } else {
-      _updatedBoardCount.decrement(event.boardToWrite);
-      _updatedBoardCount.removeKeyIfBelowThreshold(
-        key: event.boardToWrite,
-        threshold: 1,
-      );
+      _updatedBoardCount.decrementAll(event.boardsToWrite);
+      for (final key in event.boardsToWrite) {
+        _updatedBoardCount.removeKeyIfBelowThreshold(key: key, threshold: 1);
+      }
     }
 
     event.execute(this);
@@ -119,6 +132,7 @@ class ProjectEventHandler {
     }
 
     autoUpdateUi = originalAutoUpdate;
+    autoUpdateSelection = originalUpdateSelection;
   }
 
   void clear() {
@@ -130,22 +144,32 @@ class ProjectEventHandler {
     history.clear();
   }
 
-  void swapButtons(int oldRow, int oldCol, int newRow, int newCol) => execute(
-    SwapButtons(
-      boardId: currentBoard.id,
-      oldRow: oldRow,
-      newRow: newRow,
-      oldCol: oldCol,
-      newCol: newCol,
-    ),
-    updateUI: false,
-  );
+  void swapSelected() {
+    execute(
+      SwapEvent(boardId: currentBoard.id, swapData: selectionHistory.swapData!),
+      updateUI: true,
+    );
+  }
+
+  ///only called when moving a button through a drag
+  void addButtonSwapToHistory(RowColPair p1, RowColPair p2) {
+    final id = currentBoard.id;
+    final s1 = SingleSwapData(id: id, widget: p1);
+    final s2 = SingleSwapData(id: id, widget: p2);
+    final swapData = SwapData(s1, s2);
+
+    execute(SwapEvent(boardId: id, swapData: swapData), updateUI: true);
+  }
 
   void addRow() =>
       execute(AddRow(id: boardHistory.currentBoard.id), updateUI: true);
 
   void removeRow(int row) =>
       execute(RemoveRow(id: currentBoard.id, row: row), updateUI: true);
+
+  void bulkRemove(WorkingSelectionHistory selectionHistory) {
+    //execute(BulkRemove(rowsToRemove: rows), updateUI: true);
+  }
 
   void addCol() => execute(AddColumn(id: currentBoard.id), updateUI: true);
 
@@ -163,9 +187,14 @@ class ProjectEventHandler {
     updateUI: false,
   );
 
+  void removeSelected() {
+    execute(BulkRemove.fromSelection(selectionHistory));
+
+    gridNotfier.selectionController.clear();
+    selectionHistory.clear();
+  }
+
   void fullUIUpdate() {
-    _updateButtons();
-    gridNotfier.update();
     gridNotfier.backgroundColorNotifier.value = currentBoard.boardColor
         .toColor();
 
@@ -257,6 +286,10 @@ class ProjectEventHandler {
     board = board ?? boardHistory.currentBoard;
     button.image = button.image ?? imageData;
     button.sound = button.sound ?? soundData;
+
+    board.grid.setButtonData(row: row, col: col, data: button);
+    board.buttons.add(button);
+
     if (board == currentBoard) {
       if (autoUpdateUi && updateUi) {
         gridNotfier.setWidget(
@@ -268,8 +301,6 @@ class ProjectEventHandler {
         gridNeedsUpdate = true;
       }
     }
-    board.grid.setButtonData(row: row, col: col, data: button);
-    board.buttons.add(button);
   }
 
   void renameBoard(String oldName, String newName) => execute(
@@ -298,11 +329,8 @@ class ProjectEventHandler {
 
     for (int row = 0; row < toRecover.length; row++) {
       ButtonData? data = toRecover[row];
-      if (data == null) {
-        notifiers.add(null);
-      } else {
-        notifiers.add(makeButtonNotifier(data, row, col));
-      }
+      final notifier = data != null ? makeButtonNotifier(data, row, col) : null;
+      notifiers.add(notifier);
     }
 
     if (autoUpdateUi && board == currentBoard) {
@@ -314,27 +342,27 @@ class ProjectEventHandler {
   }
 
   void updateOnPressed() {
-    gridNotfier.forEachIndexed((obj, row, col) {
-      if (modeNotifier.value == BoardMode.deleteColMode &&
-          obj is ParrotButtonNotifier) {
-        obj.onPressOverride = () {
-          removeCol(col);
-        };
-      } else if (modeNotifier.value == BoardMode.deleteRowMode &&
-          obj is ParrotButtonNotifier) {
-        obj.onPressOverride = () {
-          removeRow(row);
-        };
-      }
-    });
+    // gridNotfier.forEachIndexed((obj, row, col) {
+    //   if (modeNotifier.value == BoardMode.deleteColMode &&
+    //       obj is ParrotButtonNotifier) {
+    //     obj.onPressOverride = () {
+    //       removeCol(col);
+    //     };
+    //   } else if (modeNotifier.value == BoardMode.deleteRowMode &&
+    //       obj is ParrotButtonNotifier) {
+    //     obj.onPressOverride = () {
+    //       removeRow(row);
+    //     };
+    //   }
+    // });
+    //TODO: ahh
   }
 
   ParrotButtonNotifier makeButtonNotifier(ButtonData bd, int row, int col) {
     VoidCallback? onPressOverride;
-    if (modeNotifier.value == BoardMode.deleteColMode) {
-      onPressOverride = () => removeCol(col);
-    } else if (modeNotifier.value == BoardMode.deleteRowMode) {
-      onPressOverride = () => removeRow(row);
+    OnPressOverride? callback = modeNotifier.value.onPressedOverride;
+    if (callback != null) {
+      onPressOverride = () => callback(gridNotfier, row, col);
     }
 
     return ParrotButtonNotifier(
@@ -343,9 +371,7 @@ class ProjectEventHandler {
         boardHistory.push(obf);
       },
       goHome: () {
-        if (project.root != null) {
-          boardHistory.push(project.root!);
-        }
+        project.root.existThen(_addBoardToHistory);
       },
       project: project,
       boxController: boxController,
@@ -362,11 +388,12 @@ class ProjectEventHandler {
 
     List<ParrotButtonNotifier?> notifiers = [];
     for (int col = 0; col < toRecover.length; col++) {
-      if (toRecover[col] == null) {
-        notifiers.add(null);
-      } else {
-        notifiers.add(makeButtonNotifier(toRecover[col]!, row, col));
-      }
+      final recovering = toRecover[col];
+
+      final notifier = recovering != null
+          ? makeButtonNotifier(recovering, row, col)
+          : null;
+      notifiers.add(notifier);
     }
 
     if (autoUpdateUi && board == currentBoard) {
@@ -397,19 +424,18 @@ class ProjectEventHandler {
       colCount: board.grid.numberOfColumns,
     ),
   );
-  List<List<Object?>> getButtonsFromObf(Obf obf) {
-    List<List<Object?>> buttons = [];
+  List<List<ParrotButtonNotifier?>> getButtonsFromObf(Obf obf) {
+    List<List<ParrotButtonNotifier?>> buttons = [];
     final int rowCount = obf.grid.numberOfRows;
     final int colCount = obf.grid.numberOfColumns;
     for (int i = 0; i < rowCount; i++) {
       buttons.add([]);
       for (int j = 0; j < colCount; j++) {
         ButtonData? button = obf.grid.getButtonData(i, j);
-        if (button != null) {
-          buttons.last.add(makeButtonNotifier(button, i, j));
-        } else {
-          buttons.last.add(null);
-        }
+        final notifier = button != null
+            ? makeButtonNotifier(button, i, j)
+            : null;
+        buttons.last.add(notifier);
       }
     }
     return buttons;

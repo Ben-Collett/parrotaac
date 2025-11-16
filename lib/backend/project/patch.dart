@@ -75,7 +75,7 @@ class Patch {
     );
     final sink = tmpActions.openWrite();
     for (final action in actions) {
-      sink.writeln(jsonEncode(action.encode()));
+      sink.writeln(action.encodeToJsonString());
     }
     await sink.close();
     await encoder.addFile(tmpActions, 'actions.jsonl');
@@ -152,8 +152,7 @@ class Patch {
     }
     List<ProjectEvent> events = [];
     void addEvent(String line) {
-      Map<String, dynamic> json = jsonDecode(line);
-      ProjectEvent? event = ProjectEvent.decode(json);
+      ProjectEvent? event = ProjectEvent.decode(line);
       if (event != null) {
         events.add(event);
       }

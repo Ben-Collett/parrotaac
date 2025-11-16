@@ -6,6 +6,7 @@ import 'package:parrotaac/backend/project/parrot_project.dart';
 import 'package:parrotaac/backend/project/project_interface.dart';
 import 'package:parrotaac/backend/project/project_utils.dart';
 import 'package:parrotaac/backend/simple_logger.dart';
+import 'package:parrotaac/extensions/null_extensions.dart';
 
 typedef DeleteListener = void Function(DisplayData);
 typedef AddListener = void Function(DisplayData);
@@ -72,7 +73,7 @@ class ProjectDirsListener extends ChangeNotifier {
   int _byLastAccessedThenByAlphabeticalOrder(DisplayData d1, DisplayData d2) {
     DateTime? t1 = d1.lastAccessed;
     DateTime? t2 = d2.lastAccessed;
-    if (d1.lastAccessed == null && d2.lastAccessed == null) {
+    if (d1.lastAccessed.isNull && d2.lastAccessed.isNull) {
       return d1.name.compareTo(d2.name);
     } else if (t1 == null) {
       return 1;

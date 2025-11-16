@@ -8,20 +8,17 @@ class RestorableButtonDiff {
   final Map<String, dynamic> _changes;
   final ProjectRestoreStream? _restoreStream;
   BoardLinkingActionMode?
-      _boardLinkingActionMode; //TODO: this is not a very nice approach
+  _boardLinkingActionMode; //TODO: this is not a very nice approach
 
   RestorableButtonDiff({
     Map<String, dynamic>? changes,
     BoardLinkingActionMode? boardLinkingAction,
     ProjectRestoreStream? restoreStream,
-  })  : _changes = changes ?? {},
-        _restoreStream = restoreStream,
-        _boardLinkingActionMode = boardLinkingAction;
+  }) : _changes = changes ?? {},
+       _restoreStream = restoreStream,
+       _boardLinkingActionMode = boardLinkingAction;
 
-  void update(
-    String key,
-    dynamic value,
-  ) {
+  void update(String key, dynamic value) {
     _changes[key] = value;
 
     _restoreStream?.updateCurrentButtonDiff(_changes);
@@ -29,8 +26,9 @@ class RestorableButtonDiff {
 
   set boardLinkingActionMode(BoardLinkingActionMode? boardLinkingAction) {
     _boardLinkingActionMode = boardLinkingAction;
-    _restoreStream
-        ?.updateCurrentButtonBoardLinkingAction(_boardLinkingActionMode?.label);
+    _restoreStream?.updateCurrentButtonBoardLinkingAction(
+      _boardLinkingActionMode?.label,
+    );
   }
 
   BoardLinkingActionMode? get boardLinkingActionMode => _boardLinkingActionMode;

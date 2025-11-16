@@ -1,7 +1,5 @@
 import 'dart:ui';
 
-import 'package:parrotaac/backend/simple_logger.dart';
-
 extension CanvasExtension on Canvas {
   void paintCircle({
     required Paint paint,
@@ -32,17 +30,24 @@ extension CanvasExtension on Canvas {
 
   void drawCenterGuildlines(Paint paint, Size size) {
     drawLine(
-        Offset(size.width / 2, size.height), Offset(size.width / 2, 0), paint);
+      Offset(size.width / 2, size.height),
+      Offset(size.width / 2, 0),
+      paint,
+    );
     drawLine(
-        Offset(size.width, size.height / 2), Offset(0, size.height / 2), paint);
+      Offset(size.width, size.height / 2),
+      Offset(0, size.height / 2),
+      paint,
+    );
   }
 
-  void paintPlusSign(
-      {required double centerX,
-      required double centerY,
-      required Paint paint,
-      required double horizontalLength,
-      required double verticalLength}) {
+  void paintPlusSign({
+    required double centerX,
+    required double centerY,
+    required Paint paint,
+    required double horizontalLength,
+    required double verticalLength,
+  }) {
     paintHorizontalLine(
       centerX: centerX,
       centerY: centerY,
@@ -51,10 +56,11 @@ extension CanvasExtension on Canvas {
     );
 
     paintVerticalLine(
-        centerX: centerX,
-        centerY: centerY,
-        paint: paint,
-        length: verticalLength);
+      centerX: centerX,
+      centerY: centerY,
+      paint: paint,
+      length: verticalLength,
+    );
   }
 
   void paintHorizontalLine({
@@ -63,9 +69,30 @@ extension CanvasExtension on Canvas {
     required Paint paint,
     required double length,
   }) {
-    final p1 = Offset(centerX - length, centerY);
-    final p2 = Offset(centerX + length, centerY);
+    final p1 = Offset(centerX - length / 2, centerY);
+    final p2 = Offset(centerX + length / 2, centerY);
     drawLine(p1, p2, paint);
+  }
+
+  void paintDashedPath({
+    required PathMetrics metrics,
+    required Paint paint,
+    double dashLength = 10.0,
+    double gapLength = 5.0,
+  }) {
+    for (final PathMetric metric in metrics) {
+      double distance = 0.0;
+      while (distance < metric.length) {
+        final double nextDashEnd = distance + dashLength;
+        final bool isDashEndWithinPath = nextDashEnd < metric.length;
+        final Path extractPath = metric.extractPath(
+          distance,
+          isDashEndWithinPath ? nextDashEnd : metric.length,
+        );
+        drawPath(extractPath, paint);
+        distance += dashLength + gapLength;
+      }
+    }
   }
 
   void paintVerticalLine({
@@ -74,8 +101,8 @@ extension CanvasExtension on Canvas {
     required Paint paint,
     required double length,
   }) {
-    final p1 = Offset(centerX, centerY - length);
-    final p2 = Offset(centerX, centerY + length);
+    final p1 = Offset(centerX, centerY - length / 2);
+    final p2 = Offset(centerX, centerY + length / 2);
     drawLine(p1, p2, paint);
   }
 }

@@ -1,7 +1,7 @@
-import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:parrotaac/backend/quick_store.dart';
 import 'package:parrotaac/backend/simple_logger.dart';
+import 'package:parrotaac/ui/popups/lock_popups/admin_lock.dart';
 import 'package:parrotaac/ui/settings/defaults.dart';
 import 'package:parrotaac/ui/settings/labels.dart';
 
@@ -23,8 +23,10 @@ Future<void> setSetting(String key, dynamic value) {
   _refMap[key]?.update();
   return _settingsQuickstore.writeData(key, value);
 }
-Color getAppbarColor()=>
-  Color(getSettingOr<int>(appBarColorLabel, defaultAppbarColor));
+
+String getAdminLockLabel() => getSettingOr(adminLockLabel, LockType.none.label);
+Color getAppbarColor() =>
+    Color(getSettingOr<int>(appBarColorLabel, defaultAppbarColor));
 T? getSetting<T>(String key) {
   //TODO: check if in quikstore and log if not
   dynamic out = _settingsQuickstore[key];
@@ -35,7 +37,8 @@ T? getSetting<T>(String key) {
     return null;
   }
 }
-T getSettingOr<T>(String key, T value) => getSetting(key)??value;
+
+T getSettingOr<T>(String key, T value) => getSetting(key) ?? value;
 
 ChangeNotifier addNotifier(String key) {
   if (!_refMap.containsKey(key)) {

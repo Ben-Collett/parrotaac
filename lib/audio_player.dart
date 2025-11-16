@@ -5,6 +5,7 @@ import 'package:audioplayers/audioplayers.dart';
 import 'package:flutter_tts/flutter_tts.dart';
 import 'package:parrotaac/audio/audio_source.dart';
 import 'package:parrotaac/backend/simple_logger.dart';
+import 'package:parrotaac/extensions/null_extensions.dart';
 import 'package:synchronized/synchronized.dart';
 
 ///singleton
@@ -29,12 +30,14 @@ class PreemptiveAudioPlayer {
 
   static Future<Duration> getDuration(AudioSource source) async {
     final Source? audioSource = _getSource(source);
-    assert(audioSource != null,
-        "cant get duration from this kind of source $source");
+    assert(
+      audioSource.isNotNull,
+      "cant get duration from this kind of source $source",
+    );
     AudioPlayer temp = AudioPlayer();
     await temp.setSource(audioSource!);
     Duration? duration = await temp.getDuration();
-    if (duration == null) {
+    if (duration.isNull) {
       SimpleLogger().logError("null duration somehow $audioSource");
     }
 
@@ -106,13 +109,11 @@ class PreemptiveAudioPlayer {
   }
 
   Future<void> stop() async {
-    await _stopCountLock.synchronized(
-      () async {
-        _incrementStopCount();
-        await _tts.stop();
-        await _audioPlayer.stop();
-      },
-    );
+    await _stopCountLock.synchronized(() async {
+      _incrementStopCount();
+      await _tts.stop();
+      await _audioPlayer.stop();
+    });
   }
 }
 
@@ -130,7 +131,7 @@ class _LinuxSupportingTts {
   Future<List<TTSVoice>> get voices async {
     if (Platform.isLinux || Platform.isWindows || Platform.isFuchsia) {
       return [
-        TTSVoice.fromMap({"name": "System"})
+        TTSVoice.fromMap({"name": "System"}),
       ];
     }
     //TODO: need to test on android and ios and macos

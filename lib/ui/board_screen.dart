@@ -8,7 +8,9 @@ import 'package:parrotaac/backend/project/file_cleanup_data.dart';
 import 'package:parrotaac/backend/project/parrot_project.dart';
 import 'package:parrotaac/backend/project/patch.dart';
 import 'package:parrotaac/backend/project_restore_write_stream.dart';
+import 'package:parrotaac/backend/selection_history.dart';
 import 'package:parrotaac/backend/state_restoration_utils.dart';
+import 'package:parrotaac/extensions/list_extensions.dart';
 import 'package:parrotaac/ui/board_screen_appbar.dart';
 import 'package:parrotaac/ui/board_sidebar.dart';
 import 'package:parrotaac/ui/event_handler.dart';
@@ -29,6 +31,7 @@ class BoardScreen extends StatefulWidget {
   final ProjectRestorationData restorationData;
   final BoardScreenPopupHistory? popupHistory;
   final RestorableButtonDiff? restorableButtonDiff;
+  final WorkingSelectionHistory selectionHistory;
 
   bool get isInNormalMode =>
       restorationData.currentBoardMode == BoardMode.normalMode;
@@ -40,6 +43,7 @@ class BoardScreen extends StatefulWidget {
     this.popupHistory,
     this.restoreStream,
     this.restorableButtonDiff,
+    required this.selectionHistory,
   });
 
   @override
@@ -47,7 +51,7 @@ class BoardScreen extends StatefulWidget {
 }
 
 class _BoardScreenState extends State<BoardScreen> {
-  late final GridNotifier<ParrotButton> _gridNotifier;
+  late final GridNotifier<ParrotButtonNotifier, ParrotButton> _gridNotifier;
   late final SentenceBoxController _sentenceController;
   late final ValueNotifier<BoardMode> _boardMode;
   late final ValueNotifier<bool> showSideBar;
@@ -95,10 +99,20 @@ class _BoardScreenState extends State<BoardScreen> {
         return null;
       },
       draggable: false,
-      onSwap: (oldRow, oldCol, newRow, newCol) {
-        eventHandler.swapButtons(oldRow, oldCol, newRow, newCol);
-        final data = _gridNotifier.getWidget(newRow, newCol);
-        _updateButtonNotfierOnDelete(data!, eventHandler, newRow, newCol);
+      onSwap: (p1, p2) {
+        final oldRow = p1.row;
+        final oldCol = p1.col;
+        final newRow = p2.row;
+        final newCol = p2.col;
+        eventHandler.addButtonSwapToHistory(p1, p2);
+
+        final ParrotButtonNotifier? n1 = _gridNotifier.data.fromPair(p1);
+        final ParrotButtonNotifier? n2 = _gridNotifier.data.fromPair(p2);
+        VoidCallback? makeOnPressedOverride(int row, int col) =>
+            _boardMode.value.makePressedCallback(_gridNotifier, row, col);
+
+        n1?.onPressOverride = makeOnPressedOverride(oldRow, oldCol);
+        n2?.onPressOverride = makeOnPressedOverride(newRow, newCol);
       },
     );
 
@@ -165,11 +179,15 @@ class _BoardScreenState extends State<BoardScreen> {
       modeNotifier: _boardMode,
       titleController: _titleController,
       restoreStream: widget.restoreStream,
+      selectionHistory: widget.selectionHistory,
     );
 
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (!project.restored) {
-        eventHandler.bulkExecute(restorationData.currentUndoStack);
+        eventHandler.bulkExecute(
+          restorationData.currentUndoStack,
+          updateSelection: false,
+        );
 
         project.restored = true;
 
@@ -194,19 +212,6 @@ class _BoardScreenState extends State<BoardScreen> {
       message: "applying patch",
       future: Patch.applyPatch(path, eventHandler),
     );
-  }
-
-  void _updateButtonNotfierOnDelete(
-    Object data,
-    ProjectEventHandler eventHandler,
-    int row,
-    int col,
-  ) {
-    if (data is ParrotButtonNotifier) {
-      data.onDelete = () {
-        eventHandler.removeButton(row, col);
-      };
-    }
   }
 
   Future<void> writeToDisk(Iterable<String> boardsToWrite) async {
@@ -269,6 +274,7 @@ class _BoardScreenState extends State<BoardScreen> {
         showSideBar: showSideBar,
         project: widget.project,
         boardHistory: _boardHistory,
+        selectionHistory: widget.selectionHistory,
         grid: _gridNotifier,
         eventHandler: eventHandler,
         leading: BackButton(
@@ -301,6 +307,7 @@ class _BoardScreenState extends State<BoardScreen> {
                       child: BoardWidget(
                         project: widget.project,
                         history: _boardHistory,
+                        selectionHistory: widget.selectionHistory,
                         eventHandler: eventHandler,
                         boardMode: _boardMode,
                         restorableButtonDiff: widget.restorableButtonDiff,
@@ -320,6 +327,7 @@ class _BoardScreenState extends State<BoardScreen> {
                       height: constraints
                           .maxHeight, //suppresses animation when height changes
                       child: BoardSidebar(
+                        history: widget.selectionHistory,
                         eventHandler: eventHandler,
                         boardMode: _boardMode,
                       ),

@@ -156,21 +156,67 @@ RecoverRow _$RecoverRowFromJson(Map<String, dynamic> json) =>
 Map<String, dynamic> _$RecoverRowToJson(RecoverRow instance) =>
     <String, dynamic>{'id': instance.id, 'row': instance.row};
 
-SwapButtons _$SwapButtonsFromJson(Map<String, dynamic> json) => SwapButtons(
+SwapEvent _$SwapEventFromJson(Map<String, dynamic> json) => SwapEvent(
   boardId: json['boardId'] as String,
-  oldRow: (json['oldRow'] as num).toInt(),
-  newRow: (json['newRow'] as num).toInt(),
-  oldCol: (json['oldCol'] as num).toInt(),
-  newCol: (json['newCol'] as num).toInt(),
+  swapData: SwapData.fromJson(json['swapData'] as Map<String, dynamic>),
 );
 
-Map<String, dynamic> _$SwapButtonsToJson(SwapButtons instance) =>
+Map<String, dynamic> _$SwapEventToJson(SwapEvent instance) => <String, dynamic>{
+  'swapData': instance.swapData,
+  'boardId': instance.boardId,
+};
+
+BulkRemove _$BulkRemoveFromJson(Map<String, dynamic> json) => BulkRemove(
+  rowsToRemove: (json['rowsToRemove'] as Map<String, dynamic>?)?.map(
+    (k, e) => MapEntry(
+      k,
+      (e as List<dynamic>).map((e) => (e as num).toInt()).toSet(),
+    ),
+  ),
+  colsToRemove: (json['colsToRemove'] as Map<String, dynamic>?)?.map(
+    (k, e) => MapEntry(
+      k,
+      (e as List<dynamic>).map((e) => (e as num).toInt()).toSet(),
+    ),
+  ),
+  buttonsToRemove: BulkRemove._buttonsFromJson(json['buttonsToRemove'] as Map),
+);
+
+Map<String, dynamic> _$BulkRemoveToJson(
+  BulkRemove instance,
+) => <String, dynamic>{
+  'rowsToRemove': instance.rowsToRemove.map((k, e) => MapEntry(k, e.toList())),
+  'colsToRemove': instance.colsToRemove.map((k, e) => MapEntry(k, e.toList())),
+  'buttonsToRemove': BulkRemove._toJson(instance.buttonsToRemove),
+};
+
+BulkRecover _$BulkRecoverFromJson(Map<String, dynamic> json) => BulkRecover(
+  rowsToRecover: (json['rowsToRecover'] as Map<String, dynamic>).map(
+    (k, e) => MapEntry(
+      k,
+      (e as List<dynamic>).map((e) => (e as num).toInt()).toSet(),
+    ),
+  ),
+  colsToRecover: (json['colsToRecover'] as Map<String, dynamic>).map(
+    (k, e) => MapEntry(
+      k,
+      (e as List<dynamic>).map((e) => (e as num).toInt()).toSet(),
+    ),
+  ),
+  buttonsToRecover: BulkRemove._buttonsFromJson(
+    json['buttonsToRecover'] as Map,
+  ),
+);
+
+Map<String, dynamic> _$BulkRecoverToJson(BulkRecover instance) =>
     <String, dynamic>{
-      'boardId': instance.boardId,
-      'oldRow': instance.oldRow,
-      'oldCol': instance.oldCol,
-      'newRow': instance.newRow,
-      'newCol': instance.newCol,
+      'rowsToRecover': instance.rowsToRecover.map(
+        (k, e) => MapEntry(k, e.toList()),
+      ),
+      'colsToRecover': instance.colsToRecover.map(
+        (k, e) => MapEntry(k, e.toList()),
+      ),
+      'buttonsToRecover': BulkRemove._toJson(instance.buttonsToRecover),
     };
 
 ChangeBoardColor _$ChangeBoardColorFromJson(Map<String, dynamic> json) =>

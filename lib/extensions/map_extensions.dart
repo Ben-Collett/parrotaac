@@ -32,7 +32,42 @@ extension MapDiff on Map<String, dynamic> {
   }
 }
 
+extension MapExtensions<K, V> on Map<K, V> {
+  Map<K, V2> mapValue<V2>(V2 Function(V) func) {
+    return map<K, V2>((k, v) => MapEntry(k, func(v)));
+  }
+
+  Map<K, V> where(bool Function(K, V) condition) {
+    Map<K, V> out = Map.from(this);
+    out.removeWhere((k, v) => !condition(k, v));
+    return out;
+  }
+
+  void putIfNotNull(K key, V? value) {
+    if (value != null) {
+      this[key] = value;
+    }
+  }
+}
+
+extension SafeGet on Map {
+  T safeGet<T>(dynamic key, {required T defaultValue}) =>
+      this[key].safeCast<T>() ?? defaultValue;
+}
+
 extension IncrementAndDecrement on Map<dynamic, int> {
+  void incrementAll(Iterable<dynamic> keys, {int startingValue = 1}) {
+    for (final key in keys) {
+      increment(key);
+    }
+  }
+
+  void decrementAll(Iterable<dynamic> keys, {int startingValue = 1}) {
+    for (final key in keys) {
+      decrement(key);
+    }
+  }
+
   void increment(dynamic key, {int startingValue = 1}) {
     if (this[key] == null) {
       this[key] = startingValue;
@@ -47,8 +82,10 @@ extension IncrementAndDecrement on Map<dynamic, int> {
     }
   }
 
-  void removeKeyIfBelowThreshold(
-      {required dynamic key, required int threshold}) {
+  void removeKeyIfBelowThreshold({
+    required dynamic key,
+    required int threshold,
+  }) {
     if (this[key] != null && this[key]! < threshold) {
       remove(key);
     }

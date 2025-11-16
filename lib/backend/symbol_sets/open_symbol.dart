@@ -9,6 +9,7 @@ import 'package:parrotaac/backend/server/server_utils.dart';
 import 'package:parrotaac/backend/simple_logger.dart';
 import 'package:parrotaac/backend/symbol_sets/symbol_set.dart';
 import 'package:parrotaac/extensions/http_extensions.dart';
+import 'package:parrotaac/extensions/null_extensions.dart';
 import 'package:parrotaac/utils.dart';
 
 class OpenSymbolSet extends SymbolSet {
@@ -116,7 +117,7 @@ class OpenSymbolResult extends SymbolResult {
 
   OpenSymbolResult.fromJson(this.json)
     : originalImageUrl = json["image_url"],
-      supportsTones = json["skins"] ?? false;
+      supportsTones = json["skins"].ifMissingDefaultTo(false);
 
   @override
   Widget get asImageWidget => imageFromUrl(imageUrl);

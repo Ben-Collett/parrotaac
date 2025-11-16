@@ -9,9 +9,11 @@ Future<void> initializeGlobalRestorationData() async {
   await _AppLifecycleHandler().init();
 }
 
-bool get wasBackgrounded => globalRestorationQuickstore["was_backgrounded"];
+bool get wasBackgrounded =>
+    globalRestorationQuickstore.isTrue("was_backgrounded");
 bool get wasAuthenticated =>
-    globalRestorationQuickstore["was_authenticated"] ?? false;
+    globalRestorationQuickstore.isTrue("was_authenticated");
+
 set wasAuthenticated(bool value) =>
     globalRestorationQuickstore.writeData("was_authenticated", value);
 

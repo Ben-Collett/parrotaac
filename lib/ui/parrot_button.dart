@@ -11,10 +11,12 @@ import 'package:parrotaac/backend/project/parrot_project.dart';
 import 'package:parrotaac/extensions/button_data_extensions.dart';
 import 'package:parrotaac/extensions/color_extensions.dart';
 import 'package:parrotaac/extensions/image_extensions.dart';
+import 'package:parrotaac/extensions/size_extensions.dart';
 import 'package:parrotaac/ui/board_screen_popup_history.dart';
 import 'package:parrotaac/ui/event_handler.dart';
 import 'package:parrotaac/ui/painters/button_shapes.dart';
 import 'package:parrotaac/ui/popups/button_config.dart';
+import 'package:parrotaac/ui/util_widgets/draggable_grid.dart';
 import 'package:parrotaac/ui/util_widgets/ranged_padding.dart';
 import 'package:parrotaac/ui/widgets/sentence_box.dart';
 import 'actions/button_actions.dart';
@@ -182,12 +184,16 @@ class ParrotButtonNotifier extends ChangeNotifier {
   }
 }
 
-class ParrotButton extends StatelessWidget {
+class ParrotButton extends StatelessWidget
+    with SelectIndecatorStatusDimensions {
   final ParrotButtonNotifier controller;
   final bool holdToConfig;
   final BoardScreenPopupHistory? popupHistory;
   final Obf? currentBoard;
   final RestorableButtonDiff? restorableButtonDiff;
+  static const _padding = .01;
+
+  static const _borderWidthPreportion = .05;
   ButtonData get buttonData => controller.data;
   const ParrotButton({
     super.key,
@@ -228,6 +234,14 @@ class ParrotButton extends StatelessWidget {
   );
 
   @override
+  Offset selectIndecatorOffset(Size size) {
+    double shift = size.shortestSide * _padding;
+    size = size.shrinkBy(shift);
+    shift += size.shortestSide * _borderWidthPreportion;
+    return Offset(shift, shift);
+  }
+
+  @override
   Widget build(BuildContext context) {
     void Function(BuildContext)? onLongPress;
 
@@ -239,8 +253,8 @@ class ParrotButton extends StatelessWidget {
     return ListenableBuilder(
       listenable: controller,
       builder: (context, _) {
-        return PreportinalPadding(
-          preportion: .02,
+        return ProportionalPadding(
+          proportion: _padding,
           child: StatelessParrotButton(
             onTap: onTap,
             onLongPress: onLongPress,
@@ -265,6 +279,12 @@ class StatelessParrotButton extends StatelessWidget {
     this.onLongPress,
     this.projectPath,
   });
+
+  ParrotButtonShape get _shape =>
+      ParrotButtonShape.fromString(
+        buttonData.extendedProperties[parrotButtonShapeKey],
+      ) ??
+      defaultButtonShape;
 
   @override
   Widget build(BuildContext context) {
@@ -298,11 +318,7 @@ class StatelessParrotButton extends StatelessWidget {
       };
     }
 
-    ParrotButtonShape shape =
-        ParrotButtonShape.fromString(
-          buttonData.extendedProperties[parrotButtonShapeKey],
-        ) ??
-        defaultButtonShape;
+    ParrotButtonShape shape = _shape;
 
     Color backgroundColor =
         buttonData.backgroundColor?.toColor() ?? Colors.white;
@@ -314,6 +330,7 @@ class StatelessParrotButton extends StatelessWidget {
       onLongPress: onLongPress,
       backgroundColor: backgroundColor,
       borderColor: borderColor,
+      borderWidthPreportion: ParrotButton._borderWidthPreportion,
       image: image,
       text: text,
       shape: shape,

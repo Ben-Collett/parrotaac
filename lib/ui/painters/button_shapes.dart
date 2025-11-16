@@ -5,6 +5,7 @@ import 'package:flutter/material.dart';
 import 'package:parrotaac/backend/value_wrapper.dart';
 import 'package:parrotaac/extensions/color_extensions.dart';
 import 'package:parrotaac/state/my_anmiation_notifier.dart';
+import 'package:parrotaac/ui/util_widgets/draggable_grid.dart';
 
 enum ParrotButtonShape {
   folder("folder"),
@@ -31,12 +32,14 @@ class ShapedButton extends StatefulWidget {
   final Color borderColor;
   final VoidCallback? onPressed;
   final VoidCallback? onLongPress;
+  final double borderWidthPreportion;
   const ShapedButton({
     super.key,
     this.image,
     this.text,
     this.onPressed,
     this.onLongPress,
+    this.borderWidthPreportion = .05,
     required this.backgroundColor,
     required this.shape,
     required this.borderColor,
@@ -123,6 +126,7 @@ class _ShapedButtonState extends State<ShapedButton>
         if (widget.shape == ParrotButtonShape.square) {
           painter = _SquareButtonPainter(
             animationController: _repaintNotifier,
+            borderWidthPreportion: widget.borderWidthPreportion,
             backgroundColor: _backgroundColor,
             repaint: _repaintNotifier,
             paintPaintAreas: paintPaintAreas,
@@ -132,6 +136,7 @@ class _ShapedButtonState extends State<ShapedButton>
         } else {
           painter = _FolderButtonPainter(
             backgroundColor: _backgroundColor,
+            borderWidthPreportion: widget.borderWidthPreportion,
             animationController: _repaintNotifier,
             paintPaintAreas: paintPaintAreas,
             repaint: _repaintNotifier,
@@ -139,14 +144,12 @@ class _ShapedButtonState extends State<ShapedButton>
             textHeightPreportion: textHeight,
           );
         }
-        final imageRect = painter.imagePaintArea(
-          size,
-          painter.computeBorderSize(size),
-        );
-        final textRect = painter.textPaintArea(
-          size,
-          painter.computeBorderSize(size),
-        );
+
+        final borderSize = painter.computeBorderSize(size);
+        final imageRect = painter.imagePaintArea(size, borderSize);
+        final textRect = painter.textPaintArea(size, borderSize);
+        final circleRect = painter.circlePaintArea(size, borderSize);
+
         const tenPercent = 0.1;
         const fifteenPercent = 0.15;
         return MouseRegion(
@@ -192,6 +195,11 @@ class _ShapedButtonState extends State<ShapedButton>
                   Positioned.fromRect(rect: imageRect, child: widget.image!),
                 if (widget.text != null)
                   Positioned.fromRect(rect: textRect, child: widget.text!),
+
+                //Positioned.fromRect(
+                // rect: circleRect,
+                //child: CircleAvatar(backgroundColor: Colors.white),
+                //),
               ],
             ),
           ),
@@ -206,6 +214,13 @@ mixin _ParrotButtonPainter {
   Rect imagePaintArea(Size size, double borderSize);
   Rect textPaintArea(Size size, double borderSize);
   double computeBorderSize(Size size);
+
+  Rect circlePaintArea(Size size, double borderSize) => Rect.fromLTWH(
+    borderSize,
+    borderSize,
+    size.shortestSide * .3,
+    size.shortestSide * .3,
+  );
 }
 
 class _FolderButtonPainter extends CustomPainter with _ParrotButtonPainter {

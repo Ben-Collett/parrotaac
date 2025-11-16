@@ -1,4 +1,3 @@
-//TODO: I need some sort of resource ref count to handle deleting files
 import 'dart:io';
 
 import 'package:flutter/foundation.dart';

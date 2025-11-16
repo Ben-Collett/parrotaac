@@ -1,15 +1,28 @@
-import 'package:parrotaac/ui/event_handler.dart';
-
+import 'package:flutter/widgets.dart';
+import 'package:parrotaac/backend/selection_data.dart';
 import 'parrot_button.dart';
 import 'util_widgets/draggable_grid.dart';
+
+typedef OnPressOverride = void Function(GridNotifier, int row, int col);
 
 //this is functinally very similar to an enum, there is a private constractore the a bunch of static final instances you can reference so only those insteances should exist.
 class BoardMode {
   final bool hideEmptySpotWidget;
   final bool configOnButtonHold;
   final bool draggableButtons;
-  final void Function(GridNotifier grid, ProjectEventHandler handler)
-  onPressedOverride;
+  // final void Function(GridNotifier grid, ProjectEventHandler handler)
+  // onPressedOverrides;
+
+  final OnPressOverride? onPressedOverride;
+
+  VoidCallback? makePressedCallback(GridNotifier grid, int row, int col) {
+    final pressOverride = onPressedOverride;
+    if (pressOverride != null) {
+      return () => onPressedOverride!(grid, row, col);
+    }
+    return null;
+  }
+
   final String asString;
 
   const BoardMode._({
@@ -20,96 +33,81 @@ class BoardMode {
     required this.hideEmptySpotWidget,
   });
 
+  //this doesn't handle changing the empty widget into builderMode because there is no "clean" way to have the logic for showing the create screen popup that I can think of.
+  //you will find that code in the board.dart file
   static final builderMode = BoardMode._(
     hideEmptySpotWidget: false,
     configOnButtonHold: true,
     draggableButtons: true,
-    onPressedOverride: _setGridToDefaultOnPress,
+    onPressedOverride: null,
     asString: "builder_mode",
   );
-  static final deleteRowMode = BoardMode._(
-    hideEmptySpotWidget: false,
+  static final selectRowMode = BoardMode._(
     configOnButtonHold: true,
     draggableButtons: true,
-    onPressedOverride: _setGridToDeleteRowMode,
-    asString: "delete_row_mode",
+    onPressedOverride: _selectRow,
+    asString: "select_row_mode",
+    hideEmptySpotWidget: false,
   );
-  static final deleteColMode = BoardMode._(
-    hideEmptySpotWidget: false,
+
+  static final selectColMode = BoardMode._(
     configOnButtonHold: true,
     draggableButtons: true,
-    onPressedOverride: _setGridToDeleteColMode,
-    asString: "delete_col_mode",
+    onPressedOverride: _selectCol,
+    asString: "select_col_mode",
+    hideEmptySpotWidget: false,
+  );
+
+  static final selectWidgetMode = BoardMode._(
+    configOnButtonHold: true,
+    draggableButtons: true,
+    onPressedOverride: _selectWidget,
+    asString: "select_widget_mode",
+    hideEmptySpotWidget: false,
   );
   static final normalMode = BoardMode._(
     hideEmptySpotWidget: true,
     configOnButtonHold: false,
     draggableButtons: false,
-    onPressedOverride: _setGridToDefaultOnPress,
+    onPressedOverride: null,
     asString: "normal_mode",
   );
 
+  void updateOnPressed(GridNotifier grid, {BuildContext? context}) {
+    if (this == normalMode) {
+      grid.selectMode = false;
+    } else {
+      grid.selectMode = true;
+    }
+
+    if (onPressedOverride != null) {
+      grid.onEmptyPressed = (row, col) {
+        onPressedOverride!(grid, row, col);
+      };
+    }
+    grid.forEachIndexed((data, row, col) {
+      if (data is ParrotButtonNotifier) {
+        if (onPressedOverride == null) {
+          data.onPressOverride = null;
+        } else {
+          data.onPressOverride = () => onPressedOverride!(grid, row, col);
+        }
+      }
+    });
+  }
+
   static List<BoardMode> get values => [
     builderMode,
-    deleteRowMode,
-    deleteColMode,
+    selectRowMode,
+    selectColMode,
+    selectWidgetMode,
     normalMode,
   ];
 }
 
-void _setGridToDefaultOnPress(
-  GridNotifier notfier,
-  ProjectEventHandler handler,
-) {
-  notfier.forEach((obj) {
-    if (obj is ParrotButtonNotifier) {
-      obj.onPressOverride = null;
-    }
-  });
-}
-
-void _setButtonToDeleteRowMode(
-  Object? object,
-  int row,
-  GridNotifier gridNotfier,
-  ProjectEventHandler handler,
-) {
-  if (object is ParrotButtonNotifier) {
-    object.onPressOverride = () {
-      handler.removeRow(row);
-      //the line below updates the buttons indexes when the row is deleted, has to be used to allow deleting when pressing a button, doesn't when dealing with empty spaces though.
-      gridNotfier.forEachIndexed((object, row, _) {
-        _setButtonToDeleteRowMode(object, row, gridNotfier, handler);
-      });
-    };
-  }
-}
-
-void _setGridToDeleteRowMode(GridNotifier grid, ProjectEventHandler handler) {
-  grid.forEachIndexed((obj, row, col) {
-    _setButtonToDeleteRowMode(obj, row, grid, handler);
-  });
-}
-
-void _setGridToDeleteColMode(GridNotifier grid, ProjectEventHandler handler) {
-  grid.forEachIndexed((obj, row, col) {
-    _setButtonToDeleteColMode(obj, col, grid, handler);
-  });
-}
-
-void _setButtonToDeleteColMode(
-  Object? object,
-  int col,
-  GridNotifier gridNotfier,
-  ProjectEventHandler handler,
-) {
-  if (object is ParrotButtonNotifier) {
-    object.onPressOverride = () {
-      handler.removeCol(col);
-      //the line below updates the buttons indexes when the col is deleted, has to be used to allow deleting when pressing a button, doesn't when dealing with empty spaces though.
-      gridNotfier.forEachIndexed((object, _, col) {
-        _setButtonToDeleteColMode(object, col, gridNotfier, handler);
-      });
-    };
-  }
-}
+void _selectRow(GridNotifier grid, int row, _) =>
+    grid.selectionController.toggleSelectionRow(row);
+void _selectCol(GridNotifier grid, _, int col) =>
+    grid.selectionController.toggleSelectionCol(col);
+void _selectWidget(GridNotifier grid, int row, int col) =>
+    grid.selectionController.toggleWidgetSelection(RowColPair(row, col));

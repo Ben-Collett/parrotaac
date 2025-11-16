@@ -1,15 +1,33 @@
 import 'dart:collection';
 import 'dart:ui';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
+import 'package:parrotaac/backend/selection_data.dart';
 import 'package:parrotaac/backend/value_wrapper.dart';
 import 'package:parrotaac/extensions/list_extensions.dart';
+import 'package:parrotaac/ui/painters/lines.dart';
 import 'package:parrotaac/ui/painters/painted_color_box.dart';
 
-class GridNotifier<T extends Widget> extends ChangeNotifier {
+///WARNING: only one grid notfier can exist per grid if it want's to be  draggable.
+class GridNotifier<K, T extends Widget> extends ChangeNotifier {
   bool _draggable;
+  bool _selectMode;
+  void Function(int, int)? onEmptyPressed;
+  bool get selectMode => _selectMode;
+  set selectMode(bool val) {
+    if (val != _selectMode) {
+      _selectMode = val;
+      selectionController.clear();
+      notifyListeners();
+    }
+  }
+
+  void rawUpdateSelectMode(bool val) => _selectMode = val;
+
+  final SelectionDataController selectionController;
   bool get draggable => _draggable;
-  T? Function(Object?)? _toWidget;
-  T? Function(Object?)? get toWidget => _toWidget;
+  T? Function(dynamic)? _toWidget;
+  T? Function(dynamic)? get toWidget => _toWidget;
   ValueNotifier<Color> backgroundColorNotifier = ValueNotifier(Colors.white);
 
   List<Widget>? _widgetListCache;
@@ -17,12 +35,12 @@ class GridNotifier<T extends Widget> extends ChangeNotifier {
     _widgetListCache = null;
   }
 
-  void Function(int oldRow, int oldCol, int newRow, int newCol)? onSwap;
+  void Function(RowColPair p1, RowColPair p2)? onSwap;
 
   ///this is exclusively used by the grid, and means that only one grid notfier can exist per grid if it want's to be  draggable.
-  ValueWrapper<Size> childSize = ValueWrapper(Size.zero);
+  final ValueWrapper<Size> _childSize = ValueWrapper(Size.zero);
 
-  set toWidget(T? Function(Object?)? toWid) {
+  set toWidget(T? Function(dynamic)? toWid) {
     _toWidget = toWid;
     notifyListeners();
   }
@@ -37,28 +55,31 @@ class GridNotifier<T extends Widget> extends ChangeNotifier {
   @override
   void dispose() {
     backgroundColorNotifier.dispose();
+    selectionController.dispose();
     super.dispose();
+  }
+
+  void fullUpdate() {
+    _invalidateWidgetCacheAndNotifyListeners();
   }
 
   void update() {
     notifyListeners();
   }
 
-  List<List<Object?>> _data;
+  List<List<K?>> _data;
 
   Widget? _emptySpotWidget;
   bool _hideEmptySpotWidget = false;
   set hideEmptySpotWidget(bool value) {
     _hideEmptySpotWidget = value;
-    _invalidateWidgetListCache();
-    notifyListeners();
+    _invalidateWidgetCacheAndNotifyListeners();
   }
 
   Widget? get emptySpotWidget => _hideEmptySpotWidget ? null : _emptySpotWidget;
   set emptySpotWidget(Widget? widget) {
     _emptySpotWidget = widget;
-    _invalidateWidgetListCache();
-    notifyListeners();
+    _invalidateWidgetCacheAndNotifyListeners();
   }
 
   int get rows {
@@ -75,22 +96,23 @@ class GridNotifier<T extends Widget> extends ChangeNotifier {
     );
   }
 
-  UnmodifiableListView<UnmodifiableListView<Object?>> get data {
+  UnmodifiableListView<UnmodifiableListView<K?>> get data {
     return UnmodifiableListView(
       _data.map((list) => UnmodifiableListView(list)),
     );
   }
 
-  void Function(int, int)? onEmptyPressed;
   GridNotifier({
-    required List<List<Object?>>
-    data, //TODO: I need to make sure the list is of list<list<object?>> if they pass a list<list<child?>> then add row crashes
+    required List<List<K?>> data,
     bool draggable = true,
-    T? Function(Object?)? toWidget,
+    bool selectMode = false,
+    T? Function(dynamic)? toWidget,
     this.onEmptyPressed,
     this.onSwap,
   }) : _data = data,
        _draggable = draggable,
+       _selectMode = selectMode,
+       selectionController = SelectionDataController(SelectionData()),
        _toWidget = toWidget;
   void addRow() {
     if (rows == 0) {
@@ -98,39 +120,34 @@ class GridNotifier<T extends Widget> extends ChangeNotifier {
     } else {
       _data.add(List.generate(columns, (_) => null));
     }
-    _invalidateWidgetListCache();
-    notifyListeners();
+    _invalidateWidgetCacheAndNotifyListeners();
   }
 
-  void swap(int oldRow, int oldCol, int newRow, int newCol) {
-    final Object? old = _data[oldRow][oldCol];
-    _data[oldRow][oldCol] = _data[newRow][newCol];
-    _data[newRow][newCol] = old;
-
-    _invalidateWidgetListCache();
-    notifyListeners();
+  void swap(RowColPair p1, RowColPair p2, {bool swapSelection = false}) {
+    if (swapSelection) {
+      selectionController.swapSelection(p1, p2);
+    }
+    _invalidateWidgetCacheAndNotifyListeners();
+    if (onSwap != null) {
+      onSwap?.call(p1, p2);
+    }
   }
 
-  void insertColumn(int colIndex, List<Object?> column) {
+  void insertColumn(int colIndex, List<K?> column, {bool updateUi = true}) {
     assert(
       _data.isEmpty || column.length == _data.length,
       "Column length must match number of rows",
     );
 
-    for (int row = 0; row < column.length; row++) {
-      _data[row].insert(colIndex, column[row]);
-    }
-
-    _invalidateWidgetListCache();
-    notifyListeners();
+    _data.insertCol(colIndex, column);
+    _invalidateWidgetCacheAndNotifyListeners();
   }
 
-  void insertRow(int rowIndex, List<Object?> row) {
-    List<Object?> newRow = List<Object?>.from(row);
-    _data.insert(rowIndex, newRow);
+  void insertRow(int rowIndex, List<K?> row) {
+    List<K?> newRow = List<K?>.from(row);
+    _data.insertRow(rowIndex, newRow);
 
-    _invalidateWidgetListCache();
-    notifyListeners();
+    _invalidateWidgetCacheAndNotifyListeners();
   }
 
   void forEach(void Function(Object?) callback, {bool notify = false}) {
@@ -166,39 +183,50 @@ class GridNotifier<T extends Widget> extends ChangeNotifier {
         row.add(null);
       }
     }
-    _invalidateWidgetListCache();
+    _invalidateWidgetCacheAndNotifyListeners();
+  }
 
-    notifyListeners();
+  void removeRows(Iterable<int> rows) {
+    _data.removeRows(rows);
+    selectionController.removeRows(rows);
+    _invalidateWidgetCacheAndNotifyListeners();
+  }
+
+  void removeCols(Iterable<int> cols) {
+    _data.removeCols(cols);
+    selectionController.removeCols(cols);
+    _invalidateWidgetCacheAndNotifyListeners();
+  }
+
+  void bulkRemoveData(Iterable<RowColPair> pairs) {
+    _data.bulkUpdate(positions: pairs, val: null);
+    selectionController.bulkDeselect(pairs);
+    _invalidateWidgetCacheAndNotifyListeners();
   }
 
   void removeAt(int row, int col) {
     _data[row][col] = null;
+    selectionController.deselectWidget(RowColPair(row, col));
 
-    _invalidateWidgetListCache();
-    notifyListeners();
+    _invalidateWidgetCacheAndNotifyListeners();
   }
 
   void removeRow(int row) {
-    _data.removeAt(row);
-
-    _invalidateWidgetListCache();
-    notifyListeners();
+    _data.removeRow(row);
+    selectionController.removeRow(row);
+    _invalidateWidgetCacheAndNotifyListeners();
   }
 
   void removeCol(int col) {
-    for (List<Object?> row in _data) {
-      row.removeAt(col);
-    }
+    _data.removeCol(col);
+    selectionController.removeCol(col);
 
-    _invalidateWidgetListCache();
-    notifyListeners();
+    _invalidateWidgetCacheAndNotifyListeners();
   }
 
-  void setWidget({required int row, required int col, Object? data}) {
+  void setWidget({required int row, required int col, K? data}) {
     _data[row][col] = data;
-
-    _invalidateWidgetListCache();
-    notifyListeners();
+    _invalidateWidgetCacheAndNotifyListeners();
   }
 
   T? getWidget(int row, int column) {
@@ -220,37 +248,23 @@ class GridNotifier<T extends Widget> extends ChangeNotifier {
     return out;
   }
 
-  ///cleanUp allows you to modify the old data before it is lost primarily intended for disposing of notifiers
-  void setData(
-    List<List<Object?>> data, {
-    Function(Iterable<dynamic> originalData)? cleanUp,
-  }) {
-    Iterable<dynamic> originalData = [];
-    if (cleanUp != null) {
-      originalData = this.data.flatten();
-    }
-    _data = data;
+  void _invalidateWidgetCacheAndNotifyListeners() {
     _invalidateWidgetListCache();
     notifyListeners();
-    cleanUp?.call(originalData);
   }
 
-  void move({
-    required int oldRow,
-    required int oldCol,
-    required int newRow,
-    required int newCol,
+  ///cleanUp allows you to modify the old data before it is lost primarily intended for disposing of notifiers
+  void setData(
+    List<List<K?>> data, {
+    Function(Iterable<K?> originalData)? cleanUp,
   }) {
-    _invalidateWidgetListCache();
-    final old = _data[oldRow][oldCol];
-    _data[oldRow][oldCol] = _data[newRow][newCol];
-    _data[newRow][newCol] = old;
-
-    if (onSwap != null && _data[newRow][newCol] != null) {
-      onSwap!(oldRow, oldCol, newRow, newCol);
+    Iterable<K> originalData = [];
+    if (cleanUp != null) {
+      originalData = this.data.flatten<K?>().nonNulls.cast<K>();
     }
-
-    notifyListeners();
+    _data = data;
+    _invalidateWidgetCacheAndNotifyListeners();
+    cleanUp?.call(originalData);
   }
 
   void makeChildrenDraggable() {
@@ -262,6 +276,88 @@ class GridNotifier<T extends Widget> extends ChangeNotifier {
     draggable = false;
     notifyListeners();
   }
+}
+
+mixin SelectIndecatorStatusDimensions {
+  static Widget _wrapWidgetIfNeeded(
+    Widget widget,
+    GridNotifier grid,
+    int row,
+    int col,
+  ) {
+    return ListenableBuilder(
+      listenable: grid.selectionController,
+      builder: (context, child) {
+        final data = _SelectionIndicatorData.fromGrid(grid, row, col);
+        final backgroundColor = data.backgroundColor;
+        final child = data.widget;
+        if (grid.selectMode) {
+          return LayoutBuilder(
+            builder: (context, constrains) {
+              Size size = Size(constrains.maxWidth, constrains.maxHeight);
+              final Rect rect;
+              if (widget is SelectIndecatorStatusDimensions) {
+                final dim = widget as SelectIndecatorStatusDimensions;
+                rect = dim._selectIndecatorDimensions(size);
+              } else {
+                final radius = _defaultComputeIndicatorSize(size);
+                rect = Rect.fromLTWH(0, 0, radius, radius);
+              }
+
+              return Stack(
+                children: [
+                  Positioned(
+                    left: 0,
+                    top: 0,
+                    width: size.width,
+                    height: size.height,
+                    child: widget,
+                  ),
+                  Positioned.fromRect(
+                    rect: rect,
+                    child: IgnorePointer(
+                      child: Container(
+                        width: rect.width,
+                        height: rect.height,
+                        decoration: BoxDecoration(
+                          //border: Border.all(color: Colors.black),
+                          shape: BoxShape.circle,
+                          boxShadow: [
+                            BoxShadow(blurRadius: 1, spreadRadius: 1),
+                          ],
+                          color: backgroundColor,
+                        ),
+                        child: child,
+                      ),
+                    ),
+                  ),
+                ],
+              );
+            },
+          );
+        }
+        return widget;
+      },
+    );
+  }
+
+  Rect _selectIndecatorDimensions(Size size) {
+    final double indicatorSize = selectIndecatorSize(size);
+    final Offset indicatorOffset = selectIndecatorOffset(size);
+
+    return Rect.fromLTWH(
+      indicatorOffset.dx,
+      indicatorOffset.dy,
+      indicatorSize,
+      indicatorSize,
+    );
+  }
+
+  Offset selectIndecatorOffset(Size size) => Offset.zero;
+  double selectIndecatorSize(Size size) => _defaultComputeIndicatorSize(size);
+
+  static double _defaultComputeIndicatorSize(Size size) =>
+      0.2 * size.shortestSide;
 }
 
 class DraggableGrid extends StatelessWidget {
@@ -368,8 +464,8 @@ class GridFlowDelegate extends FlowDelegate {
     final logicalW = physW / dpr;
     final logicalH = physH / dpr;
 
-    // update notifier with the actual (logical) child size for this index
-    notifier.childSize.value = Size(logicalW, logicalH);
+    // update notifier with the actual (logical) childgrid size for this index
+    notifier._childSize.value = Size(logicalW, logicalH);
 
     return BoxConstraints.tightFor(width: logicalW, height: logicalH);
   }
@@ -382,10 +478,10 @@ class GridFlowDelegate extends FlowDelegate {
 }
 
 class GridCell extends StatefulWidget {
-  final Cell value;
+  final Cell cell;
   final GridNotifier gridNotifier;
 
-  const GridCell(this.value, this.gridNotifier, {super.key});
+  const GridCell(this.cell, this.gridNotifier, {super.key});
 
   @override
   State<GridCell> createState() => _GridCellState();
@@ -396,26 +492,39 @@ class _GridCellState extends State<GridCell> {
   Widget build(BuildContext context) {
     Widget child;
 
-    if (widget.value.value == null &&
+    final row = widget.cell.row;
+    final col = widget.cell.col;
+
+    if (widget.cell.value == null &&
         widget.gridNotifier.emptySpotWidget != null) {
-      child = EmptySpotDragTarget(widget: widget);
-    } else if (widget.value.value != null &&
+      child = EmptySpotDragTarget(cellWidget: widget);
+    } else if (widget.cell.value != null &&
         widget.gridNotifier.toWidget != null &&
         widget.gridNotifier.draggable) {
-      final currentWidget = widget.gridNotifier.toWidget!(widget.value.value)!;
+      final currentWidget = widget.gridNotifier.toWidget!(widget.cell.value)!;
       child = Draggable<Cell>(
-        data: Cell(widget.value.row, widget.value.col, widget.value),
+        data: Cell(widget.cell.row, widget.cell.col, widget.cell),
         //WARNING: resizing will not update
         feedback: ValueWrapperSizedBox(
-          size: widget.gridNotifier.childSize,
+          size: widget.gridNotifier._childSize,
           child: currentWidget,
         ),
         childWhenDragging: ColoredBox(color: Colors.grey),
-        child: currentWidget,
+        child: SelectIndecatorStatusDimensions._wrapWidgetIfNeeded(
+          currentWidget,
+          widget.gridNotifier,
+          row,
+          col,
+        ),
       );
-    } else if (widget.value.value != null &&
+    } else if (widget.cell.value != null &&
         widget.gridNotifier.toWidget != null) {
-      child = widget.gridNotifier.toWidget!(widget.value.value)!;
+      child = SelectIndecatorStatusDimensions._wrapWidgetIfNeeded(
+        widget.gridNotifier.toWidget!(widget.cell.value) as Widget,
+        widget.gridNotifier,
+        row,
+        col,
+      );
     } else {
       child = Container();
     }
@@ -425,9 +534,9 @@ class _GridCellState extends State<GridCell> {
 }
 
 class EmptySpotDragTarget extends StatefulWidget {
-  const EmptySpotDragTarget({super.key, required this.widget});
+  const EmptySpotDragTarget({super.key, required this.cellWidget});
 
-  final GridCell widget;
+  final GridCell cellWidget;
 
   @override
   State<EmptySpotDragTarget> createState() => _EmptySpotDragTargetState();
@@ -448,27 +557,56 @@ class _EmptySpotDragTargetState extends State<EmptySpotDragTarget> {
       },
       onAcceptWithDetails: (details) {
         setState(() => _isHovering = false);
-        widget.widget.gridNotifier.move(
-          oldRow: details.data.row,
-          oldCol: details.data.col,
-          newRow: widget.widget.value.row,
-          newCol: widget.widget.value.col,
+        widget.cellWidget.gridNotifier.swap(
+          RowColPair(details.data.row, details.data.col),
+          RowColPair(widget.cellWidget.cell.row, widget.cellWidget.cell.col),
+          swapSelection: false, //handled by the event handler
         );
       },
       builder: (context, List<Cell?> accepted, List<Object?> rejected) {
         if (_isHovering) {
           return ColoredBox(color: Colors.lightGreenAccent);
         }
-        return InteractiveEmptySpotWidget(widget: widget.widget);
+
+        final row = widget.cellWidget.cell.row;
+        final col = widget.cellWidget.cell.col;
+        final grid = widget.cellWidget.gridNotifier;
+
+        return SelectIndecatorStatusDimensions._wrapWidgetIfNeeded(
+          InteractiveEmptySpotWidget(cell: widget.cellWidget),
+          grid,
+          row,
+          col,
+        );
       },
     );
   }
 }
 
-class InteractiveEmptySpotWidget extends StatefulWidget {
-  const InteractiveEmptySpotWidget({super.key, required this.widget});
+class InteractiveEmptySpotWidget extends StatefulWidget
+    with SelectIndecatorStatusDimensions {
+  const InteractiveEmptySpotWidget({super.key, required this.cell});
 
-  final GridCell widget;
+  final GridCell cell;
+  Widget? get _emptySpotWidget => cell.gridNotifier.emptySpotWidget;
+
+  @override
+  Offset selectIndecatorOffset(Size size) {
+    if (_emptySpotWidget is SelectIndecatorStatusDimensions) {
+      final data = _emptySpotWidget as SelectIndecatorStatusDimensions;
+      return data.selectIndecatorOffset(size);
+    }
+    return super.selectIndecatorOffset(size);
+  }
+
+  @override
+  double selectIndecatorSize(Size size) {
+    if (_emptySpotWidget is SelectIndecatorStatusDimensions) {
+      final data = _emptySpotWidget as SelectIndecatorStatusDimensions;
+      return data.selectIndecatorSize(size);
+    }
+    return super.selectIndecatorSize(size);
+  }
 
   @override
   State<InteractiveEmptySpotWidget> createState() =>
@@ -493,16 +631,16 @@ class _InteractiveEmptySpotWidgetState
   @override
   Widget build(BuildContext context) {
     return ValueListenableBuilder(
-      valueListenable: widget.widget.gridNotifier.backgroundColorNotifier,
+      valueListenable: widget.cell.gridNotifier.backgroundColorNotifier,
       builder: (context, value, child) {
         return Material(
           color: value,
           child: InkWell(
-            onTap: () => widget.widget.gridNotifier.onEmptyPressed?.call(
-              widget.widget.value.row,
-              widget.widget.value.col,
+            onTap: () => widget.cell.gridNotifier.onEmptyPressed?.call(
+              widget.cell.cell.row,
+              widget.cell.cell.col,
             ),
-            child: widget.widget.gridNotifier.emptySpotWidget!,
+            child: widget._emptySpotWidget!,
           ),
         );
       },
@@ -510,6 +648,50 @@ class _InteractiveEmptySpotWidgetState
   }
 }
 
+class _SelectionIndicatorData {
+  final Color backgroundColor;
+  final Widget? widget;
+  const _SelectionIndicatorData(this.backgroundColor, this.widget);
+
+  factory _SelectionIndicatorData.fromGrid(
+    GridNotifier grid,
+    int row,
+    int col,
+  ) {
+    if (!grid.selectMode) {
+      return _SelectionIndicatorData(Colors.white, null);
+    }
+    final selectController = grid.selectionController;
+    final selectedRow = selectController.data.selectedRows.contains(row);
+    final selectedCol = selectController.data.selectedCols.contains(col);
+    final selectedWidget = selectController.data.selectedWidgets.contains(
+      RowColPair(row, col),
+    );
+
+    final Color backgroundColor;
+    final Widget? selectedWidgetIcon;
+    if (selectedRow && selectedCol) {
+      backgroundColor = Colors.green;
+
+      selectedWidgetIcon = LinePaint(type: SelectorType.plusSign);
+    } else if (selectedRow) {
+      backgroundColor = Colors.purple;
+      selectedWidgetIcon = LinePaint(type: SelectorType.horizontal);
+    } else if (selectedCol) {
+      backgroundColor = Colors.orange;
+      selectedWidgetIcon = LinePaint(type: SelectorType.vertical);
+    } else if (selectedWidget) {
+      backgroundColor = Colors.blue;
+      selectedWidgetIcon = LinePaint(type: SelectorType.checkMark);
+    } else {
+      backgroundColor = Colors.white;
+      selectedWidgetIcon = null;
+    }
+    return _SelectionIndicatorData(backgroundColor, selectedWidgetIcon);
+  }
+}
+
+///WARNING: doesn't resize when notifier changes
 class ValueWrapperSizedBox extends StatelessWidget {
   final Widget child;
   final ValueWrapper<Size> size;

@@ -1,3 +1,4 @@
+//TODO: close selection history when needed
 import 'dart:collection';
 
 import 'dart:io';
@@ -8,6 +9,7 @@ import 'package:parrotaac/backend/project/parrot_project.dart';
 import 'package:parrotaac/backend/project/project_settings.dart';
 import 'package:parrotaac/backend/project_restore_write_stream.dart';
 import 'package:parrotaac/backend/quick_store.dart';
+import 'package:parrotaac/backend/selection_history.dart';
 import 'package:parrotaac/backend/settings_utils.dart';
 import 'package:parrotaac/backend/state_restoration_utils.dart';
 import 'package:parrotaac/setting_screen.dart';
@@ -105,11 +107,8 @@ class RestorativeNavigator {
 
   ///should only be called after _restore
   Widget getLastNonAdminScreen() {
-    if (alreadyAuthenticated ||
-        LockType.fromString(
-              getSetting<String>(adminLockLabel) ?? LockType.none.label,
-            ) ==
-            LockType.none) {
+    final thereIsNoAdminLock = LockType.fromString(getAdminLockLabel()).isNone;
+    if (alreadyAuthenticated || thereIsNoAdminLock) {
       return screens.last;
     }
     return screens[_lastNonAdmin];
@@ -230,6 +229,17 @@ class RestorativeNavigator {
     ProjectRestorationData? restorationData,
   }) async {
     restorationData ??= await ProjectRestorationData.fromPath(project.path);
+    final selectionHistoryQuickStore = QuickStoreHiveImp(
+      "selection_history",
+      path: project.path,
+    );
+
+    await selectionHistoryQuickStore.initialize();
+
+    final selectionHistory = WorkingSelectionHistory.from(
+      selectionHistoryQuickStore,
+      project: project,
+    );
 
     ProjectRestoreStream stream = ProjectRestoreStream(restorationData);
 
@@ -253,6 +263,7 @@ class RestorativeNavigator {
       project: project,
       restoreStream: stream,
       restorationData: restorationData,
+      selectionHistory: selectionHistory,
       popupHistory: popupHistory,
       restorableButtonDiff: diff,
     );

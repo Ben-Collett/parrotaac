@@ -82,11 +82,17 @@ class ProjectRestorationData {
     );
   }
 
-  Future<void> writeUndoStack(List<ProjectEvent> events) => quickStore
-      .writeData(_undoStackKey, events.map((e) => e.encode()).toList());
+  Future<void> writeUndoStack(List<ProjectEvent> events) =>
+      quickStore.writeData(
+        _undoStackKey,
+        events.map((e) => e.encodeToJsonString()).toList(),
+      );
 
-  Future<void> writeRedoStack(List<ProjectEvent> events) => quickStore
-      .writeData(_redoStackKey, events.map((e) => e.encode()).toList());
+  Future<void> writeRedoStack(List<ProjectEvent> events) =>
+      quickStore.writeData(
+        _redoStackKey,
+        events.map((e) => e.encodeToJsonString()).toList(),
+      );
   Future<void> writePopupHistory(List<BoardScreenPopup> popupHistory) =>
       quickStore.writeData(
         _popupHistoryKey,
@@ -108,8 +114,7 @@ class ProjectRestorationData {
       events = data;
     }
     return events
-        .map(castMapToJsonMap)
-        .nonNulls
+        .whereType<String>()
         .map<ProjectEvent?>(ProjectEvent.decode)
         .nonNulls
         .toList();

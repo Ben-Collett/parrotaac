@@ -1,7 +1,6 @@
 import 'dart:io';
 
 import 'package:flutter/material.dart';
-import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:parrotaac/backend/project/parrot_project.dart';
 import 'package:parrotaac/default_board_strings.dart';
 import 'package:parrotaac/ui/parrot_button.dart';
@@ -9,7 +8,7 @@ import 'package:parrotaac/ui/popups/button_config.dart';
 import 'package:path/path.dart';
 
 void main() {
-  runApp(ProviderScope(child: const MyApp()));
+  runApp(const MyApp());
 }
 
 class MyApp extends StatelessWidget {
@@ -17,10 +16,7 @@ class MyApp extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return const MaterialApp(
-      title: 'Parrot AAC',
-      home: MainScreen(),
-    );
+    return const MaterialApp(title: 'Parrot AAC', home: MainScreen());
   }
 }
 
@@ -36,13 +32,16 @@ class MainScreen extends StatelessWidget {
     if (projectDir.existsSync()) projectDir.deleteSync(recursive: true);
     createProjectSync(projectDir);
 
-    final controller =
-        ParrotButtonNotifier(project: ParrotProject.fromDirectory(projectDir));
+    final controller = ParrotButtonNotifier(
+      project: ParrotProject.fromDirectory(projectDir),
+      eventHandler: null,
+    );
 
     return Scaffold(
       appBar: AppBar(
-          title: const Text('buttonCreate'),
-          backgroundColor: Color(0xFFAFABDF)),
+        title: const Text('buttonCreate'),
+        backgroundColor: Color(0xFFAFABDF),
+      ),
       body: ButtonConfigPopup(buttonController: controller),
     );
   }

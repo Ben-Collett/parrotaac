@@ -28,10 +28,11 @@ class DisplayEntry extends StatefulWidget {
   }
 
   Directory? get dir {
-    if (data.path == null) {
-      return null;
+    final path = data.path;
+    if (path != null) {
+      return Directory(path);
     }
-    return Directory(data.path!);
+    return null;
   }
 
   final DisplayData data;
@@ -256,7 +257,8 @@ Future<void> showDeleteDisplayDataDialog(
       context: context,
       builder: (context) {
         final displayName = data.name;
-        final dir = data.path == null ? null : Directory(data.path!);
+        final path = data.path;
+        final dir = path == null ? null : Directory(path);
         return AlertDialog(
           content: SingleChildScrollView(
             child: Column(
