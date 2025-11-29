@@ -1,11 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:parrotaac/backend/settings_utils.dart' as settings;
-import 'package:parrotaac/backend/simple_logger.dart';
-typedef SettingsBuilder<T> = Widget Function(BuildContext context,T value);
+
+//WARNING: have to keep generic using dynamic or I get an error for some reason, getSettingsOr will force the typing in the build will enforce the type anyways
+typedef SettingsBuilder = Widget Function(BuildContext context, dynamic value);
 
 class SettingsListenable<T> extends StatefulWidget {
   final String label;
-  final SettingsBuilder<T> builder;
+  final SettingsBuilder builder;
   final T defaultValue;
   const SettingsListenable({
     super.key,
@@ -29,13 +30,15 @@ class _SettingsListenableState<T> extends State<SettingsListenable<T>> {
   @override
   Widget build(BuildContext context) {
     return ListenableBuilder(
-        listenable: notifier,
-        builder: (context, _) {
-          final T value =
-              settings.getSettingOr<T>(widget.label,widget.defaultValue);
-            SimpleLogger().logDebug("logged");
-          return widget.builder(context,value);
-        });
+      listenable: notifier,
+      builder: (context, _) {
+        final value = settings.getSettingOr<T>(
+          widget.label,
+          widget.defaultValue,
+        );
+        return widget.builder(context, value);
+      },
+    );
   }
 
   @override

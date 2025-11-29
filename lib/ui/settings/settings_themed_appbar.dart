@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:parrotaac/backend/simple_logger.dart';
 import 'package:parrotaac/restorative_navigator.dart';
 import 'package:parrotaac/ui/appbar_widgets/compute_contrasting_color.dart';
 import 'package:parrotaac/ui/popups/lock_popups/admin_lock.dart';
@@ -26,29 +25,32 @@ class SettingsThemedAppbar extends StatelessWidget
     const leadingWidth = 32.0;
     Widget? leading = this.leading;
     if (leading == null && RestorativeNavigator().hasPreviousScreen) {
-      leading = BackButton(onPressed: () {
-        showAdminLockPopup(
-          context: context,
-          onAccept: () => RestorativeNavigator().pop(context),
-        );
-      });
-    }
-    
-    return SettingsListenable<int>(
-        label: appBarColorLabel,
-        defaultValue: defaultAppbarColor,
-        builder: (context, value) {
-          final color = Color(value);
-          return AppBar(
-            title: title,
-            centerTitle: centerTitle,
-            leadingWidth: leadingWidth,
-            foregroundColor: computeContrastingColor(color),
-            actions: actions,
-            leading: leading,
-            backgroundColor: Color(value),
+      leading = BackButton(
+        onPressed: () {
+          showAdminLockPopup(
+            context: context,
+            onAccept: () => RestorativeNavigator().pop(context),
           );
-        });
+        },
+      );
+    }
+
+    return SettingsListenable<int>(
+      label: appBarColorLabel,
+      defaultValue: defaultAppbarColor,
+      builder: (context, value) {
+        final color = Color(value);
+        return AppBar(
+          title: title,
+          centerTitle: centerTitle,
+          leadingWidth: leadingWidth,
+          foregroundColor: computeContrastingColor(color),
+          actions: actions,
+          leading: leading,
+          backgroundColor: Color(value),
+        );
+      },
+    );
   }
 
   @override
