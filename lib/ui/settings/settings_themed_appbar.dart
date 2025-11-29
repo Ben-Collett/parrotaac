@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:parrotaac/backend/simple_logger.dart';
 import 'package:parrotaac/restorative_navigator.dart';
 import 'package:parrotaac/ui/appbar_widgets/compute_contrasting_color.dart';
 import 'package:parrotaac/ui/popups/lock_popups/admin_lock.dart';
@@ -32,10 +33,11 @@ class SettingsThemedAppbar extends StatelessWidget
         );
       });
     }
-    return SettingsListenable(
+    
+    return SettingsListenable<int>(
         label: appBarColorLabel,
         defaultValue: defaultAppbarColor,
-        builder: (value) {
+        builder: (context, value) {
           final color = Color(value);
           return AppBar(
             title: title,

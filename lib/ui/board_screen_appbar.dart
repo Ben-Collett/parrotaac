@@ -186,7 +186,7 @@ class ShowSideBarButton extends StatelessWidget {
               textAlign: TextAlign.center,
               style: TextStyle(
                 color: computeContrastingColor(
-                  Color(getSetting(appBarColorLabel)),
+                  getAppbarColor(),
                 ),
               ),
             ),

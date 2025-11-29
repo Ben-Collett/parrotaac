@@ -18,7 +18,7 @@ class BoardSidebar extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final backgroundColor = Color(getSetting(appBarColorLabel));
+    final backgroundColor = getAppbarColor();
 
     Color foregroundColor = computeContrastingColor(backgroundColor);
     const longSideLength = 57.0;
@@ -87,7 +87,7 @@ class BoardSidebar extends StatelessWidget {
             );
 
             return ColoredBox(
-              color: Color(getSetting(appBarColorLabel)),
+              color: getAppbarColor(),
               child: Column(
                 children: [
                   addColButton,

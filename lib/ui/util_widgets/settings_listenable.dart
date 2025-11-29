@@ -1,10 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:parrotaac/backend/settings_utils.dart' as settings;
+import 'package:parrotaac/backend/simple_logger.dart';
+typedef SettingsBuilder<T> = Widget Function(BuildContext context,T value);
 
 class SettingsListenable<T> extends StatefulWidget {
   final String label;
-  final Widget Function(dynamic) builder;
-  final dynamic defaultValue;
+  final SettingsBuilder<T> builder;
+  final T defaultValue;
   const SettingsListenable({
     super.key,
     required this.label,
@@ -29,9 +31,10 @@ class _SettingsListenableState<T> extends State<SettingsListenable<T>> {
     return ListenableBuilder(
         listenable: notifier,
         builder: (context, _) {
-          final dynamic value =
-              settings.getSetting<T>(widget.label) ?? widget.defaultValue;
-          return widget.builder(value);
+          final T value =
+              settings.getSettingOr<T>(widget.label,widget.defaultValue);
+            SimpleLogger().logDebug("logged");
+          return widget.builder(context,value);
         });
   }
 

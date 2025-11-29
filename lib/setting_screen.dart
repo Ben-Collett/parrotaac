@@ -63,7 +63,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
       if (globalRestorationQuickstore.isTrue(appbarColorOpenKey)) {
         showAppbarColorPickerDialog(
           context,
-          Color(getSetting(appbarColorSettingName) ?? defaultAppbarColor),
+          getAppbarColor(),
           (Color value) async {
             await setSetting(appbarColorSettingName, value.toARGB32());
           },

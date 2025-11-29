@@ -14,7 +14,7 @@ class SettingsSwitchTile extends StatelessWidget {
     return SettingsListenable<bool>(
       label: label,
       defaultValue: false,
-      builder: (val) => SwitchListTile(
+      builder: (context, val) => SwitchListTile(
         value: val,
         onChanged: (_) {
           setSetting(label, !val);
@@ -41,7 +41,7 @@ class SettingsDropDown extends StatelessWidget {
     return SettingsListenable<String>(
       label: label,
       defaultValue: defaultValue,
-      builder: (val) {
+      builder: (context, val) {
         return ListTile(
           title: Text(label),
           trailing: DropdownButton<String>(
@@ -76,7 +76,7 @@ class SettingsColorChange extends StatelessWidget {
     return SettingsListenable<int>(
       label: label,
       defaultValue: defaultValue,
-      builder: (val) {
+      builder: (context, val) {
         return ListTile(
           title: Text(label),
           trailing: MaterialButton(
