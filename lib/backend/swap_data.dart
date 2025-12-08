@@ -211,11 +211,14 @@ class SwapData {
       if (board == null) {
         return null;
       }
+
+      final colLength = board.grid.numberOfRows;
+      final rowLength = board.grid.numberOfColumns;
+
       final rows = data.selectedRows;
       for (final int row in rows) {
-        final numberOfRows = board.grid.numberOfRows;
-        expectedLength ??= numberOfRows;
-        if (expectedLength == numberOfRows) {
+        expectedLength ??= rowLength;
+        if (expectedLength == rowLength) {
           out.add(SingleSwapData(id: id, row: row));
         } else {
           return null;
@@ -224,9 +227,8 @@ class SwapData {
 
       final cols = data.selectedCols;
       for (final int col in cols) {
-        final numberOfCols = board.grid.numberOfColumns;
-        expectedLength ??= numberOfCols;
-        if (expectedLength == numberOfCols) {
+        expectedLength ??= colLength;
+        if (expectedLength == colLength) {
           out.add(SingleSwapData(id: id, col: col));
         } else {
           return null;

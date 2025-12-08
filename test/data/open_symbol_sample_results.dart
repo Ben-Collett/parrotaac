@@ -1,0 +1,2 @@
+const catSearch = "";
+const dogSearch = "";

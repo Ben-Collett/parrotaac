@@ -18,7 +18,9 @@ Future<void> equalProjectes(Obz b1, Obz b2) async {
   Map<String, dynamic> toJson(Obf board) => board.toJson();
   await expectLater(b1.manifestJson, b2.manifestJson);
   await expectLater(
-      b1.boards.map(toJson).toSet(), b2.boards.map(toJson).toSet());
+    b1.boards.map(toJson).toSet(),
+    b2.boards.map(toJson).toSet(),
+  );
 }
 
 void main() {
@@ -44,18 +46,27 @@ void main() {
       String targetPath = p.join(targetDir.path, "simple2.obf");
       Obf board = Obf.fromJsonString(simpleBoard);
       board.path = "boards/simple2.obf";
-      ParrotProject expectedBoard =
-          ParrotProject.fromObz(board.toSimpleObz(), "simple2", targetPath);
+      ParrotProject expectedBoard = ParrotProject.fromObz(
+        board.toSimpleObz(),
+        "simple2",
+        targetPath,
+      );
       await board.writeTo(targetPath);
       File simpleFile = File(targetPath);
-      String importTargetPath =
-          p.join(targetDir.path, "import_dir", "simple2.obf");
+      String importTargetPath = p.join(
+        targetDir.path,
+        "import_dir",
+        "simple2.obf",
+      );
       await importFromObfFile(simpleFile, outputPath: importTargetPath);
 
       Directory dir = Directory(importTargetPath);
       Obz fromDir = Obz.fromDirectory(dir);
-      ParrotProject actualBoard =
-          ParrotProject.fromObz(fromDir, "simple2", dir.path);
+      ParrotProject actualBoard = ParrotProject.fromObz(
+        fromDir,
+        "simple2",
+        dir.path,
+      );
 
       dir.deleteSync(recursive: true);
       simpleFile.deleteSync();
@@ -70,8 +81,10 @@ void main() {
 
       ArchiveFile file = ArchiveFile.string("simple.obf", simpleBoard);
 
-      ArchiveFile manifest =
-          ArchiveFile.string("manifest.json", simpleManifestString);
+      ArchiveFile manifest = ArchiveFile.string(
+        "manifest.json",
+        simpleManifestString,
+      );
 
       archive.add(file);
       archive.add(manifest);
@@ -82,10 +95,13 @@ void main() {
 
       Obf simpleObf = Obf.fromJsonString(simpleBoard);
       ParrotProject expected = ParrotProject(
-              name: "simp", boards: [simpleObf], path: projectTargetPath)
-          .parseManifestString(simpleManifestString);
-      ParrotProject actual =
-          ParrotProject.fromDirectory(Directory(projectTargetPath));
+        name: "simp",
+        boards: [simpleObf],
+        path: projectTargetPath,
+      ).parseManifestString(simpleManifestString);
+      ParrotProject actual = ParrotProject.fromDirectory(
+        Directory(projectTargetPath),
+      );
 
       File(archivePath).deleteSync();
       Directory(projectTargetPath).deleteSync(recursive: true);
@@ -121,7 +137,7 @@ void main() {
     ParrotProject _ = await writeSimpleProject(path);
     Directory dir = Directory(path);
 
-    var expected = ParrotProjectDisplayData(name);
+    var expected = ParrotProjectDisplayData(name, path: path);
     var actual = ParrotProjectDisplayData.fromDir(dir);
 
     dir.deleteSync(recursive: true);
@@ -139,7 +155,10 @@ Future<ParrotProject> writeSimpleProject(String path) async {
 
 Future<ParrotProject> makeSimpleProjectObject(String path) async {
   List<Obf> boards = [Obf.fromJsonString(simpleBoard)];
-  ParrotProject out =
-      ParrotProject(name: p.basename(path), boards: boards, path: path);
+  ParrotProject out = ParrotProject(
+    name: p.basename(path),
+    boards: boards,
+    path: path,
+  );
   return out;
 }
