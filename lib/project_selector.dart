@@ -17,6 +17,7 @@ import 'package:parrotaac/ui/popups/lock_popups/admin_lock.dart';
 import 'package:parrotaac/ui/popups/login_popup.dart';
 import 'package:parrotaac/ui/popups/show_restorable_popup.dart';
 import 'package:parrotaac/ui/popups/support_popup.dart';
+import 'package:parrotaac/ui/search_bar.dart';
 import 'package:parrotaac/ui/settings/settings_themed_appbar.dart';
 import 'package:parrotaac/ui/util_widgets/gap.dart';
 import 'package:parrotaac/ui/util_widgets/multi_listenable_builder.dart';
@@ -166,7 +167,13 @@ class _ProjectSelectorState extends State<ProjectSelector> {
         child: Row(
           mainAxisAlignment: MainAxisAlignment.spaceBetween,
           children: [
-            SearchBar(textController: _state.searchTextController),
+            SizedBox(
+              width: 200,
+              child: GlowingSearchBar(
+                textController: _state.searchTextController,
+                padding: 4.0,
+              ),
+            ),
             ValueListenableBuilder(
               valueListenable: _state.selectModeNotifier,
               builder: (context, selectMode, child) {
@@ -196,23 +203,29 @@ class _ProjectSelectorState extends State<ProjectSelector> {
                 }
 
                 children.addAll([
-                  Container(
-                    color: Colors.yellow,
-                    child: TextButton(
-                      child: AnimatedSwitcher(
-                        duration: const Duration(milliseconds: 300),
-                        child: Text(text, key: ValueKey(text)),
-                      ),
+                  Padding(
+                    padding: const EdgeInsets.all(2.0),
+                    child: ElevatedButton(
                       onPressed: () {
                         _selectorState.selectedNotifier.clear();
                         _state.selectModeNotifier.value = !selectMode;
                       },
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: Colors.yellow,
+                      ),
+                      child: AnimatedSwitcher(
+                        duration: const Duration(milliseconds: 300),
+                        child: Text(text, key: ValueKey(text)),
+                      ),
                     ),
                   ),
-                  Container(
-                    color: Colors.orangeAccent,
-                    child: TextButton(
+                  Padding(
+                    padding: const EdgeInsets.all(2.0),
+                    child: ElevatedButton(
                       onPressed: () => _showCreateProjectDialog(context),
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: Colors.orangeAccent,
+                      ),
                       child: Text("create project"),
                     ),
                   ),
@@ -568,29 +581,6 @@ class _CreateProjectDialogState extends State<CreateProjectDialog> {
   }
 }
 
-class SearchBar extends StatelessWidget {
-  final TextEditingController textController;
-  const SearchBar({super.key, required this.textController});
-
-  @override
-  Widget build(BuildContext context) {
-    //TODO: I should fine a way to not have the width constant
-
-    return Container(
-      width: 200,
-      color: Colors.white,
-      //could add autocomplete but it looks bad and provides little advantage
-      child: TextField(
-        decoration: InputDecoration(
-          prefixIcon: Icon(Icons.search),
-          hintText: "search...",
-        ),
-        controller: textController,
-      ),
-    );
-  }
-}
-
 class BoardCountText extends StatelessWidget {
   final ValueNotifier<String> textController;
   const BoardCountText({super.key, required this.textController});
@@ -602,8 +592,12 @@ class BoardCountText extends StatelessWidget {
         defaultProjectDirListener,
       ],
       builder: (context, child) {
-        return Text(
-          '${filteredEntries(_selectorState.searchTextController.text).length} boards',
+        return Padding(
+          padding: const EdgeInsets.all(2.0),
+          child: Text(
+            '${filteredEntries(_selectorState.searchTextController.text).length} boards',
+            style: TextStyle(color: Colors.white),
+          ),
         );
       },
     );
