@@ -346,6 +346,10 @@ class ProjectEventHandler {
   }
 
   ParrotButtonNotifier makeButtonNotifier(ButtonData bd, int row, int col) {
+    bool showLabel = project.settings?.showButtonLabels ?? true;
+    if (!showLabel) {
+      showLabel = bd.image == null;
+    }
     VoidCallback? onPressOverride;
     OnPressOverride? callback = modeNotifier.value.onPressedOverride;
     if (callback != null) {
@@ -354,6 +358,7 @@ class ProjectEventHandler {
 
     return ParrotButtonNotifier(
       data: bd,
+      showLabel: showLabel,
       goToLinkedBoard: (obf) {
         boardHistory.push(obf);
       },

@@ -141,6 +141,7 @@ class ParrotButtonNotifier extends ChangeNotifier {
   ParrotProject? project;
   String? get projectPath => project?.path;
   SentenceBoxController? boxController;
+  bool showLabel;
 
   ///must have a buttonData or a project or both
   ParrotButtonNotifier({
@@ -148,6 +149,7 @@ class ParrotButtonNotifier extends ChangeNotifier {
     bool holdToConfig = false,
     void Function(Obf)? goToLinkedBoard,
     this.boxController,
+    this.showLabel = true,
     this.goHome,
     this.project,
     this.onPressOverride,
@@ -259,6 +261,7 @@ class ParrotButton extends StatelessWidget
             onTap: onTap,
             onLongPress: onLongPress,
             projectPath: controller.projectPath,
+            showLabel: controller.showLabel,
             buttonData: controller.data,
           ),
         );
@@ -269,12 +272,14 @@ class ParrotButton extends StatelessWidget
 
 class StatelessParrotButton extends StatelessWidget {
   final ButtonData buttonData;
+  final bool showLabel;
   final String? projectPath;
   final VoidCallback? onTap;
   final void Function(BuildContext)? onLongPress;
   const StatelessParrotButton({
     super.key,
     required this.buttonData,
+    this.showLabel = true,
     this.onTap,
     this.onLongPress,
     this.projectPath,
@@ -292,7 +297,7 @@ class StatelessParrotButton extends StatelessWidget {
     Widget? text;
     String font =
         Theme.of(context).textTheme.bodyMedium?.fontFamily ?? "Roboto";
-    if (buttonData.label != null) {
+    if (showLabel && buttonData.label != null) {
       //for some reason dragging changes the text style/decorations if everything is not explicitly set
       text = Center(
         child: Text(

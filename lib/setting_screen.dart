@@ -61,13 +61,11 @@ class _SettingsScreenState extends State<SettingsScreen> {
 
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (globalRestorationQuickstore.isTrue(appbarColorOpenKey)) {
-        showAppbarColorPickerDialog(
-          context,
-          getAppbarColor(),
-          (Color value) async {
-            await setSetting(appbarColorSettingName, value.toARGB32());
-          },
-        );
+        showAppbarColorPickerDialog(context, getAppbarColor(), (
+          Color value,
+        ) async {
+          await setSetting(appbarColorSettingName, value.toARGB32());
+        });
       }
     });
 
@@ -185,6 +183,14 @@ class _ProjectCategory extends _Category {
             project.settings?.writeShowSentenceBar(val);
           },
           initialValue: project.settings?.showSentenceBar ?? true,
+        ),
+        _ToggleTile(
+          key: UniqueKey(),
+          label: "Show Button Labels",
+          onChange: (val) {
+            project.settings?.writeShowButtonLabels(val);
+          },
+          initialValue: project.settings?.showButtonLabels ?? true,
         ),
       ],
     ),
