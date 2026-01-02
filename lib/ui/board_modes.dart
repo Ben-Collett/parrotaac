@@ -73,7 +73,7 @@ class BoardMode {
     asString: "normal_mode",
   );
 
-  void updateOnPressed(GridNotifier grid, {BuildContext? context}) {
+  void updateOnPressed(GridNotifier grid) {
     if (this == normalMode) {
       grid.selectMode = false;
     } else {

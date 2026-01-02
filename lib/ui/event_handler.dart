@@ -342,20 +342,7 @@ class ProjectEventHandler {
   }
 
   void updateOnPressed() {
-    // gridNotfier.forEachIndexed((obj, row, col) {
-    //   if (modeNotifier.value == BoardMode.deleteColMode &&
-    //       obj is ParrotButtonNotifier) {
-    //     obj.onPressOverride = () {
-    //       removeCol(col);
-    //     };
-    //   } else if (modeNotifier.value == BoardMode.deleteRowMode &&
-    //       obj is ParrotButtonNotifier) {
-    //     obj.onPressOverride = () {
-    //       removeRow(row);
-    //     };
-    //   }
-    // });
-    //TODO: ahh
+    modeNotifier.value.updateOnPressed(gridNotfier);
   }
 
   ParrotButtonNotifier makeButtonNotifier(ButtonData bd, int row, int col) {
