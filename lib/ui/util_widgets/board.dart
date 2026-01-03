@@ -89,7 +89,7 @@ class _BoardWidgetState extends State<BoardWidget> {
 
     _sentenceController =
         widget.sentenceBoxController ??
-        SentenceBoxController(projectPath: widget.project.path);
+        SentenceBoxController(project: widget.project);
 
     _gridNotifier =
         widget.gridNotifier ??

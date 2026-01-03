@@ -5,12 +5,14 @@ import 'package:openboard_wrapper/button_data.dart';
 import 'package:openboard_wrapper/obf.dart';
 import 'package:parrotaac/audio/audio_source.dart';
 import 'package:parrotaac/audio_player.dart';
+import 'package:parrotaac/backend/project/parrot_project.dart';
 import 'package:parrotaac/ui/parrot_button.dart';
 import 'package:parrotaac/extensions/button_data_extensions.dart';
 
 class SentenceBoxController extends ChangeNotifier {
   List<SenteceBoxDisplayEntry> _dataToDisplay;
-  String? projectPath;
+  ParrotProject? project;
+  String? get projectPath => project?.path;
   double _buttonWidth;
   double _buttonHeight;
   bool enabled;
@@ -37,11 +39,11 @@ class SentenceBoxController extends ChangeNotifier {
     double buttonWidth = 100,
     double buttonHeight = 100,
     this.enabled = true,
-    this.projectPath,
+    this.project,
     List<SenteceBoxDisplayEntry>? initialData,
-  })  : _buttonWidth = buttonWidth,
-        _buttonHeight = buttonHeight,
-        _dataToDisplay = initialData ?? [];
+  }) : _buttonWidth = buttonWidth,
+       _buttonHeight = buttonHeight,
+       _dataToDisplay = initialData ?? [];
 
   void clear() {
     if (enabled) {
@@ -89,9 +91,7 @@ class SentenceBoxController extends ChangeNotifier {
   }
 
   void speak() async {
-    PreemptiveAudioPlayer().playIterable(
-      audioSourcesCopy,
-    );
+    PreemptiveAudioPlayer().playIterable(audioSourcesCopy);
   }
 }
 
@@ -99,10 +99,7 @@ class SenteceBoxDisplayEntry {
   final ButtonData data;
   final Obf? board;
 
-  SenteceBoxDisplayEntry({
-    required this.data,
-    this.board,
-  });
+  SenteceBoxDisplayEntry({required this.data, this.board});
 }
 
 class SentenceBox extends StatelessWidget {
@@ -112,7 +109,10 @@ class SentenceBox extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     Widget toStatelessParrotButton(ButtonData bd) => StatelessParrotButton(
-        buttonData: bd, projectPath: controller.projectPath);
+      buttonData: bd,
+      alwaysShowLabel: controller.project?.settings?.showButtonLabels ?? true,
+      projectPath: controller.projectPath,
+    );
 
     return ListenableBuilder(
       listenable: controller,
@@ -122,10 +122,13 @@ class SentenceBox extends StatelessWidget {
           children: controller._dataToDisplay
               .map((entry) => entry.data)
               .map(toStatelessParrotButton)
-              .map((b) => SizedBox(
+              .map(
+                (b) => SizedBox(
                   width: controller.buttonWidth,
                   height: controller.buttonHeight,
-                  child: b))
+                  child: b,
+                ),
+              )
               .toList(),
         );
       },

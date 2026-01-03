@@ -75,7 +75,7 @@ class _BoardScreenState extends State<BoardScreen> {
     _boardHistory = restorationData.createBoardHistory(project, historySize);
 
     _sentenceController = SentenceBoxController(
-      projectPath: project.path,
+      project: project,
       initialData: restorationData.getSentenceBoxData(widget.project),
       enabled: project.settings?.showSentenceBar ?? true,
     );
