@@ -318,6 +318,7 @@ class _BoardWidgetState extends State<BoardWidget> {
       ParrotButtonNotifier notifier = ParrotButtonNotifier(
         project: widget.project,
         eventHandler: eventHandler,
+        alwaysShowLabel: widget.project.settings?.showButtonLabels ?? true,
       );
       restorableButtonDiff?.apply(notifier.data, project: widget.project);
       notifier.goToLinkedBoard = (_) {};
@@ -352,7 +353,6 @@ class _BoardWidgetState extends State<BoardWidget> {
                 color: Colors.green,
                 icon: Icon(Icons.check),
                 onPressed: () {
-                  notifier.goToLinkedBoard = _changeObf;
                   notifier.onDelete = () => eventHandler.removeButton(row, col);
                   notifier.goHome = _goToRootBoard;
                   notifier.boxController = _sentenceController;

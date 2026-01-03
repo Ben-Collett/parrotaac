@@ -186,7 +186,7 @@ class _ProjectCategory extends _Category {
         ),
         _ToggleTile(
           key: UniqueKey(),
-          label: "Show Button Labels",
+          label: "Always Show Button Labels",
           onChange: (val) {
             project.settings?.writeShowButtonLabels(val);
           },

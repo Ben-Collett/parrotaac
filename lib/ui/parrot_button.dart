@@ -141,7 +141,9 @@ class ParrotButtonNotifier extends ChangeNotifier {
   ParrotProject? project;
   String? get projectPath => project?.path;
   SentenceBoxController? boxController;
-  bool showLabel;
+
+  ///if false then won't show label when there is an image
+  bool alwaysShowLabel;
 
   ///must have a buttonData or a project or both
   ParrotButtonNotifier({
@@ -149,7 +151,7 @@ class ParrotButtonNotifier extends ChangeNotifier {
     bool holdToConfig = false,
     void Function(Obf)? goToLinkedBoard,
     this.boxController,
-    this.showLabel = true,
+    this.alwaysShowLabel = true,
     this.goHome,
     this.project,
     this.onPressOverride,
@@ -261,7 +263,7 @@ class ParrotButton extends StatelessWidget
             onTap: onTap,
             onLongPress: onLongPress,
             projectPath: controller.projectPath,
-            showLabel: controller.showLabel,
+            alwaysShowLabel: controller.alwaysShowLabel,
             buttonData: controller.data,
           ),
         );
@@ -272,14 +274,14 @@ class ParrotButton extends StatelessWidget
 
 class StatelessParrotButton extends StatelessWidget {
   final ButtonData buttonData;
-  final bool showLabel;
+  final bool alwaysShowLabel;
   final String? projectPath;
   final VoidCallback? onTap;
   final void Function(BuildContext)? onLongPress;
   const StatelessParrotButton({
     super.key,
     required this.buttonData,
-    this.showLabel = true,
+    this.alwaysShowLabel = true,
     this.onTap,
     this.onLongPress,
     this.projectPath,
@@ -294,6 +296,9 @@ class StatelessParrotButton extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     Widget? image = buttonData.image?.toImage(projectPath: projectPath);
+
+    final bool showLabel = alwaysShowLabel || image == null;
+
     Widget? text;
     String font =
         Theme.of(context).textTheme.bodyMedium?.fontFamily ?? "Roboto";
