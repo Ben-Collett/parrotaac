@@ -1,3 +1,5 @@
+import 'package:parrotaac/safe_cast.dart';
+
 extension MapDiff on Map<String, dynamic> {
   Map<String, dynamic> valuesThatAreDifferent(Map<String, dynamic> other) {
     final diff = <String, dynamic>{};
@@ -52,7 +54,7 @@ extension MapExtensions<K, V> on Map<K, V> {
 
 extension SafeGet on Map {
   T safeGet<T>(dynamic key, {required T defaultValue}) =>
-      this[key].safeCast<T>() ?? defaultValue;
+      safeCast<T>(this[key], defaultValue: defaultValue);
 }
 
 extension IncrementAndDecrement on Map<dynamic, int> {

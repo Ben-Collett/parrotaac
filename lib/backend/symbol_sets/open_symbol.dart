@@ -5,28 +5,37 @@ import 'package:flutter/material.dart';
 import 'package:flutter_cache_manager/flutter_cache_manager.dart';
 import 'package:http/http.dart' as http;
 import 'package:parrotaac/backend/attribution_data.dart';
-import 'package:parrotaac/backend/server/server_utils.dart';
+import 'package:parrotaac/backend/network/custom_cache_manager.dart';
 import 'package:parrotaac/backend/simple_logger.dart';
 import 'package:parrotaac/backend/symbol_sets/symbol_set.dart';
+import 'package:parrotaac/backend/symbol_sets/token_provider.dart';
 import 'package:parrotaac/extensions/http_extensions.dart';
-import 'package:parrotaac/extensions/null_extensions.dart';
+import 'package:parrotaac/extensions/map_extensions.dart';
 import 'package:parrotaac/utils.dart';
 
 class OpenSymbolSet extends SymbolSet {
   @override
-  Future<List<SymbolResult>> search(String toSearch) async {
+  Future<List<SymbolResult>> search(
+    String toSearch, {
+    TokenProvider? tokenProvider,
+    CustomLogger? logger,
+    CustomCacheManager? cacheManager,
+  }) async {
     if (toSearch.trim().isEmpty) {
       return Future.value([]);
     }
+    tokenProvider ??= OpenSymbolAccessTokenProvider();
     final uri = Uri.https('www.opensymbols.org', '/api/v2/symbols', {
-      'access_token': await temporaryOpenSymbolToken,
+      'access_token': await tokenProvider.generateToken(),
       'q': toSearch,
       'locale': 'en',
       'safe': '1',
     });
 
     try {
-      final file = await DefaultCacheManager().getSingleFile(
+      cacheManager ??= MyDefaultCacheManager();
+
+      final file = await cacheManager.getSingleFile(
         uri.toString(),
         key: uri.toString(),
       );
@@ -43,12 +52,15 @@ class OpenSymbolSet extends SymbolSet {
       }
     } on HttpException catch (e) {
       // Handle network/cache failures
-      SimpleLogger().logError("HTTP/Cache error: $e");
+      logger ??= SimpleLogger();
+      logger.logError("HTTP/Cache error: $e");
     } on FormatException catch (e) {
       // Handle JSON parsing errors
-      SimpleLogger().logError("JSON parse error: $e");
+      logger ??= SimpleLogger();
+      logger.logError("JSON parse error: $e");
     } catch (e) {
-      SimpleLogger().logError("Unexpected error: $e");
+      logger ??= SimpleLogger();
+      logger.logError("Unexpected error: $e");
     }
 
     return List<SymbolResult>.empty();
@@ -117,7 +129,7 @@ class OpenSymbolResult extends SymbolResult {
 
   OpenSymbolResult.fromJson(this.json)
     : originalImageUrl = json["image_url"],
-      supportsTones = json["skins"].ifMissingDefaultTo(false);
+      supportsTones = json.safeGet<bool>("skins", defaultValue: false);
 
   @override
   Widget get asImageWidget => imageFromUrl(imageUrl);

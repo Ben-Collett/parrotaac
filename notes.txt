@@ -1,3 +1,0 @@
-added 
-  to ./linux/CMakeLists.txt to make flutter secure storage work should be removible in the next securesotrage release
-  target_compile_options(${TARGET} PRIVATE -Wno-deprecated)
