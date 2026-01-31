@@ -148,7 +148,6 @@ class _ShapedButtonState extends State<ShapedButton>
         final borderSize = painter.computeBorderSize(size);
         final imageRect = painter.imagePaintArea(size, borderSize);
         final textRect = painter.textPaintArea(size, borderSize);
-        final circleRect = painter.circlePaintArea(size, borderSize);
 
         const tenPercent = 0.1;
         const fifteenPercent = 0.15;
@@ -195,11 +194,6 @@ class _ShapedButtonState extends State<ShapedButton>
                   Positioned.fromRect(rect: imageRect, child: widget.image!),
                 if (widget.text != null)
                   Positioned.fromRect(rect: textRect, child: widget.text!),
-
-                //Positioned.fromRect(
-                // rect: circleRect,
-                //child: CircleAvatar(backgroundColor: Colors.white),
-                //),
               ],
             ),
           ),
@@ -413,27 +407,6 @@ class _SquareButtonPainter extends CustomPainter with _ParrotButtonPainter {
       ..isAntiAlias = true;
 
     canvas.drawRRect(scaledRect, paint);
-  }
-
-  RRect scaleRRect(RRect rrect, double scale) {
-    final Rect rect = rrect.outerRect;
-    final Offset center = rect.center;
-    final double newWidth = rect.width * scale;
-    final double newHeight = rect.height * scale;
-
-    // scale the radius (assuming circular corners)
-    final Radius newRadius = Radius.elliptical(
-      rrect.blRadiusX * scale,
-      rrect.blRadiusY * scale,
-    );
-
-    final Rect newRect = Rect.fromCenter(
-      center: center,
-      width: newWidth,
-      height: newHeight,
-    );
-
-    return RRect.fromRectAndRadius(newRect, newRadius);
   }
 
   @override

@@ -10,7 +10,6 @@ import 'package:parrotaac/backend/project/parrot_project.dart';
 import 'package:parrotaac/backend/project/patch.dart';
 import 'package:parrotaac/backend/selection_data.dart';
 import 'package:parrotaac/backend/selection_history.dart';
-import 'package:parrotaac/backend/simple_logger.dart';
 import 'package:parrotaac/backend/swap_data.dart';
 import 'package:parrotaac/extensions/color_extensions.dart';
 import 'package:parrotaac/extensions/list_extensions.dart';
@@ -164,17 +163,7 @@ class ProjectEventHandler {
   void addRow() =>
       execute(AddRow(id: boardHistory.currentBoard.id), updateUI: true);
 
-  void removeRow(int row) =>
-      execute(RemoveRow(id: currentBoard.id, row: row), updateUI: true);
-
-  void bulkRemove(WorkingSelectionHistory selectionHistory) {
-    //execute(BulkRemove(rowsToRemove: rows), updateUI: true);
-  }
-
   void addCol() => execute(AddColumn(id: currentBoard.id), updateUI: true);
-
-  void removeCol(int col) =>
-      execute(RemoveColumn(id: currentBoard.id, col: col), updateUI: true);
 
   void changeBoardColor(Obf board, Color oldColor, Color newColor) => execute(
     ChangeBoardColor(

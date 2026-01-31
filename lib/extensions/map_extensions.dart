@@ -44,12 +44,6 @@ extension MapExtensions<K, V> on Map<K, V> {
     out.removeWhere((k, v) => !condition(k, v));
     return out;
   }
-
-  void putIfNotNull(K key, V? value) {
-    if (value != null) {
-      this[key] = value;
-    }
-  }
 }
 
 extension SafeGet on Map {

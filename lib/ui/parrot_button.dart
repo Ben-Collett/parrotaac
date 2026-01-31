@@ -5,7 +5,6 @@ import 'package:openboard_wrapper/image_data.dart';
 import 'package:openboard_wrapper/obf.dart';
 import 'package:openboard_wrapper/obz.dart';
 import 'package:openboard_wrapper/sound_data.dart';
-import 'package:parrotaac/audio/audio_source.dart';
 import 'package:parrotaac/audio/prefered_audio_source.dart';
 import 'package:parrotaac/backend/project/parrot_project.dart';
 import 'package:parrotaac/extensions/button_data_extensions.dart';
@@ -35,8 +34,7 @@ class ParrotButtonNotifier extends ChangeNotifier {
   VoidCallback? onPressOverride;
 
   set preferredAudioSource(PreferredAudioSourceType preferredAudioSource) {
-    _data.extendedProperties[preferredAudioSourceKey] = preferredAudioSource
-        .toString();
+    _data.preferredAudioSourceType = preferredAudioSource;
   }
 
   bool get parrottActionModeEnabled {
@@ -87,19 +85,6 @@ class ParrotButtonNotifier extends ChangeNotifier {
   void clearAllLinkActions() {
     _data.linkedBoard = null;
     _data.loadBoardData = null;
-  }
-
-  void setLinkActionGoToBoard(Obf board) {
-    _data.linkedBoard = null;
-    List<ParrotAction> actions = this.actions.nonNulls.toList();
-
-    if (!actions.contains(ParrotAction.home)) {
-      return;
-    }
-
-    actions.removeWhere((action) => action == ParrotAction.home);
-
-    updateActions(actions);
   }
 
   void updateActions(List<ParrotAction> actions) {
@@ -159,9 +144,6 @@ class ParrotButtonNotifier extends ChangeNotifier {
     this.onDelete,
   }) : _data = data ?? ButtonData(id: Obz.generateButtonId(project)),
        goToLinkedBoard = goToLinkedBoard ?? _defaultGoToLinkedBoard;
-  AudioSource get audioSource {
-    return _data.getSource(projectPath: projectPath);
-  }
 
   void setLabel(String label) {
     data.label = label;

@@ -32,8 +32,6 @@ class ProjectDirsListener extends ChangeNotifier {
   void addOnRefreshListener(VoidCallback onRefresh) =>
       _onRefreshListeners.add(onRefresh);
 
-  void removeOnRefreshListener(VoidCallback onRefresh) =>
-      _onRefreshListeners.remove(onRefresh);
   void addOnAddListener(AddListener onAdd) => _onAddListeners.add(onAdd);
 
   void removeOnAddListener(AddListener onAdd) => _onAddListeners.remove(onAdd);

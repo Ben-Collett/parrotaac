@@ -230,14 +230,11 @@ class _ButtonConfigPopupState extends State<ButtonConfigPopup> {
   static const String recordedAudioString = "recorded_audio";
 
   late final ParrotButtonNotifier buttonController;
-  ParrotAction selectedAction = ParrotAction.playButton;
 
   late final BoardLinkingActionMode startingMode;
   late final PreferredAudioSourceType startingAudioSource;
-  late final Obf currentBoard;
   late final Future<List<String>> _audioFileNames;
   late final Future<List<String>> _imageFileNames;
-  late final bool _showLabelWithImage;
 
   ColorData? get currentBackgroundColor =>
       widget.buttonController.data.backgroundColor;
@@ -391,8 +388,6 @@ class _ButtonConfigPopupState extends State<ButtonConfigPopup> {
         });
       });
     }
-
-    _showLabelWithImage = widget.buttonController.alwaysShowLabel;
   }
 
   void changeBackgroundColor(Color color) {
@@ -735,7 +730,7 @@ class _ButtonConfigPopupState extends State<ButtonConfigPopup> {
           return [];
         },
         onChange: (ptype) async {
-          widget.buttonController.data.preferredAudioSourceType = ptype;
+          widget.buttonController.preferredAudioSource = ptype;
           const tts = PreferredAudioSourceType.tts;
           const mute = PreferredAudioSourceType.mute;
           if (ptype == tts || ptype == mute) {

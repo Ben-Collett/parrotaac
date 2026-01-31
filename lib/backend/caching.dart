@@ -26,10 +26,6 @@ class MemoryCache<K, V> {
     _map.remove(key);
   }
 
-  void clear() {
-    _map.clear();
-  }
-
   bool containsKey(K key) {
     return _map.containsKey(key);
   }

@@ -60,7 +60,6 @@ class _SelectedNotifier extends ChangeNotifier {
   Iterable<Directory> get dataAsDirs => _values
       .where((data) => data.path != null)
       .map((data) => Directory(data.path!));
-  bool get isNotEmpty => _values.isNotEmpty;
   int get length => _values.length;
 
   ///if dir is null it won't be added

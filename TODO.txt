@@ -1,0 +1,13 @@
+1) add glow to support button
+2) fix marching ants animation
+3) fix error on winows with tts
+4) get firebase account to use firebase function and syncing
+5) fix text so that it shows better on buttons, maybe add text color and font size fields
+6) set up add letter buttons, to make a keyboard
+7) attribution screen for dependencies to settings
+8) hide toolbar
+9) way more testing
+__________________________________________________________
+after realse
+pass words to other window so parrottaac can act as a keyboar
+

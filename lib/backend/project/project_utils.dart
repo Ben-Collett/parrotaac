@@ -75,12 +75,6 @@ Future<Iterable<Directory>> projectDirs() async {
   return projectTargetDirectory.then(convertPathToDir).then(getTheSubDirs);
 }
 
-Future<Directory?> getProjectDir(String baseName) async {
-  List<Directory> currentDirs = await projectDirectories;
-  bool theNameMatches(Directory dir) => p.basename(dir.path) == baseName;
-  return currentDirs.where(theNameMatches).firstOrNull;
-}
-
 // if performance becomes an issue we could cache this and update as needed
 Future<List<Directory>> get projectDirectories async {
   Directory directory = Directory(await projectTargetDirectory);

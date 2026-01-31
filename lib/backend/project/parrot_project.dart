@@ -15,7 +15,6 @@ import 'package:path/path.dart' as p;
 
 import 'custom_manifest_keys.dart';
 import 'project_interface.dart';
-import 'project_utils.dart';
 
 final SvgPicture logo = SvgPicture.asset("assets/images/logo/white_bg.svg");
 
@@ -37,10 +36,6 @@ class ParrotProject extends Obz with AACProject {
     file.createSync(recursive: true);
     return file;
   }
-
-  ///only rewrite the boards that have actually updated, can be disabled for testing
-  static const bool optimizedSaves = true;
-  Set<Obf> boardsThatNeedUpdatedOnWrite = {};
 
   String? get displayImagePath {
     return manifestExtendedProperties[imagePathKey];
@@ -78,29 +73,6 @@ class ParrotProject extends Obz with AACProject {
     Map<String, dynamic> manifest = manifestJson;
     manifestExtendedProperties[nameKey] =
         manifest[nameKey] ?? p.basename(dir.path);
-  }
-
-  static Future<ParrotProject?> getProject(String projectName) async {
-    Directory? dir = await getProjectDir(projectName);
-    if (dir == null) {
-      return null;
-    }
-    return ParrotProject.fromDirectory(dir);
-  }
-
-  ///[map] tells the function where to move the old file from to it's new path
-  ///returns the moved files
-  Iterable<File> moveFiles(Map<String, String> map) {
-    List<File> files = [];
-    for (MapEntry entry in map.entries) {
-      File file = File(entry.key);
-      if (file.existsSync()) {
-        Directory(p.dirname(entry.value)).createSync(recursive: true);
-        files.add(file.copySync(entry.value));
-        file.deleteSync(recursive: true);
-      }
-    }
-    return files;
   }
 
   ///[map] should map the old location to the new location
@@ -196,8 +168,9 @@ class ParrotProject extends Obz with AACProject {
     await Future.wait(futures);
   }
 
+  ///[idsToWrite] should be the boards that have changed and those are wrote to disk, if null every board is saved
   Set<Obf> _boardsToWrite({Set<String>? idsToWrite}) {
-    if (idsToWrite == null || !optimizedSaves) return boards;
+    if (idsToWrite == null) return boards;
     return boards.where((b) => idsToWrite.contains(b.id)).toSet();
   }
 

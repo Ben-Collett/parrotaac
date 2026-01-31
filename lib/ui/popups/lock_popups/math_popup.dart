@@ -325,8 +325,3 @@ class _TextBar extends StatelessWidget {
     );
   }
 }
-
-class KeyPadController extends ChangeNotifier {
-  String text = "";
-  ValueNotifier colorController = ValueNotifier(Colors.white);
-}

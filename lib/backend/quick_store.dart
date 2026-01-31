@@ -25,16 +25,6 @@ mixin QuickStore {
   T safeGet<T>(dynamic key, {required T defaultValue});
 }
 
-mixin ListenableQuickstore on QuickStore {
-  void executeAndRegisterListener(VoidCallback callback) {
-    registerListener(callback);
-    callback.call();
-  }
-
-  void registerListener(Function() callback);
-  void removeListener(Function() callback);
-}
-
 class QuickStoreHiveImp with QuickStore {
   @override
   final String name;
@@ -123,45 +113,6 @@ class QuickStoreHiveImp with QuickStore {
   }
 }
 
-class ListenableHiveQuickstore extends QuickStoreHiveImp
-    with ListenableQuickstore {
-  final List<VoidCallback> _callbacks = [];
-
-  ListenableHiveQuickstore(super.name, {super.path});
-  @override
-  void registerListener(VoidCallback callback) {
-    _callbacks.add(callback);
-  }
-
-  @override
-  void removeListener(VoidCallback callback) {
-    _callbacks.remove(callback);
-  }
-
-  void _callCallbacks() {
-    void call(Function() callback) => callback.call();
-    _callbacks.forEach(call);
-  }
-
-  @override
-  Future<void> writeData(key, value, {bool log = false}) async {
-    await super.writeData(key, value, log: log);
-    _callCallbacks();
-  }
-
-  @override
-  Future<void> clear() async {
-    await super.clear();
-    _callCallbacks();
-  }
-
-  @override
-  Future<void> close() {
-    _callbacks.clear();
-    return super.close();
-  }
-}
-
 class IndexedQuickstore {
   final String name;
   final String? path;
@@ -181,10 +132,6 @@ class IndexedQuickstore {
 
   Future<void> clear() {
     return _box.clear();
-  }
-
-  dynamic peek() {
-    return _box.getAt(_box.length - 1);
   }
 
   Future<void> removeTop() {

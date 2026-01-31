@@ -10,12 +10,6 @@ extension FindFromName on List<FileSystemEntity> {
 }
 
 extension Grid<T> on List<List<T>> {
-  void swapFromPair(RowColPair p1, RowColPair p2) {
-    final temp = this[p1.row][p1.col];
-    this[p1.row][p1.col] = this[p2.row][p2.col];
-    this[p2.row][p2.col] = temp;
-  }
-
   T fromPair(RowColPair pair) {
     assert(
       pair.row.exclusiveIsInBetween(-1, length),
@@ -37,26 +31,6 @@ extension Grid<T> on List<List<T>> {
   void insertCol(int col, List<T> data) {
     for (int row = 0; row < data.length; row++) {
       this[row].insert(col, data[row]);
-    }
-  }
-
-  void removeRows(Iterable<int> rows) {
-    final descending = rows.descendingOrder;
-    for (int row in descending) {
-      removeRow(row);
-    }
-  }
-
-  void removeCols(Iterable<int> cols) {
-    final descending = cols.descendingOrder;
-    for (int col in descending) {
-      removeCol(col);
-    }
-  }
-
-  void bulkUpdate({required Iterable<RowColPair> positions, required T val}) {
-    for (RowColPair pair in positions) {
-      this[pair.row][pair.col] = val;
     }
   }
 
@@ -93,13 +67,6 @@ extension Flatten<T> on Iterable<T> {
         yield val as K;
       }
     }
-  }
-}
-
-extension CallEach on Iterable<Function> {
-  void _call(Function func) => func.call();
-  void callEach() {
-    forEach(_call);
   }
 }
 

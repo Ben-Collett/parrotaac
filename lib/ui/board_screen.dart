@@ -65,7 +65,6 @@ class _BoardScreenState extends State<BoardScreen> {
   late final ProjectEventHandler eventHandler;
 
   Obf get _currentObf => _boardHistory.currentBoard;
-  set _currentObf(Obf obf) => _boardHistory.push(obf);
   @override
   void initState() {
     ParrotProject project = widget.project;
@@ -218,25 +217,8 @@ class _BoardScreenState extends State<BoardScreen> {
     await widget.project.write(updatedBoards: boardsToWrite.toSet());
   }
 
-  void addButtonToSentenceBox(ButtonData buttonData) {
-    _sentenceController.add(
-      SenteceBoxDisplayEntry(data: buttonData, board: _currentObf),
-    );
-  }
-
   void _updateObfName() {
     _currentObf.name = _titleController.text.trim();
-  }
-
-  void _changeObf(Obf obf) {
-    _currentObf = obf;
-  }
-
-  void goToRootBoard() {
-    Obf? root = widget.project.root;
-    if (root != null) {
-      _changeObf(root);
-    }
   }
 
   @override

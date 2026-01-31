@@ -20,10 +20,6 @@ class ProjectRestoreStream {
     _stream.sink.add(_UpdateBoardMode(mode));
   }
 
-  void updateShowSentenceBar(bool value) {
-    _stream.sink.add(_ShowSentenceBar(value));
-  }
-
   void updateShowSideBar(bool value) {
     _stream.sink.add(_ShowSideBar(value));
   }
@@ -177,15 +173,6 @@ class _UpdateBoardMode extends _ProjectRestoreEvent {
   _UpdateBoardMode(this.mode);
   @override
   Future<void> update(ProjectRestorationData data) => data.writeBoardMode(mode);
-}
-
-class _ShowSentenceBar extends _ProjectRestoreEvent {
-  final bool value;
-
-  _ShowSentenceBar(this.value);
-  @override
-  Future<void> update(ProjectRestorationData data) =>
-      data.writeShowSentenceBar(value);
 }
 
 class _ShowSideBar extends _ProjectRestoreEvent {

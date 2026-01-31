@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:openboard_wrapper/button_data.dart';
 import 'package:openboard_wrapper/color_data.dart';
 import 'package:openboard_wrapper/obf.dart';
-import 'package:parrotaac/backend/result.dart';
 import 'package:parrotaac/backend/selection_data.dart';
 import 'package:parrotaac/backend/simple_logger.dart';
 import 'package:parrotaac/extensions/color_extensions.dart';
@@ -88,27 +87,5 @@ extension GeneralObfExtensions on Obf {
       grid.setButtonData(row: i, col: col, data: data[i]);
     }
     return true;
-  }
-}
-
-extension BulkRemoveExtensions on Obf {
-  void removeRows(Iterable<int> rows) {
-    final descending = rows.toList().descendingOrder;
-    for (int row in descending) {
-      grid.removeRow(row);
-    }
-  }
-
-  void removeCols(Iterable<int> cols) {
-    final descending = cols.toList().descendingOrder;
-    for (int col in descending) {
-      grid.removeCol(col);
-    }
-  }
-
-  void removeButtons(Iterable<RowColPair> pairs) {
-    for (RowColPair pair in pairs) {
-      grid.setButtonData(row: pair.row, col: pair.col, data: null);
-    }
   }
 }

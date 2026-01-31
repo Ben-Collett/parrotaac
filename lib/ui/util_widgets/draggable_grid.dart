@@ -59,14 +59,6 @@ class GridNotifier<K, T extends Widget> extends ChangeNotifier {
     super.dispose();
   }
 
-  void fullUpdate() {
-    _invalidateWidgetCacheAndNotifyListeners();
-  }
-
-  void update() {
-    notifyListeners();
-  }
-
   List<List<K?>> _data;
 
   Widget? _emptySpotWidget;
@@ -186,24 +178,6 @@ class GridNotifier<K, T extends Widget> extends ChangeNotifier {
     _invalidateWidgetCacheAndNotifyListeners();
   }
 
-  void removeRows(Iterable<int> rows) {
-    _data.removeRows(rows);
-    selectionController.removeRows(rows);
-    _invalidateWidgetCacheAndNotifyListeners();
-  }
-
-  void removeCols(Iterable<int> cols) {
-    _data.removeCols(cols);
-    selectionController.removeCols(cols);
-    _invalidateWidgetCacheAndNotifyListeners();
-  }
-
-  void bulkRemoveData(Iterable<RowColPair> pairs) {
-    _data.bulkUpdate(positions: pairs, val: null);
-    selectionController.bulkDeselect(pairs);
-    _invalidateWidgetCacheAndNotifyListeners();
-  }
-
   void removeAt(int row, int col) {
     _data[row][col] = null;
     selectionController.deselectWidget(RowColPair(row, col));
@@ -265,16 +239,6 @@ class GridNotifier<K, T extends Widget> extends ChangeNotifier {
     _data = data;
     _invalidateWidgetCacheAndNotifyListeners();
     cleanUp?.call(originalData);
-  }
-
-  void makeChildrenDraggable() {
-    draggable = true;
-    notifyListeners();
-  }
-
-  void makeChildrenUndraggable() {
-    draggable = false;
-    notifyListeners();
   }
 }
 

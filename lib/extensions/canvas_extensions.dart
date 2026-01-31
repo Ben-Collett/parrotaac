@@ -74,27 +74,6 @@ extension CanvasExtension on Canvas {
     drawLine(p1, p2, paint);
   }
 
-  void paintDashedPath({
-    required PathMetrics metrics,
-    required Paint paint,
-    double dashLength = 10.0,
-    double gapLength = 5.0,
-  }) {
-    for (final PathMetric metric in metrics) {
-      double distance = 0.0;
-      while (distance < metric.length) {
-        final double nextDashEnd = distance + dashLength;
-        final bool isDashEndWithinPath = nextDashEnd < metric.length;
-        final Path extractPath = metric.extractPath(
-          distance,
-          isDashEndWithinPath ? nextDashEnd : metric.length,
-        );
-        drawPath(extractPath, paint);
-        distance += dashLength + gapLength;
-      }
-    }
-  }
-
   void paintVerticalLine({
     required double centerX,
     required double centerY,

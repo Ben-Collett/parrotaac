@@ -65,10 +65,6 @@ class SelectionDataController extends ChangeNotifier
     updateData((data) => data.selectRow(row));
   }
 
-  void deslectRow(int row) {
-    updateData((data) => data.deselectRow(row));
-  }
-
   @override
   void removeRow(int row) {
     updateData((data) => data.removeRow(row));
@@ -523,7 +519,7 @@ class RowColPair with JsonEncodable {
       conditional ? withIncrementedRow : this;
 
   RowColPair incrementColIf(bool conditional) =>
-      conditional ? withDecrementedCol : this;
+      conditional ? withIncrementedCol : this;
   RowColPair get withDecrementedRow => RowColPair(row - 1, col);
   RowColPair get withDecrementedCol => RowColPair(row, col - 1);
 

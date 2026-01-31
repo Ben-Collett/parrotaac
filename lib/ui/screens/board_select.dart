@@ -68,13 +68,6 @@ class _BoardSelectScreenState extends State<BoardSelectScreen> {
     _currentObf = obf;
   }
 
-  void goToRootBoard() {
-    Obf? root = widget.project.root;
-    if (root != null) {
-      _changeObf(root);
-    }
-  }
-
   @override
   void dispose() {
     _boardHistory.dispose();

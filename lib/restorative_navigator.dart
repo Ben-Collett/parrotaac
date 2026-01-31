@@ -146,12 +146,6 @@ class RestorativeNavigator {
     if (context.mounted) return goToTopScreen(context);
   }
 
-  Future<dynamic> goToProjectSelector(BuildContext context) {
-    _quickStore.pushAndWrite({_nameKey: ScreenName.projectSelector.name});
-    screens.add(ProjectSelector());
-    return goToTopScreen(context);
-  }
-
   Future<void> pop(BuildContext context) async {
     await _quickStore.removeTop();
     if (screens.isNotEmpty) {

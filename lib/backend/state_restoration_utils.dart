@@ -25,7 +25,6 @@ class ProjectRestorationData {
   static const _currentButtonBoardActionLinkKey = "board_link";
   static const _boardModeKey = "board_mode";
   static const _quickStoreName = "restore_data";
-  static const _showSentenceBar = "show_sentence_bar";
   static const _showSideBar = "show_side_bar";
 
   ProjectRestorationData._(this.quickStore);
@@ -43,10 +42,6 @@ class ProjectRestorationData {
   Future<void> writeNewBoardHistory(List<String> boardIds) {
     return quickStore.writeData(_boardHistoryKey, boardIds);
   }
-
-  Future<void> writeShowSentenceBar(bool value) =>
-      quickStore.writeData(_showSentenceBar, value);
-  bool get showSentenceBar => quickStore[_showSentenceBar] ?? true;
 
   Future<void> writeShowSideBar(bool value) =>
       quickStore.writeData(_showSideBar, value);

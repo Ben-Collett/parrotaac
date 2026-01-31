@@ -61,7 +61,6 @@ class _OpenSymbolSearchPopupState extends State<_OpenSymbolSearchPopup> {
 
   late final TextEditingController _textController;
 
-  String get text => _searchNotifier.value;
   @override
   void initState() {
     OpenSymbolResult? result;

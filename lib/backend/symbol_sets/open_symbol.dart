@@ -124,9 +124,6 @@ class OpenSymbolResult extends SymbolResult {
         .then((val) => val.isSuccessfulResponse ? url : null);
   }
 
-  //if we ever need to go commercial
-  bool get supportCommercialUse => !_license.contains("NC");
-
   OpenSymbolResult.fromJson(this.json)
     : originalImageUrl = json["image_url"],
       supportsTones = json.safeGet<bool>("skins", defaultValue: false);
