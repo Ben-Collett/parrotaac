@@ -7,6 +7,7 @@
 7) attribution screen for dependencies to settings
 8) hide toolbar
 9) way more testing
+10) license, TOS, privacy agreement, etc.
 __________________________________________________________
 after realse
 pass words to other window so parrottaac can act as a keyboar

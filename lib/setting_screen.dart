@@ -55,7 +55,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
       ]),
       SettingsOptionsCategory("About", [
         _SubtitleOption("Version", "1.0.0"),
-        _NavigatableOption("License"),
+        _LicenseOption(),
       ]),
     ];
 
@@ -78,7 +78,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
 
     return Scaffold(
       appBar: SettingsThemedAppbar(title: Text("Settings")),
-      body: isWideScreen ? _splitView() : _expandableTilesView(),
+      body: isWideScreen ? _splitView() : _categoryListView(),
     );
   }
 
@@ -98,7 +98,12 @@ class _SettingsScreenState extends State<SettingsScreen> {
           ),
         ),
         const VerticalDivider(width: 1),
-        Flexible(flex: 5, child: selectedCategory.content),
+        Flexible(
+          flex: 5,
+          child: SettingsDetailNavigator(
+            initialContent: selectedCategory.content,
+          ),
+        ),
       ],
     );
   }
@@ -110,31 +115,153 @@ class _SettingsScreenState extends State<SettingsScreen> {
     setState(() {});
   }
 
-  Widget _expandableTilesView() {
+  Widget _categoryListView() {
     return ListView(
       children: categories.map((category) {
-        return ExpansionTile(
+        return ListTile(
           title: Text(category.label),
-          onExpansionChanged: (expanded) async {
-            List<String> selectedCategories =
-                globalRestorationQuickstore[selectedCategoriesKey] ?? [];
-
-            if (expanded) {
-              selectedCategories.add(category.label);
-            } else {
-              selectedCategories.remove(category.label);
+          trailing: Icon(Icons.arrow_forward_ios, size: 16),
+          onTap: () async {
+            await setCategory(category);
+            if (mounted) {
+              Navigator.of(context).push(
+                MaterialPageRoute(
+                  builder: (context) =>
+                      CategoryDetailScreen(category: category),
+                ),
+              );
             }
-
-            await globalRestorationQuickstore.writeData(
-              selectedCategoriesKey,
-              selectedCategories,
-            );
           },
-          initiallyExpanded: globalRestorationQuickstore[selectedCategoriesKey]
-              ?.contains(category.label),
-          children: [category.content],
         );
       }).toList(),
+    );
+  }
+}
+
+class SettingsDetailNavigator extends StatefulWidget {
+  final Widget initialContent;
+
+  const SettingsDetailNavigator({super.key, required this.initialContent});
+
+  @override
+  State<SettingsDetailNavigator> createState() =>
+      _SettingsDetailNavigatorState();
+}
+
+class _SettingsDetailNavigatorState extends State<SettingsDetailNavigator> {
+  final List<Widget> _navigationStack = [];
+
+  void push(Widget page) {
+    setState(() {
+      _navigationStack.add(page);
+    });
+  }
+
+  void pop() {
+    if (_navigationStack.isNotEmpty) {
+      setState(() {
+        _navigationStack.removeLast();
+      });
+    }
+  }
+
+  bool get canPop => _navigationStack.isNotEmpty;
+
+  Widget get currentPage {
+    if (_navigationStack.isNotEmpty) {
+      return _navigationStack.last;
+    }
+    return widget.initialContent;
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return SettingsDetailNavigation(
+      push: push,
+      pop: pop,
+      canPop: canPop,
+      child: AnimatedSwitcher(
+        duration: Duration(milliseconds: 200),
+        child: _SettingsDetailWrapper(
+          key: ValueKey(_navigationStack.length),
+          canPop: canPop,
+          onBack: pop,
+          child: currentPage,
+        ),
+      ),
+    );
+  }
+}
+
+class SettingsDetailNavigation extends InheritedWidget {
+  final void Function(Widget) push;
+  final VoidCallback pop;
+  final bool canPop;
+
+  const SettingsDetailNavigation({
+    super.key,
+    required this.push,
+    required this.pop,
+    required this.canPop,
+    required super.child,
+  });
+
+  static SettingsDetailNavigation? of(BuildContext context) {
+    return context
+        .dependOnInheritedWidgetOfExactType<SettingsDetailNavigation>();
+  }
+
+  @override
+  bool updateShouldNotify(SettingsDetailNavigation oldWidget) {
+    return canPop != oldWidget.canPop;
+  }
+}
+
+class _SettingsDetailWrapper extends StatelessWidget {
+  final bool canPop;
+  final VoidCallback onBack;
+  final Widget child;
+
+  const _SettingsDetailWrapper({
+    super.key,
+    required this.canPop,
+    required this.onBack,
+    required this.child,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      children: [
+        if (canPop)
+          Container(
+            height: 56,
+            alignment: Alignment.centerLeft,
+            padding: EdgeInsets.symmetric(horizontal: 8),
+            child: IconButton(icon: Icon(Icons.arrow_back), onPressed: onBack),
+          ),
+        Expanded(child: child),
+      ],
+    );
+  }
+}
+
+class CategoryDetailScreen extends StatelessWidget {
+  final _Category category;
+
+  const CategoryDetailScreen({super.key, required this.category});
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      appBar: SettingsThemedAppbar(
+        title: Text(category.label),
+        leading: IconButton(
+          icon: Icon(Icons.arrow_back),
+          onPressed: () => Navigator.of(context).pop(),
+        ),
+      ),
+      body: category.content,
     );
   }
 }
@@ -276,11 +403,71 @@ class _DropdownOption extends _SettingsOption {
 class _NavigatableOption extends _SettingsOption {
   @override
   final String label;
+  final Widget Function() destinationBuilder;
 
-  _NavigatableOption(this.label);
+  _NavigatableOption(this.label, this.destinationBuilder);
+
   @override
-  Widget get asWidget =>
-      ListTile(title: Text(label), trailing: Icon(Icons.arrow_forward_ios));
+  Widget get asWidget {
+    return Builder(
+      builder: (context) {
+        return ListTile(
+          title: Text(label),
+          trailing: Icon(Icons.arrow_forward_ios),
+          onTap: () {
+            final detailNav = SettingsDetailNavigation.of(context);
+            if (detailNav != null) {
+              detailNav.push(destinationBuilder());
+            } else {
+              Navigator.of(
+                context,
+              ).push(MaterialPageRoute(builder: (_) => destinationBuilder()));
+            }
+          },
+        );
+      },
+    );
+  }
+}
+
+class _LicenseOption extends _SettingsOption {
+  @override
+  final String label = "License";
+
+  @override
+  Widget get asWidget {
+    return Builder(
+      builder: (context) {
+        return ListTile(
+          title: Text(label),
+          trailing: Icon(Icons.arrow_forward_ios),
+          onTap: () {
+            final appbarColor = getAppbarColor();
+            Navigator.of(context).push(
+              MaterialPageRoute(
+                builder: (context) => Theme(
+                  data: Theme.of(context).copyWith(
+                    appBarTheme: AppBarTheme(
+                      backgroundColor: appbarColor,
+                      foregroundColor:
+                          ThemeData.estimateBrightnessForColor(appbarColor) ==
+                              Brightness.dark
+                          ? Colors.white
+                          : Colors.black,
+                    ),
+                  ),
+                  child: const LicensePage(
+                    applicationName: "Parrot AAC",
+                    applicationVersion: "1.0.0",
+                  ),
+                ),
+              ),
+            );
+          },
+        );
+      },
+    );
+  }
 }
 
 class _SubtitleOption extends _SettingsOption {
