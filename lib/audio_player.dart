@@ -1,4 +1,3 @@
-import 'dart:convert';
 import 'dart:io';
 
 import 'package:audioplayers/audioplayers.dart';
@@ -27,6 +26,10 @@ class PreemptiveAudioPlayer {
   int _stopCount = 0;
   //note: similar  functionality to the lines above could be achieved using a time stamp but there is no real advantage to that
   final Lock _stopCountLock = Lock();
+
+  Future<void> initialize() {
+    return _tts.initialize();
+  }
 
   static Future<Duration> getDuration(AudioSource source) async {
     final Source? audioSource = _getSource(source);
@@ -58,7 +61,7 @@ class PreemptiveAudioPlayer {
         break;
       }
       await _play(source);
-      await playingCompleted();
+      await audioPlayerPlayingCompleted();
     }
   }
 
@@ -92,13 +95,7 @@ class PreemptiveAudioPlayer {
     return null;
   }
 
-  void playFromRawData(String raw) async {
-    await stop();
-    _audioPlayer.play(BytesSource(Utf8Encoder().convert(raw)));
-  }
-
-  Future<void> playingCompleted() async {
-    await _tts.awaitFinishTTS();
+  Future<void> audioPlayerPlayingCompleted() async {
     Duration? totalDuration = await _audioPlayer.getDuration();
     Duration? currentPosition = await _audioPlayer.getCurrentPosition();
 
@@ -120,11 +117,22 @@ class PreemptiveAudioPlayer {
 class _LinuxSupportingTts {
   final FlutterTts _tts = FlutterTts();
   Process? linuxTtsProcess;
+  bool initialized = false;
+  Future<void> initialize() async {
+    if (!Platform.isLinux) {
+      await _tts.awaitSpeakCompletion(true);
+    }
+    initialized = true;
+  }
+
+  ///returns a future when the tts speaking finishes
   Future<void> speak(String toSpeak) async {
+    assert(initialized, "non initialized speak call");
     if (Platform.isLinux) {
       linuxTtsProcess = await Process.start("speak", [toSpeak]);
+      await linuxTtsProcess?.exitCode;
     } else {
-      _tts.speak(toSpeak);
+      await _tts.speak(toSpeak);
     }
   }
 
@@ -145,14 +153,6 @@ class _LinuxSupportingTts {
       linuxTtsProcess?.kill();
     } else {
       await _tts.stop();
-    }
-  }
-
-  Future<void> awaitFinishTTS() async {
-    if (Platform.isLinux) {
-      await linuxTtsProcess?.exitCode;
-    } else {
-      await _tts.awaitSpeakCompletion(true);
     }
   }
 }

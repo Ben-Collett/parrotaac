@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:parrotaac/audio_player.dart';
 import 'package:parrotaac/backend/global_restoration_data.dart';
 import 'package:parrotaac/backend/is_computer.dart';
 import 'package:parrotaac/backend/server/server_utils.dart';
@@ -17,7 +18,12 @@ void main() async {
   //must be called before RestorativeNavigator().initialize()
   await initializeGlobalRestorationData();
 
-  await Future.wait([initializeSettings(), initializeServer(), refreshProject]);
+  await Future.wait([
+    PreemptiveAudioPlayer().initialize(),
+    initializeSettings(),
+    initializeServer(),
+    refreshProject,
+  ]);
 
   await RestorativeNavigator().initialize();
 
