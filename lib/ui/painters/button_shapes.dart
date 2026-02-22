@@ -4,8 +4,8 @@ import 'dart:math';
 import 'package:flutter/material.dart';
 import 'package:parrotaac/backend/value_wrapper.dart';
 import 'package:parrotaac/extensions/color_extensions.dart';
+import 'package:parrotaac/extensions/queue_extensions.dart';
 import 'package:parrotaac/state/my_anmiation_notifier.dart';
-import 'package:parrotaac/ui/util_widgets/draggable_grid.dart';
 
 enum ParrotButtonShape {
   folder("folder"),
@@ -82,8 +82,9 @@ class _ShapedButtonState extends State<ShapedButton>
   }
 
   void _resetColors() {
+    _backgroundColorHistory.clear();
     _borderColorHistory.clear();
-    _borderColorHistory.clear();
+
     _backgroundColor.value = widget.backgroundColor;
     _borderColor.value = widget.borderColor;
 
@@ -91,8 +92,13 @@ class _ShapedButtonState extends State<ShapedButton>
   }
 
   void _restorePreviousColors() {
-    _backgroundColor.value = _backgroundColorHistory.removeLast();
-    _borderColor.value = _borderColorHistory.removeLast();
+    _backgroundColor.value = _backgroundColorHistory.removeLastOrDefaultTo(
+      widget.backgroundColor,
+    );
+
+    _borderColor.value = _borderColorHistory.removeLastOrDefaultTo(
+      widget.borderColor,
+    );
 
     _repaintNotifier.notify();
   }
