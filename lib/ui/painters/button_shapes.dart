@@ -125,8 +125,7 @@ class _ShapedButtonState extends State<ShapedButton>
         } else if (widget.image == null) {
           textHeight = 1;
         } else {
-          //TODO: I really need to dynamically detersize.shortestSidemine this so the sentence bar look better on different size screens
-          textHeight = 0.25;
+          textHeight = 0.4;
         }
         final _ParrotButtonPainter painter;
         if (widget.shape == ParrotButtonShape.square) {

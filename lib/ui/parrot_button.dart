@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:auto_size_text/auto_size_text.dart';
 import 'package:openboard_wrapper/button_data.dart';
 import 'package:openboard_wrapper/color_data.dart';
 import 'package:openboard_wrapper/image_data.dart';
@@ -285,9 +286,8 @@ class StatelessParrotButton extends StatelessWidget {
     String font =
         Theme.of(context).textTheme.bodyMedium?.fontFamily ?? "Roboto";
     if (showLabel && buttonData.label != null) {
-      //for some reason dragging changes the text style/decorations if everything is not explicitly set
       text = Center(
-        child: Text(
+        child: AutoSizeText(
           buttonData.label!,
           style: TextStyle(
             color: Colors.black,
@@ -299,6 +299,9 @@ class StatelessParrotButton extends StatelessWidget {
             wordSpacing: .5,
             letterSpacing: .25,
           ),
+          minFontSize: 8,
+          maxLines: 2,
+          overflow: TextOverflow.ellipsis,
         ),
       );
     }
