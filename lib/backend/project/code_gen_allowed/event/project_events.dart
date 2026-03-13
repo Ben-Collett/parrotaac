@@ -24,24 +24,21 @@ import 'package:parrotaac/ui/event_handler.dart';
 import 'package:parrotaac/ui/parrot_button.dart';
 import 'package:parrotaac/ui/widgets/empty_spot.dart';
 import 'package:path/path.dart' as p;
+import './event_jump_table.pyg.dart';
 part 'project_events.g.dart';
 
 abstract class ProjectEvent {
-  EventType get type;
   String? get returnToBoardId;
 
   ///if returnToBoardId is null this getter must be overridden
   List<String> get boardsToWrite => [returnToBoardId!];
   static ProjectEvent? decode(String jsonString) {
     final json = jsonDecode(jsonString);
-    ProjectEvent? event;
-    EventType? type = EventType.fromString(json["type"]);
+    ProjectEvent? event = decodeEvent(json);
 
-    Map<String, dynamic>? content = deepCastMapToJsonMap(json["content"]);
-    if (type != null && content != null) {
-      return type.create(content);
-    } else {
+    if (event == null) {
       SimpleLogger().logWarning("malformed event: $json");
+      return event;
     }
     return event;
   }
@@ -49,7 +46,7 @@ abstract class ProjectEvent {
   void execute(ProjectEventHandler handler);
 
   Map<String, dynamic> encode() {
-    return {"version": 1, "type": type.asString, "content": toJson()};
+    return encodeEvent(this);
   }
 
   String encodeToJsonString() {
@@ -61,43 +58,14 @@ abstract class ProjectEvent {
   ProjectEvent undoEvent();
 }
 
-enum EventType {
-  addBoard("add_board", AddBoard.fromJson),
-  addColumn("add_col", AddColumn.fromJson),
-  removeCol("remove_col", RemoveColumn.fromJson),
-  removeRow("remove_row", RemoveRow.fromJson),
-  removeBoard("remove_board", RemoveBoard.fromJson),
-  restoreBoard("restore_board", RestoreBoard.fromJson),
-  recoverCol("recover_col", RecoverColumn.fromJson),
-  recoverRow("recover_row", RecoverRow.fromJson),
-  addRow("add_row", AddRow.fromJson),
-  configButton("config_button", ConfigButton.fromJson),
-  renameBoard("rename_board", RenameBoard.fromJson),
-  addButton("add_button", AddButton.fromJson),
-  removeButton("remove_button", RemoveButton.fromJson),
-  bulkRemove("bulk_remove", BulkRemove.fromJson),
-  bulkRecover("bulk_recover", BulkRecover.fromJson),
-  recoverButton("recover_button", RecoverButton.fromJson),
-  changeBoardColor("change_board_color", ChangeBoardColor.fromJson),
-  swapEvent("swap_buttons", SwapEvent.fromJson);
-
-  const EventType(this.asString, this.create);
-
-  final String asString;
-  final Function(Map<String, dynamic>) create;
-
-  static EventType? fromString(String? type) => EventType.values.firstWhere(
-    (e) => e.asString == type,
-    orElse: () => throw ArgumentError('Unknown event type: $type'),
-  );
-}
-
 @JsonSerializable()
 class AddBoard extends ProjectEvent {
   final String id;
   final String name;
   final int rowCount;
   final int colCount;
+  static const tableId = 1;
+
   @override
   String? get returnToBoardId => null;
 
@@ -116,8 +84,6 @@ class AddBoard extends ProjectEvent {
 
   @override
   Map<String, dynamic> toJson() => _$AddBoardToJson(this);
-  @override
-  EventType get type => EventType.addBoard;
 
   @override
   List<String> get boardsToWrite => [id];
@@ -138,6 +104,7 @@ class AddBoard extends ProjectEvent {
 @JsonSerializable()
 class RemoveBoard extends ProjectEvent {
   final String id;
+  static const tableId = 2;
 
   RemoveBoard(this.id);
 
@@ -149,9 +116,6 @@ class RemoveBoard extends ProjectEvent {
 
   @override
   Map<String, dynamic> toJson() => _$RemoveBoardToJson(this);
-
-  @override
-  EventType get type => EventType.removeBoard;
 
   @override
   String? get returnToBoardId => null;
@@ -173,6 +137,7 @@ class RemoveBoard extends ProjectEvent {
 @JsonSerializable()
 class RestoreBoard extends ProjectEvent {
   final String id;
+  static const tableId = 3;
   @override
   String? get returnToBoardId => null;
   RestoreBoard(this.id);
@@ -186,9 +151,6 @@ class RestoreBoard extends ProjectEvent {
   Map<String, dynamic> toJson() => _$RestoreBoardToJson(this);
 
   @override
-  EventType get type => EventType.restoreBoard;
-
-  @override
   List<String> get boardsToWrite => [id];
 
   @override
@@ -199,6 +161,7 @@ class RestoreBoard extends ProjectEvent {
 
 @JsonSerializable()
 class ConfigButton extends ProjectEvent {
+  static const tableId = 4;
   final String boardId;
   final String buttonId;
   final Map<String, dynamic> undoChanges;
@@ -283,9 +246,6 @@ class ConfigButton extends ProjectEvent {
   }
 
   @override
-  EventType get type => EventType.configButton;
-
-  @override
   void execute(ProjectEventHandler handler) {
     updatePatch(handler);
 
@@ -317,6 +277,7 @@ class ConfigButton extends ProjectEvent {
 @JsonSerializable()
 class AddColumn extends ProjectEvent {
   final String id;
+  static const tableId = 5;
   @override
   String? get returnToBoardId => id;
 
@@ -329,8 +290,6 @@ class AddColumn extends ProjectEvent {
 
   @override
   Map<String, dynamic> toJson() => _$AddColumnToJson(this);
-  @override
-  EventType get type => EventType.addColumn;
 
   @override
   void execute(ProjectEventHandler handler) {
@@ -347,6 +306,7 @@ class AddColumn extends ProjectEvent {
 
 @JsonSerializable()
 class RenameBoard extends ProjectEvent {
+  static const tableId = 6;
   final String id;
   final String name;
   final String prevName;
@@ -366,9 +326,6 @@ class RenameBoard extends ProjectEvent {
   Map<String, dynamic> toJson() => _$RenameBoardToJson(this);
 
   @override
-  EventType get type => EventType.renameBoard;
-
-  @override
   void execute(ProjectEventHandler handler) {
     Obf board = handler.project.findBoardById(id) ?? handler.currentBoard;
     board.name = name;
@@ -380,6 +337,7 @@ class RenameBoard extends ProjectEvent {
 
 @JsonSerializable()
 class RemoveColumn extends ProjectEvent {
+  static const tableId = 7;
   final String id;
   final int? col;
 
@@ -397,9 +355,6 @@ class RemoveColumn extends ProjectEvent {
 
   @override
   Map<String, dynamic> toJson() => _$RemoveColumnToJson(this);
-
-  @override
-  EventType get type => EventType.removeCol;
 
   @override
   void execute(ProjectEventHandler handler) {
@@ -421,6 +376,7 @@ class RemoveColumn extends ProjectEvent {
 
 @JsonSerializable()
 class RecoverColumn extends ProjectEvent {
+  static const tableId = 8;
   final String id;
   final int? col;
 
@@ -440,9 +396,6 @@ class RecoverColumn extends ProjectEvent {
   Map<String, dynamic> toJson() => _$RecoverColumnToJson(this);
 
   @override
-  EventType get type => EventType.recoverCol;
-
-  @override
   void execute(ProjectEventHandler handler) {
     handler.recoverCol(col);
   }
@@ -450,6 +403,7 @@ class RecoverColumn extends ProjectEvent {
 
 @JsonSerializable()
 class AddRow extends ProjectEvent {
+  static const tableId = 9;
   final String id;
   @override
   String? get returnToBoardId => id;
@@ -462,9 +416,6 @@ class AddRow extends ProjectEvent {
 
   @override
   ProjectEvent undoEvent() => RemoveRow(id: id);
-
-  @override
-  EventType get type => EventType.addRow;
 
   @override
   void execute(ProjectEventHandler handler) {
@@ -481,6 +432,7 @@ class AddRow extends ProjectEvent {
 
 @JsonSerializable()
 class AddButton extends ProjectEvent {
+  static const tableId = 10;
   final String boardId;
   final int row;
   final int col;
@@ -505,9 +457,6 @@ class AddButton extends ProjectEvent {
   @override
   ProjectEvent undoEvent() =>
       RemoveButton(boardId: boardId, row: row, col: col);
-
-  @override
-  EventType get type => EventType.addButton;
 
   @override
   void execute(ProjectEventHandler handler) {
@@ -550,6 +499,7 @@ class AddButton extends ProjectEvent {
 
 @JsonSerializable()
 class RemoveButton extends ProjectEvent {
+  static const tableId = 11;
   final String boardId;
   final int row;
   final int col;
@@ -565,9 +515,6 @@ class RemoveButton extends ProjectEvent {
   @override
   ProjectEvent undoEvent() =>
       RecoverButton(row: row, col: col, boardId: boardId);
-
-  @override
-  EventType get type => EventType.removeButton;
 
   @override
   void execute(ProjectEventHandler handler) {
@@ -600,6 +547,7 @@ class RemoveButton extends ProjectEvent {
 
 @JsonSerializable()
 class RecoverButton extends ProjectEvent {
+  static const tableId = 12;
   final int row;
   final int col;
   final String boardId;
@@ -619,9 +567,6 @@ class RecoverButton extends ProjectEvent {
   }
 
   @override
-  EventType get type => EventType.recoverButton;
-
-  @override
   void execute(ProjectEventHandler handler) {
     handler.recoverButton(row, col);
   }
@@ -629,6 +574,7 @@ class RecoverButton extends ProjectEvent {
 
 @JsonSerializable()
 class RemoveRow extends ProjectEvent {
+  static const tableId = 13;
   final String id;
   final int? row;
   @override
@@ -643,8 +589,6 @@ class RemoveRow extends ProjectEvent {
 
   @override
   Map<String, dynamic> toJson() => _$RemoveRowToJson(this);
-  @override
-  EventType get type => EventType.removeRow;
 
   @override
   void execute(ProjectEventHandler handler) {
@@ -665,6 +609,7 @@ class RemoveRow extends ProjectEvent {
 
 @JsonSerializable()
 class RecoverRow extends ProjectEvent {
+  static const tableId = 14;
   final String id;
   final int? row;
   @override
@@ -679,9 +624,6 @@ class RecoverRow extends ProjectEvent {
   ProjectEvent undoEvent() => RemoveRow(id: id, row: row);
 
   @override
-  EventType get type => EventType.recoverRow;
-
-  @override
   void execute(ProjectEventHandler handler) {
     handler.recoverRow(row);
   }
@@ -689,6 +631,7 @@ class RecoverRow extends ProjectEvent {
 
 @JsonSerializable()
 class SwapEvent extends ProjectEvent {
+  static const tableId = 15;
   final SwapData swapData;
 
   @override
@@ -708,9 +651,6 @@ class SwapEvent extends ProjectEvent {
 
   @override
   List<String> get boardsToWrite => {swapData.s1.id, swapData.s2.id}.toList();
-
-  @override
-  EventType get type => EventType.swapEvent;
 
   @override
   void execute(ProjectEventHandler handler) {
@@ -760,6 +700,7 @@ class SwapEvent extends ProjectEvent {
 
 @JsonSerializable()
 class BulkRemove extends ProjectEvent {
+  static const tableId = 16;
   final Map<String, Set<int>> rowsToRemove;
   final Map<String, Set<int>> colsToRemove;
 
@@ -894,9 +835,6 @@ class BulkRemove extends ProjectEvent {
   ]).toList();
 
   @override
-  EventType get type => EventType.bulkRemove;
-
-  @override
   ProjectEvent undoEvent() => BulkRecover(
     rowsToRecover: rowsToRemove,
     colsToRecover: colsToRemove,
@@ -906,6 +844,7 @@ class BulkRemove extends ProjectEvent {
 
 @JsonSerializable()
 class BulkRecover extends ProjectEvent {
+  static const tableId = 17;
   final Map<String, Set<int>> rowsToRecover;
   final Map<String, Set<int>> colsToRecover;
 
@@ -964,9 +903,6 @@ class BulkRecover extends ProjectEvent {
       _$BulkRecoverFromJson(json);
 
   @override
-  EventType get type => EventType.bulkRecover;
-
-  @override
   ProjectEvent undoEvent() => BulkRemove(
     rowsToRemove: rowsToRecover,
     colsToRemove: colsToRecover,
@@ -976,6 +912,7 @@ class BulkRecover extends ProjectEvent {
 
 @JsonSerializable()
 class ChangeBoardColor extends ProjectEvent {
+  static const tableId = 18;
   final String boardId;
   final String originalColor;
   final String newColor;
@@ -992,9 +929,6 @@ class ChangeBoardColor extends ProjectEvent {
 
   factory ChangeBoardColor.fromJson(Map<String, dynamic> json) =>
       _$ChangeBoardColorFromJson(json);
-
-  @override
-  EventType get type => EventType.changeBoardColor;
 
   @override
   ProjectEvent undoEvent() => ChangeBoardColor(

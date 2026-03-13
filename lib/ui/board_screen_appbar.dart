@@ -6,6 +6,7 @@ import 'package:parrotaac/backend/settings_utils.dart';
 import 'package:parrotaac/restorative_navigator.dart';
 import 'package:parrotaac/ui/appbar_widgets/compute_contrasting_color.dart';
 import 'package:parrotaac/ui/event_handler.dart';
+import 'package:parrotaac/ui/settings/defaults.dart';
 import 'package:parrotaac/ui/settings/labels.dart';
 import 'package:parrotaac/ui/util_widgets/coditional_text_button.dart';
 import 'package:parrotaac/ui/util_widgets/color_popup_button.dart';
@@ -223,7 +224,9 @@ class _DeselectAllButton extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final color = computeContrastingColor(Color(getSetting(appBarColorLabel)));
+    final color = computeContrastingColor(
+      Color(getSettingOr<int>(appBarColorLabel, defaultAppbarColor)),
+    );
     return ConditionallyEnabledTextButton(
       listenable: history,
       condition: () => history.isNotEmpty,
@@ -257,7 +260,9 @@ class _DeleteSelectedButton extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final color = computeContrastingColor(Color(getSetting(appBarColorLabel)));
+    final color = computeContrastingColor(
+      Color(getSettingOr<int>(appBarColorLabel, defaultAppbarColor)),
+    );
     return ConditionallyEnabledTextButton(
       listenable: Listenable.merge([history, handler.gridNotfier]),
       onPressed: handler.removeSelected,
@@ -310,7 +315,9 @@ class _HistoryListeningButtonState extends State<_HistoryListeningButton> {
 
   @override
   Widget build(BuildContext context) {
-    final color = computeContrastingColor(Color(getSetting(appBarColorLabel)));
+    final color = computeContrastingColor(
+      Color(getSettingOr<int>(appBarColorLabel, defaultAppbarColor)),
+    );
     return ValueListenableBuilder(
       valueListenable: notifier,
       builder: (context, enabled, child) {
