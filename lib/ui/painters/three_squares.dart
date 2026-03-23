@@ -74,6 +74,8 @@ abstract class BaseMultiSquarePainter extends CustomPainter {
   final CircleType circleType;
   final Color foregroundColor;
   final int squareCount;
+  static const double strokeWidth = 2.0;
+  static const double strokeInset = strokeWidth / 2;
 
   const BaseMultiSquarePainter({
     super.repaint,
@@ -90,10 +92,11 @@ abstract class BaseMultiSquarePainter extends CustomPainter {
   void drawOuterline(Canvas canvas, Offset a, Offset b, Paint paint);
 
   void drawOutline(Canvas canvas, Size size, Paint paint) {
-    final left = orientation.leftPreportion * size.width;
-    final top = orientation.topPreportion * size.height;
-    final width = orientation.widthPreporiton * size.width;
-    final height = orientation.heightPreportion * size.height;
+    final left = (orientation.leftPreportion * size.width) + strokeInset;
+    final top = (orientation.topPreportion * size.height) + strokeInset;
+    final width = (orientation.widthPreporiton * size.width) - strokeInset * 2;
+    final height =
+        (orientation.heightPreportion * size.height) - strokeInset * 2;
 
     drawOuterline(canvas, Offset(left, top), Offset(left + width, top), paint);
     drawOuterline(
@@ -117,14 +120,15 @@ abstract class BaseMultiSquarePainter extends CustomPainter {
   void paint(Canvas canvas, Size size) {
     final paint = Paint()
       ..style = PaintingStyle.stroke
-      ..strokeWidth = 2
+      ..strokeWidth = strokeWidth
       ..color = foregroundColor;
 
-    // Core rectangle geometry
-    final left = orientation.leftPreportion * size.width;
-    final top = orientation.topPreportion * size.height;
-    final width = orientation.widthPreporiton * size.width;
-    final height = orientation.heightPreportion * size.height;
+    // Core rectangle geometry (inset by strokeInset to keep stroke within bounds)
+    final left = (orientation.leftPreportion * size.width) + strokeInset;
+    final top = (orientation.topPreportion * size.height) + strokeInset;
+    final width = (orientation.widthPreporiton * size.width) - strokeInset * 2;
+    final height =
+        (orientation.heightPreportion * size.height) - strokeInset * 2;
 
     // Circle geometry
     final circleCenterX = left + width;
@@ -333,11 +337,19 @@ class DashedMultiSquarePainter extends BaseMultiSquarePainter {
 
   @override
   void drawOutline(Canvas canvas, Size size, Paint paint) {
-    final double left = orientation.leftPreportion * size.width;
-    final double top = orientation.topPreportion * size.height;
+    final double left =
+        (orientation.leftPreportion * size.width) +
+        BaseMultiSquarePainter.strokeInset;
+    final double top =
+        (orientation.topPreportion * size.height) +
+        BaseMultiSquarePainter.strokeInset;
 
-    final double W = orientation.widthPreporiton * size.width;
-    final double H = orientation.heightPreportion * size.height;
+    final double W =
+        (orientation.widthPreporiton * size.width) -
+        BaseMultiSquarePainter.strokeInset * 2;
+    final double H =
+        (orientation.heightPreportion * size.height) -
+        BaseMultiSquarePainter.strokeInset * 2;
 
     // Rectangle origin
     final Rect rect = Rect.fromLTWH(left, top, W, H);
