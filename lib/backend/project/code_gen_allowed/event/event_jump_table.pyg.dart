@@ -1,26 +1,25 @@
 // GENERATED CODE - DO NOT MODIFY BY HAND
-
 import 'package:parrotaac/backend/project/code_gen_allowed/event/project_events.dart';
 
 final Map<Type, int> _mapEvent = {
-  AddBoard: 1,
-  RemoveBoard: 2,
-  RestoreBoard: 3,
-  ConfigButton: 4,
-  AddColumn: 5,
-  RenameBoard: 6,
-  RemoveColumn: 7,
-  RecoverColumn: 8,
-  AddRow: 9,
-  AddButton: 10,
-  RemoveButton: 11,
-  RecoverButton: 12,
-  RemoveRow: 13,
-  RecoverRow: 14,
-  SwapEvent: 15,
-  BulkRemove: 16,
-  BulkRecover: 17,
-  ChangeBoardColor: 18,
+  AddBoard: AddBoard.tableId,
+  RemoveBoard: RemoveBoard.tableId,
+  RestoreBoard: RestoreBoard.tableId,
+  ConfigButton: ConfigButton.tableId,
+  AddColumn: AddColumn.tableId,
+  RenameBoard: RenameBoard.tableId,
+  RemoveColumn: RemoveColumn.tableId,
+  RecoverColumn: RecoverColumn.tableId,
+  AddRow: AddRow.tableId,
+  AddButton: AddButton.tableId,
+  RemoveButton: RemoveButton.tableId,
+  RecoverButton: RecoverButton.tableId,
+  RemoveRow: RemoveRow.tableId,
+  RecoverRow: RecoverRow.tableId,
+  SwapEvent: SwapEvent.tableId,
+  BulkRemove: BulkRemove.tableId,
+  BulkRecover: BulkRecover.tableId,
+  ChangeBoardColor: ChangeBoardColor.tableId,
 };
 
 Map<String, dynamic> encodeEvent(ProjectEvent event) {
@@ -37,41 +36,41 @@ dynamic decodeEvent(Map<String, dynamic> data) {
   data = data["c"];
 
   switch (id) {
-    case 1:
+    case AddBoard.tableId:
       return AddBoard.fromJson(data);
-    case 2:
+    case RemoveBoard.tableId:
       return RemoveBoard.fromJson(data);
-    case 3:
+    case RestoreBoard.tableId:
       return RestoreBoard.fromJson(data);
-    case 4:
+    case ConfigButton.tableId:
       return ConfigButton.fromJson(data);
-    case 5:
+    case AddColumn.tableId:
       return AddColumn.fromJson(data);
-    case 6:
+    case RenameBoard.tableId:
       return RenameBoard.fromJson(data);
-    case 7:
+    case RemoveColumn.tableId:
       return RemoveColumn.fromJson(data);
-    case 8:
+    case RecoverColumn.tableId:
       return RecoverColumn.fromJson(data);
-    case 9:
+    case AddRow.tableId:
       return AddRow.fromJson(data);
-    case 10:
+    case AddButton.tableId:
       return AddButton.fromJson(data);
-    case 11:
+    case RemoveButton.tableId:
       return RemoveButton.fromJson(data);
-    case 12:
+    case RecoverButton.tableId:
       return RecoverButton.fromJson(data);
-    case 13:
+    case RemoveRow.tableId:
       return RemoveRow.fromJson(data);
-    case 14:
+    case RecoverRow.tableId:
       return RecoverRow.fromJson(data);
-    case 15:
+    case SwapEvent.tableId:
       return SwapEvent.fromJson(data);
-    case 16:
+    case BulkRemove.tableId:
       return BulkRemove.fromJson(data);
-    case 17:
+    case BulkRecover.tableId:
       return BulkRecover.fromJson(data);
-    case 18:
+    case ChangeBoardColor.tableId:
       return ChangeBoardColor.fromJson(data);
     default:
       return null;
