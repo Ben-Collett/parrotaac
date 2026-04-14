@@ -169,7 +169,7 @@ class _BoardScreenState extends State<BoardScreen> {
 
     eventHandler = ProjectEventHandler(
       project: widget.project,
-      gridNotfier: _gridNotifier,
+      gridNotifier: _gridNotifier,
       boxController: _sentenceController,
       canUndo: canUndo,
       canRedo: canRedo,

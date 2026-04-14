@@ -265,7 +265,7 @@ class ConfigButton extends ProjectEvent {
     button?.image = image;
     button?.sound = sound;
     if (board == handler.currentBoard && handler.autoUpdateUi) {
-      handler.gridNotfier.forEach((obj) {
+      handler.gridNotifier.forEach((obj) {
         if (obj is ParrotButtonNotifier && obj.data.id == button?.id) {
           obj.update();
         }
@@ -296,7 +296,7 @@ class AddColumn extends ProjectEvent {
     Obf board = handler.project.findBoardById(id) ?? handler.currentBoard;
     if (board == handler.currentBoard) {
       if (handler.autoUpdateUi) {
-        handler.gridNotfier.addColumn();
+        handler.gridNotifier.addColumn();
         handler.updateOnPressed();
       }
     }
@@ -366,7 +366,7 @@ class RemoveColumn extends ProjectEvent {
 
     if (board == handler.currentBoard) {
       if (handler.autoUpdateUi) {
-        handler.gridNotfier.removeCol(column);
+        handler.gridNotifier.removeCol(column);
         handler.updateOnPressed();
       }
     }
@@ -422,7 +422,7 @@ class AddRow extends ProjectEvent {
     Obf board = handler.fromIdOrCurrent(id);
     if (board == handler.currentBoard) {
       if (handler.autoUpdateUi) {
-        handler.gridNotfier.addRow();
+        handler.gridNotifier.addRow();
       }
     }
 
@@ -487,7 +487,7 @@ class AddButton extends ProjectEvent {
 
     if (board == handler.currentBoard) {
       if (handler.autoUpdateUi) {
-        handler.gridNotfier.setWidget(
+        handler.gridNotifier.setWidget(
           row: row,
           col: col,
           data: handler.makeButtonNotifier(button, row, col),
@@ -539,7 +539,7 @@ class RemoveButton extends ProjectEvent {
       handler.history.addToRemovedButtons(buttonData);
     }
     if (board == handler.currentBoard && handler.autoUpdateUi) {
-      handler.gridNotfier.removeAt(row, col);
+      handler.gridNotifier.removeAt(row, col);
     }
     board.grid.setButtonData(row: row, col: col, data: null);
   }
@@ -599,7 +599,7 @@ class RemoveRow extends ProjectEvent {
     handler.history.addRemovedRowOrCol(removedRow);
     if (board == handler.currentBoard) {
       if (handler.autoUpdateUi) {
-        handler.gridNotfier.removeRow(toRemove);
+        handler.gridNotifier.removeRow(toRemove);
         handler.updateOnPressed();
       }
     }
@@ -668,7 +668,7 @@ class SwapEvent extends ProjectEvent {
     final SelectionDataInterface sel1;
     final SelectionDataInterface sel2;
     if (s1.id == currentBoardId) {
-      sel1 = handler.gridNotfier.selectionController;
+      sel1 = handler.gridNotifier.selectionController;
     } else {
       sel1 =
           handler.selectionHistory.findSelectionFromId(s1.id)?.copy() ??
@@ -676,7 +676,7 @@ class SwapEvent extends ProjectEvent {
     }
 
     if (s2.id == currentBoardId) {
-      sel2 = handler.gridNotfier.selectionController;
+      sel2 = handler.gridNotifier.selectionController;
     } else {
       sel2 =
           handler.selectionHistory.findSelectionFromId(s2.id)?.copy() ??
@@ -942,11 +942,11 @@ class ChangeBoardColor extends ProjectEvent {
     Obf board = handler.fromIdOrCurrent(boardId);
     board.boardColor = ColorData.fromString(newColor);
     if (handler.autoUpdateUi) {
-      handler.gridNotfier.backgroundColorNotifier.value = board.boardColor
+      handler.gridNotifier.backgroundColorNotifier.value = board.boardColor
           .toColor();
-      handler.gridNotfier.emptySpotWidget = EmptySpotWidget(
+      handler.gridNotifier.emptySpotWidget = EmptySpotWidget(
         color: EmptySpotWidget.fromBackground(
-          handler.gridNotfier.backgroundColorNotifier.value,
+          handler.gridNotifier.backgroundColorNotifier.value,
         ),
       );
     }

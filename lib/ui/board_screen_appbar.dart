@@ -264,7 +264,7 @@ class _DeleteSelectedButton extends StatelessWidget {
       Color(getSettingOr<int>(appBarColorLabel, defaultAppbarColor)),
     );
     return ConditionallyEnabledTextButton(
-      listenable: Listenable.merge([history, handler.gridNotfier]),
+      listenable: Listenable.merge([history, handler.gridNotifier]),
       onPressed: handler.removeSelected,
       style: TextButton.styleFrom(foregroundColor: color),
       condition: () => history.deletableIsSelected,

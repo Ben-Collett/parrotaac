@@ -29,7 +29,7 @@ class BoardSidebar extends StatelessWidget {
     const shortSideLength = 30.0;
     final swapButton = _SwapButton(
       history: history,
-      grid: eventHandler.gridNotfier,
+      grid: eventHandler.gridNotifier,
       handler: eventHandler,
       color: foregroundColor,
     );

@@ -25,7 +25,7 @@ import 'widgets/sentence_box.dart';
 
 class ProjectEventHandler {
   final ParrotProject project;
-  final GridNotifier<ParrotButtonNotifier, ParrotButton> gridNotfier;
+  final GridNotifier<ParrotButtonNotifier, ParrotButton> gridNotifier;
   bool gridNeedsUpdate = false;
   bool autoUpdateUi = true;
   bool autoUpdateSelection = true;
@@ -58,7 +58,7 @@ class ProjectEventHandler {
   ProjectEventHandler({
     required this.project,
     required this.selectionHistory,
-    required this.gridNotfier,
+    required this.gridNotifier,
     required this.boardHistory,
     required this.canUndo,
     required this.canRedo,
@@ -179,15 +179,15 @@ class ProjectEventHandler {
   void removeSelected() {
     execute(BulkRemove.fromSelection(selectionHistory));
 
-    gridNotfier.selectionController.clear();
+    gridNotifier.selectionController.clear();
     selectionHistory.clear();
   }
 
   void fullUIUpdate() {
-    gridNotfier.backgroundColorNotifier.value = currentBoard.boardColor
+    gridNotifier.backgroundColorNotifier.value = currentBoard.boardColor
         .toColor();
 
-    gridNotfier.setData(
+    gridNotifier.setData(
       getButtonsFromObf(currentBoard),
       cleanUp: (oldData) => oldData.disposeNotifiers(),
     );
@@ -281,7 +281,7 @@ class ProjectEventHandler {
 
     if (board == currentBoard) {
       if (autoUpdateUi && updateUi) {
-        gridNotfier.setWidget(
+        gridNotifier.setWidget(
           row: row,
           col: col,
           data: makeButtonNotifier(button, row, col),
@@ -302,7 +302,7 @@ class ProjectEventHandler {
   }
 
   void _updateButtons() {
-    gridNotfier.forEach((obj) {
+    gridNotifier.forEach((obj) {
       if (obj is ParrotButtonNotifier) {
         obj.update();
       }
@@ -323,7 +323,7 @@ class ProjectEventHandler {
     }
 
     if (autoUpdateUi && board == currentBoard) {
-      gridNotfier.insertColumn(col, notifiers);
+      gridNotifier.insertColumn(col, notifiers);
     }
 
     updateOnPressed();
@@ -331,7 +331,7 @@ class ProjectEventHandler {
   }
 
   void updateOnPressed() {
-    modeNotifier.value.updateOnPressed(gridNotfier);
+    modeNotifier.value.updateOnPressed(gridNotifier);
   }
 
   ParrotButtonNotifier makeButtonNotifier(ButtonData bd, int row, int col) {
@@ -339,7 +339,7 @@ class ProjectEventHandler {
     VoidCallback? onPressOverride;
     OnPressOverride? callback = modeNotifier.value.onPressedOverride;
     if (callback != null) {
-      onPressOverride = () => callback(gridNotfier, row, col);
+      onPressOverride = () => callback(gridNotifier, row, col);
     }
 
     return ParrotButtonNotifier(
@@ -375,7 +375,7 @@ class ProjectEventHandler {
     }
 
     if (autoUpdateUi && board == currentBoard) {
-      gridNotfier.insertRow(row, notifiers);
+      gridNotifier.insertRow(row, notifiers);
       updateOnPressed();
     }
 
