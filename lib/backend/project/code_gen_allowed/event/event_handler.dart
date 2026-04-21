@@ -301,13 +301,7 @@ class ProjectEventHandler {
     return project.findBoardById(boardId) ?? currentBoard;
   }
 
-  void _updateButtons() {
-    gridNotifier.forEach((obj) {
-      if (obj is ParrotButtonNotifier) {
-        obj.update();
-      }
-    });
-  }
+  
 
   void recoverCol(int? col, {Obf? board}) {
     board = board ?? currentBoard;

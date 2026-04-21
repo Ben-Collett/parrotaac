@@ -400,35 +400,7 @@ class _DropdownOption extends _SettingsOption {
   );
 }
 
-class _NavigatableOption extends _SettingsOption {
-  @override
-  final String label;
-  final Widget Function() destinationBuilder;
 
-  _NavigatableOption(this.label, this.destinationBuilder);
-
-  @override
-  Widget get asWidget {
-    return Builder(
-      builder: (context) {
-        return ListTile(
-          title: Text(label),
-          trailing: Icon(Icons.arrow_forward_ios),
-          onTap: () {
-            final detailNav = SettingsDetailNavigation.of(context);
-            if (detailNav != null) {
-              detailNav.push(destinationBuilder());
-            } else {
-              Navigator.of(
-                context,
-              ).push(MaterialPageRoute(builder: (_) => destinationBuilder()));
-            }
-          },
-        );
-      },
-    );
-  }
-}
 
 class _LicenseOption extends _SettingsOption {
   @override

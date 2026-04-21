@@ -147,6 +147,11 @@ class _ShapedButtonState extends State<ShapedButton>
             repaint: _repaintNotifier,
             borderColor: _borderColor,
             textHeightPreportion: textHeight,
+            tabTopWidthPreportion: 0.25,
+            tabBottomWidthPreportion: 0.34,
+            tabHeightPreportion: 0.08,
+            imageWidthPreportion: .85,
+            roundnessPreportion: .1,
           );
         }
 
@@ -240,14 +245,18 @@ class _FolderButtonPainter extends CustomPainter with _ParrotButtonPainter {
     required this.animationController,
     super.repaint,
     this.borderWidthPreportion = 0.05,
-    this.tabTopWidthPreportion = 0.25,
-    this.tabBottomWidthPreportion = 0.34,
-    this.tabHeightPreportion = 0.08,
-    this.imageWidthPreportion = .85,
-    this.roundnessPreportion = .1,
+    double? tabTopWidthPreportion,
+    double? tabBottomWidthPreportion,
+    double? tabHeightPreportion,
+    double? imageWidthPreportion,
+    double? roundnessPreportion,
     this.paintPaintAreas = false,
     this.textHeightPreportion,
-  });
+  })  : tabTopWidthPreportion = tabTopWidthPreportion ?? 0.25,
+        tabBottomWidthPreportion = tabBottomWidthPreportion ?? 0.34,
+        tabHeightPreportion = tabHeightPreportion ?? 0.08,
+        imageWidthPreportion = imageWidthPreportion ?? .85,
+        roundnessPreportion = roundnessPreportion ?? .1;
   @override
   double computeBorderSize(Size size) =>
       computeBorderSizeFromPreportion(size, borderWidthPreportion);
@@ -370,11 +379,12 @@ class _SquareButtonPainter extends CustomPainter with _ParrotButtonPainter {
     required this.borderColor,
     required this.animationController,
     this.borderWidthPreportion = .05,
-    this.imageWidthPreportion = .85,
-    this.roundnessPreportion = .1,
+    double? imageWidthPreportion,
+    double? roundnessPreportion,
     this.textHeightPreportion,
     this.paintPaintAreas = false,
-  });
+  })  : imageWidthPreportion = imageWidthPreportion ?? .85,
+        roundnessPreportion = roundnessPreportion ?? .1;
   @override
   void paint(Canvas canvas, Size size) {
     Paint paint = Paint()..color = backgroundColor.value;
