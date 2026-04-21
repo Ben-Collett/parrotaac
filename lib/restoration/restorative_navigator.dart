@@ -7,22 +7,22 @@ import 'package:flutter/material.dart';
 import 'package:openboard_wrapper/obf.dart';
 import 'package:parrotaac/backend/project/parrot_project.dart';
 import 'package:parrotaac/backend/project/project_settings.dart';
-import 'package:parrotaac/backend/project_restore_write_stream.dart';
+import 'package:parrotaac/restoration/project_restore_write_stream.dart';
 import 'package:parrotaac/backend/quick_store.dart';
-import 'package:parrotaac/backend/selection_history.dart';
+import 'package:parrotaac/backend/project/code_gen_allowed/event/selection_history.dart';
 import 'package:parrotaac/backend/settings_utils.dart';
-import 'package:parrotaac/backend/state_restoration_utils.dart';
-import 'package:parrotaac/setting_screen.dart';
-import 'package:parrotaac/ui/board_modes.dart';
-import 'package:parrotaac/ui/board_screen.dart';
-import 'package:parrotaac/ui/board_screen_popup_history.dart';
+import 'package:parrotaac/restoration/state_restoration_utils.dart';
+import 'package:parrotaac/ui/screens/setting_screen.dart';
+import 'package:parrotaac/ui/screens/board_screen/board_modes.dart';
+import 'package:parrotaac/ui/screens/board_screen/board_screen.dart';
+import 'package:parrotaac/ui/screens/board_screen/board_screen_popup_history.dart';
 import 'package:parrotaac/ui/popups/button_config.dart';
 import 'package:parrotaac/ui/popups/lock_popups/admin_authentication_states.dart';
 import 'package:parrotaac/ui/popups/lock_popups/admin_lock.dart';
-import 'package:parrotaac/ui/restore_button_diff.dart';
+import 'package:parrotaac/restoration/restore_button_diff.dart';
 import 'package:parrotaac/ui/settings/labels.dart';
 
-import 'project_selector.dart';
+import '../ui/screens/project_selector/project_selector.dart';
 
 ///singleton
 class RestorativeNavigator {

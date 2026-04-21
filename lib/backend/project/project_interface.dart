@@ -1,5 +1,5 @@
 import "package:flutter/material.dart";
-import "package:parrotaac/file_utils.dart";
+import "package:parrotaac/utils/file_utils.dart";
 
 mixin AACProject {
   String get name;

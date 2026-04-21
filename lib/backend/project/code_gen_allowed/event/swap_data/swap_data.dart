@@ -2,12 +2,12 @@ import 'package:json_annotation/json_annotation.dart';
 import 'package:openboard_wrapper/button_data.dart';
 import 'package:openboard_wrapper/obf.dart';
 import 'package:parrotaac/backend/project/parrot_project.dart';
-import 'package:parrotaac/backend/selection_history.dart';
-import 'package:parrotaac/backend/simple_logger.dart';
+import 'package:parrotaac/backend/project/code_gen_allowed/event/selection_history.dart';
+import 'package:parrotaac/utils/debugging/simple_logger.dart';
 import 'package:parrotaac/extensions/list_extensions.dart';
 import 'package:parrotaac/extensions/null_extensions.dart';
 import 'package:parrotaac/extensions/obf_extensions.dart';
-import 'selection_data.dart';
+import '../selection_data/selection_data.dart';
 
 part 'swap_data.g.dart';
 

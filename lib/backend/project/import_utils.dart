@@ -5,7 +5,7 @@ import 'package:archive/archive_io.dart';
 import 'package:openboard_wrapper/obf.dart';
 import 'package:openboard_wrapper/obz.dart';
 import 'package:parrotaac/backend/project/project_utils.dart';
-import 'package:parrotaac/file_utils.dart';
+import 'package:parrotaac/utils/file_utils.dart';
 import 'package:path/path.dart' as p;
 
 import 'manifest_utils.dart';
@@ -64,7 +64,10 @@ Future<String> importFromObfFile(
   }
   final Obz simpleObz = board.toSimpleObz();
   final simpleProject = ParrotProject.fromObz(
-      simpleObz, p.basenameWithoutExtension(importedName), outputPath ?? "");
+    simpleObz,
+    p.basenameWithoutExtension(importedName),
+    outputPath ?? "",
+  );
   return await simpleProject.write();
 }
 

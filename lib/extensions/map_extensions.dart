@@ -1,4 +1,4 @@
-import 'package:parrotaac/safe_cast.dart';
+import 'package:parrotaac/utils/safe_cast.dart';
 
 extension MapDiff on Map<String, dynamic> {
   Map<String, dynamic> valuesThatAreDifferent(Map<String, dynamic> other) {

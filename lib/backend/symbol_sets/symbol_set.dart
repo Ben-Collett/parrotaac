@@ -1,7 +1,7 @@
 import 'dart:io';
 
 import 'package:flutter/material.dart';
-import 'package:parrotaac/backend/attribution_data.dart';
+import 'package:parrotaac/backend/symbol_sets/attribution_data.dart';
 
 abstract class SymbolSet {
   ///should be sorted based on a relavince score, if there is no logical way to determie a relavince score assign the score based on alphabetical order of the labels, though as it stands this is not being done anywhere.

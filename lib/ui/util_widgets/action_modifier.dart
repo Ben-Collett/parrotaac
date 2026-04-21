@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:parrotaac/ui/actions/button_actions.dart';
-import 'package:parrotaac/ui/parrot_button.dart';
+import 'package:parrotaac/ui/widgets/parrot_button.dart';
 
 const Map<ParrotAction, String> _actionToLabelMap = {
   ParrotAction.playButton: "play button",
@@ -18,13 +18,14 @@ class ActionConfig extends StatefulWidget {
   final double totalHeight;
   final double topBarHeight;
   final void Function(List<ParrotAction>)? onChange;
-  const ActionConfig(
-      {super.key,
-      required this.controller,
-      required this.width,
-      required this.totalHeight,
-      required this.topBarHeight,
-      this.onChange});
+  const ActionConfig({
+    super.key,
+    required this.controller,
+    required this.width,
+    required this.totalHeight,
+    required this.topBarHeight,
+    this.onChange,
+  });
 
   @override
   State<ActionConfig> createState() => _ActionConfigState();
@@ -67,11 +68,12 @@ class _ActionConfigState extends State<ActionConfig> {
       );
     }
     DropdownMenuEntry<ParrotAction> toDropdownEntry(
-            MapEntry<ParrotAction, String> entry) =>
-        DropdownMenuEntry(value: entry.key, label: entry.value);
+      MapEntry<ParrotAction, String> entry,
+    ) => DropdownMenuEntry(value: entry.key, label: entry.value);
 
-    List<DropdownMenuEntry<ParrotAction>> entries =
-        _actionToLabelMap.entries.map(toDropdownEntry).toList();
+    List<DropdownMenuEntry<ParrotAction>> entries = _actionToLabelMap.entries
+        .map(toDropdownEntry)
+        .toList();
     double topBarHeight = widget.topBarHeight;
     double totalHeight = widget.totalHeight;
 
@@ -90,20 +92,21 @@ class _ActionConfigState extends State<ActionConfig> {
                     });
                   },
                   menuStyle: MenuStyle(
-                    backgroundColor: WidgetStateProperty.resolveWith(
-                      (Set<WidgetState> states) {
-                        if (states.isEmpty) {
-                          return Colors.white;
-                        }
-                        return null;
-                      },
-                    ),
+                    backgroundColor: WidgetStateProperty.resolveWith((
+                      Set<WidgetState> states,
+                    ) {
+                      if (states.isEmpty) {
+                        return Colors.white;
+                      }
+                      return null;
+                    }),
                   ),
                   requestFocusOnTap: false,
                   inputDecorationTheme: InputDecorationTheme(
-                      filled: true,
-                      fillColor: Colors.white,
-                      outlineBorder: BorderSide(color: Colors.black)),
+                    filled: true,
+                    fillColor: Colors.white,
+                    outlineBorder: BorderSide(color: Colors.black),
+                  ),
                   initialSelection: selectedAction,
                   dropdownMenuEntries: entries,
                 ),
@@ -134,18 +137,19 @@ class _ActionConfigState extends State<ActionConfig> {
           child: Container(
             color: Colors.white,
             child: ReorderableListView(
-                buildDefaultDragHandles: false,
-                children: widgets,
-                onReorder: (oldIndex, newIndex) {
-                  if (newIndex > oldIndex) {
-                    newIndex--;
-                  }
-                  final ParrotAction action = actions.removeAt(oldIndex);
-                  actions.insert(newIndex, action);
-                  controller.updateActions(actions);
-                  widget.onChange?.call(actions);
-                  setState(() {});
-                }),
+              buildDefaultDragHandles: false,
+              children: widgets,
+              onReorder: (oldIndex, newIndex) {
+                if (newIndex > oldIndex) {
+                  newIndex--;
+                }
+                final ParrotAction action = actions.removeAt(oldIndex);
+                actions.insert(newIndex, action);
+                controller.updateActions(actions);
+                widget.onChange?.call(actions);
+                setState(() {});
+              },
+            ),
           ),
         ),
       ],

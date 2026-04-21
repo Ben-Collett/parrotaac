@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:hive_flutter/hive_flutter.dart';
 import 'package:parrotaac/backend/project/project_utils.dart';
-import 'package:parrotaac/backend/simple_logger.dart';
+import 'package:parrotaac/utils/debugging/simple_logger.dart';
 
 Future<void> initializeQuickStorePluggins() {
   return Hive.initFlutter();

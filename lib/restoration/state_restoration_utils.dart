@@ -1,18 +1,18 @@
 import 'package:openboard_wrapper/button_data.dart';
 import 'package:openboard_wrapper/obf.dart';
-import 'package:parrotaac/backend/history_stack.dart';
+import 'package:parrotaac/utils/collections/history_stack.dart';
 import 'package:parrotaac/backend/project/code_gen_allowed/event/project_events.dart';
-import 'package:parrotaac/backend/project_restore_write_stream.dart';
+import 'package:parrotaac/restoration/project_restore_write_stream.dart';
 import 'package:parrotaac/backend/quick_store.dart';
-import 'package:parrotaac/project_selector.dart';
-import 'package:parrotaac/setting_screen.dart';
-import 'package:parrotaac/ui/board_modes.dart';
-import 'package:parrotaac/ui/board_screen.dart';
+import 'package:parrotaac/ui/screens/project_selector/project_selector.dart';
+import 'package:parrotaac/ui/screens/setting_screen.dart';
+import 'package:parrotaac/ui/screens/board_screen/board_modes.dart';
+import 'package:parrotaac/ui/screens/board_screen/board_screen.dart';
 import 'package:parrotaac/ui/codgen/board_screen_popups.dart';
 import 'package:parrotaac/ui/widgets/sentence_box.dart';
 
-import 'map_utils.dart';
-import 'project/parrot_project.dart';
+import '../utils/encoding/json_map_utils.dart';
+import '../backend/project/parrot_project.dart';
 
 class ProjectRestorationData {
   final QuickStoreHiveImp quickStore;

@@ -1,6 +1,6 @@
 import 'dart:io';
 import 'package:flutter/material.dart';
-import 'package:parrotaac/backend/selection_data.dart';
+import 'package:parrotaac/backend/project/code_gen_allowed/event/selection_data/selection_data.dart';
 import 'package:parrotaac/extensions/file_system_entity_extensions.dart';
 import 'package:parrotaac/extensions/num_extensions.dart';
 

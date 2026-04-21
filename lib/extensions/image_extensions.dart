@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:openboard_wrapper/image_data.dart';
-import 'package:parrotaac/utils.dart';
+import 'package:parrotaac/utils/utils.dart';
 import 'package:path/path.dart' as p;
 
 extension ToImage on ImageData {

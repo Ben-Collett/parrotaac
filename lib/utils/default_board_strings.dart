@@ -1,4 +1,4 @@
-import 'backend/project/custom_manifest_keys.dart';
+import '../backend/project/custom_manifest_keys.dart';
 
 String defaultRootBoardFromSize(int rowCount, int colCount) {
   assert(rowCount >= 0, "can't have negative row count");

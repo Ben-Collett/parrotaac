@@ -3,11 +3,11 @@ import 'package:flutter/services.dart';
 import 'package:openboard_wrapper/grid_data.dart';
 import 'package:openboard_wrapper/obf.dart';
 import 'package:openboard_wrapper/obz.dart';
-import 'package:parrotaac/backend/history_stack.dart';
-import 'package:parrotaac/ui/board_screen_constants.dart';
-import 'package:parrotaac/ui/board_screen_popup_history.dart';
+import 'package:parrotaac/utils/collections/history_stack.dart';
+import 'package:parrotaac/ui/screens/board_screen/board_screen_constants.dart';
+import 'package:parrotaac/ui/screens/board_screen/board_screen_popup_history.dart';
 import 'package:parrotaac/ui/codgen/board_screen_popups.dart';
-import 'package:parrotaac/ui/event_handler.dart';
+import 'package:parrotaac/backend/project/code_gen_allowed/event/event_handler.dart';
 import 'package:parrotaac/ui/popups/cancable_dialog.dart';
 
 import 'popup_utils.dart';

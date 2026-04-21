@@ -1,14 +1,14 @@
 import 'package:dropdown_search/dropdown_search.dart';
 import 'package:flutter/material.dart';
 import 'package:openboard_wrapper/obf.dart';
-import 'package:parrotaac/backend/history_stack.dart';
+import 'package:parrotaac/utils/collections/history_stack.dart';
 import 'package:parrotaac/backend/project/parrot_project.dart';
-import 'package:parrotaac/ui/board_screen_popup_history.dart';
+import 'package:parrotaac/ui/screens/board_screen/board_screen_popup_history.dart';
 import 'package:parrotaac/ui/codgen/board_screen_popups.dart';
-import 'package:parrotaac/ui/event_handler.dart';
+import 'package:parrotaac/backend/project/code_gen_allowed/event/event_handler.dart';
 import 'package:parrotaac/ui/popups/create_board.dart';
 import 'package:parrotaac/ui/settings/settings_themed_appbar.dart';
-import 'package:parrotaac/ui/util_widgets/board.dart';
+import 'package:parrotaac/ui/widgets/board.dart';
 
 class BoardSelectScreen extends StatefulWidget {
   final ParrotProject project;

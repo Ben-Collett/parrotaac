@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:parrotaac/backend/quick_store.dart';
-import 'package:parrotaac/backend/simple_logger.dart';
+import 'package:parrotaac/utils/debugging/simple_logger.dart';
 import 'package:parrotaac/ui/popups/lock_popups/admin_lock.dart';
 import 'package:parrotaac/ui/settings/defaults.dart';
 import 'package:parrotaac/ui/settings/labels.dart';

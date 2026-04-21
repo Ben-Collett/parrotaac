@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:parrotaac/backend/attribution_data.dart';
+import 'package:parrotaac/backend/symbol_sets/attribution_data.dart';
 import 'package:parrotaac/ui/util_widgets/simple_future_builder.dart';
 import 'package:parrotaac/ui/util_widgets/url_text.dart';
 

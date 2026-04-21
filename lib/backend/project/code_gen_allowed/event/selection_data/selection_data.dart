@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:json_annotation/json_annotation.dart';
-import 'package:parrotaac/backend/encoding/json_utils.dart';
+import 'package:parrotaac/utils/encoding/json_encodable.dart';
 import 'package:parrotaac/extensions/list_extensions.dart';
 import 'package:parrotaac/extensions/num_extensions.dart';
 import 'package:parrotaac/extensions/set_extensions.dart';

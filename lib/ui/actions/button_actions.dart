@@ -3,16 +3,17 @@ import 'dart:ui';
 import 'package:openboard_wrapper/button_data.dart';
 import 'package:openboard_wrapper/obf.dart';
 import 'package:parrotaac/audio/audio_source.dart';
-import 'package:parrotaac/audio_player.dart';
+import 'package:parrotaac/audio/audio_player.dart';
 import 'package:parrotaac/extensions/button_data_extensions.dart';
-import 'package:parrotaac/ui/parrot_button.dart';
+import 'package:parrotaac/ui/widgets/parrot_button.dart';
 import '../widgets/sentence_box.dart';
 
 void executeActions(ParrotButtonNotifier button, {Obf? board}) {
   SentenceBoxController? boxController = button.boxController;
   final dataCopy = boxController?.dataCopyView();
-  final List<SenteceBoxDisplayEntry> sentenceBoxInitialState =
-      List.of(dataCopy ?? []);
+  final List<SenteceBoxDisplayEntry> sentenceBoxInitialState = List.of(
+    dataCopy ?? [],
+  );
   Iterable<ParrotAction> actions;
 
   List<String> actionStrings = button.data.actions;

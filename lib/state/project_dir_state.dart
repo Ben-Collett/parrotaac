@@ -5,7 +5,7 @@ import 'package:flutter/widgets.dart';
 import 'package:parrotaac/backend/project/parrot_project.dart';
 import 'package:parrotaac/backend/project/project_interface.dart';
 import 'package:parrotaac/backend/project/project_utils.dart';
-import 'package:parrotaac/backend/simple_logger.dart';
+import 'package:parrotaac/utils/debugging/simple_logger.dart';
 import 'package:parrotaac/extensions/null_extensions.dart';
 
 typedef DeleteListener = void Function(DisplayData);

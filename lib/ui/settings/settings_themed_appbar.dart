@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:parrotaac/restorative_navigator.dart';
+import 'package:parrotaac/restoration/restorative_navigator.dart';
 import 'package:parrotaac/ui/appbar_widgets/compute_contrasting_color.dart';
 import 'package:parrotaac/ui/popups/lock_popups/admin_lock.dart';
 import 'package:parrotaac/ui/settings/defaults.dart';

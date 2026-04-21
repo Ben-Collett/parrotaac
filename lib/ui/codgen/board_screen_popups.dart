@@ -1,6 +1,6 @@
 import 'package:json_annotation/json_annotation.dart';
-import 'package:parrotaac/backend/map_utils.dart';
-import 'package:parrotaac/backend/simple_logger.dart';
+import 'package:parrotaac/utils/encoding/json_map_utils.dart';
+import 'package:parrotaac/utils/debugging/simple_logger.dart';
 
 part 'board_screen_popups.g.dart';
 

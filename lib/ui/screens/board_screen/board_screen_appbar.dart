@@ -1,11 +1,11 @@
 import 'package:flutter/material.dart';
-import 'package:parrotaac/backend/history_stack.dart';
+import 'package:parrotaac/utils/collections/history_stack.dart';
 import 'package:parrotaac/backend/project/parrot_project.dart';
-import 'package:parrotaac/backend/selection_history.dart';
+import 'package:parrotaac/backend/project/code_gen_allowed/event/selection_history.dart';
 import 'package:parrotaac/backend/settings_utils.dart';
-import 'package:parrotaac/restorative_navigator.dart';
+import 'package:parrotaac/restoration/restorative_navigator.dart';
 import 'package:parrotaac/ui/appbar_widgets/compute_contrasting_color.dart';
-import 'package:parrotaac/ui/event_handler.dart';
+import 'package:parrotaac/backend/project/code_gen_allowed/event/event_handler.dart';
 import 'package:parrotaac/ui/settings/defaults.dart';
 import 'package:parrotaac/ui/settings/labels.dart';
 import 'package:parrotaac/ui/util_widgets/coditional_text_button.dart';
@@ -16,9 +16,9 @@ import 'package:parrotaac/ui/widgets/empty_spot.dart';
 
 import 'board_modes.dart';
 import 'board_screen_constants.dart';
-import 'popups/board_screen_popups/rename_title.dart';
-import 'popups/lock_popups/admin_lock.dart';
-import 'settings/settings_themed_appbar.dart';
+import '../../popups/board_screen_popups/rename_title.dart';
+import '../../popups/lock_popups/admin_lock.dart';
+import '../../settings/settings_themed_appbar.dart';
 
 SettingsThemedAppbar boardScreenAppbar({
   required BuildContext context,

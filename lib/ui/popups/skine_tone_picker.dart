@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:parrotaac/backend/symbol_sets/open_symbol.dart';
 import 'package:parrotaac/backend/symbol_sets/symbol_set.dart';
 import 'package:parrotaac/ui/util_widgets/simple_future_builder.dart';
-import 'package:parrotaac/utils.dart';
+import 'package:parrotaac/utils/utils.dart';
 
 void showSkinToneDialog(
   BuildContext context,

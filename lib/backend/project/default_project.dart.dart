@@ -1,8 +1,8 @@
 import 'dart:io';
 
 import 'package:openboard_wrapper/obf.dart';
-import 'package:parrotaac/default_board_strings.dart';
-import 'package:parrotaac/file_utils.dart';
+import 'package:parrotaac/utils/default_board_strings.dart';
+import 'package:parrotaac/utils/file_utils.dart';
 import 'package:path/path.dart' as p;
 
 import 'parrot_project.dart';

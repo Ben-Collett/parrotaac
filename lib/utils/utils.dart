@@ -9,8 +9,8 @@ import 'package:flutter_svg/flutter_svg.dart';
 import 'package:http/http.dart' as http;
 import 'package:image_picker/image_picker.dart';
 import 'package:openboard_wrapper/_utils.dart';
-import 'package:parrotaac/backend/caching.dart';
-import 'package:parrotaac/backend/simple_logger.dart';
+import 'package:parrotaac/utils/caching.dart';
+import 'package:parrotaac/utils/debugging/simple_logger.dart';
 import 'package:parrotaac/ui/util_widgets/cached_image.dart';
 
 final MemoryCache _imageFromDataCache = MemoryCache(maxEntries: 20);

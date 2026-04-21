@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
-import 'package:parrotaac/backend/global_restoration_data.dart';
+import 'package:parrotaac/restoration/global_restoration_data.dart';
 import 'package:parrotaac/backend/server/login_utils.dart';
-import 'package:parrotaac/project_selector_constants.dart';
+import 'package:parrotaac/ui/screens/project_selector/project_selector_constants.dart';
 import 'package:parrotaac/ui/popups/show_restorable_popup.dart';
 
 class LoginButton extends StatelessWidget {

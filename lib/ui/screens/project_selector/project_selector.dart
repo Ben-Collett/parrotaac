@@ -3,11 +3,11 @@ import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:image_picker/image_picker.dart';
-import 'package:parrotaac/backend/global_restoration_data.dart';
+import 'package:parrotaac/restoration/global_restoration_data.dart';
 import 'package:parrotaac/backend/project/parrot_project.dart';
 import 'package:parrotaac/backend/project/project_interface.dart';
-import 'package:parrotaac/project_selector_constants.dart';
-import 'package:parrotaac/restorative_navigator.dart';
+import 'package:parrotaac/ui/screens/project_selector/project_selector_constants.dart';
+import 'package:parrotaac/restoration/restorative_navigator.dart';
 import 'package:parrotaac/state/application_state.dart';
 import 'package:parrotaac/state/get_stored_notifiers.dart';
 import 'package:parrotaac/state/project_dir_state.dart';
@@ -17,18 +17,18 @@ import 'package:parrotaac/ui/popups/lock_popups/admin_lock.dart';
 import 'package:parrotaac/ui/popups/login_popup.dart';
 import 'package:parrotaac/ui/popups/show_restorable_popup.dart';
 import 'package:parrotaac/ui/popups/support_popup.dart';
-import 'package:parrotaac/ui/search_bar.dart';
+import 'package:parrotaac/ui/widgets/search_bar.dart';
 import 'package:parrotaac/ui/settings/settings_themed_appbar.dart';
 import 'package:parrotaac/ui/util_widgets/gap.dart';
 import 'package:parrotaac/ui/util_widgets/multi_listenable_builder.dart';
-import 'package:parrotaac/utils.dart';
+import 'package:parrotaac/utils/utils.dart';
 
-import 'backend/project/default_project.dart.dart';
-import 'backend/project/import_utils.dart';
-import 'backend/project/project_utils.dart';
-import 'file_utils.dart';
-import 'ui/popups/loading.dart';
-import 'ui/widgets/displey_entry.dart';
+import '../../../backend/project/default_project.dart.dart';
+import '../../../backend/project/import_utils.dart';
+import '../../../backend/project/project_utils.dart';
+import '../../../utils/file_utils.dart';
+import '../../popups/loading.dart';
+import '../../widgets/displey_entry.dart';
 
 List<DisplayEntry> unfilteredEntries({
   bool selectMode = false,

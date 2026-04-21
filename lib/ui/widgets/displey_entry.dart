@@ -1,20 +1,20 @@
 import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:flutter_slidable/flutter_slidable.dart';
-import 'package:parrotaac/backend/global_restoration_data.dart';
+import 'package:parrotaac/restoration/global_restoration_data.dart';
 import 'package:parrotaac/backend/project/manifest_utils.dart';
 import 'package:parrotaac/backend/project/parrot_project.dart';
 import 'package:parrotaac/backend/project/project_interface.dart';
-import 'package:parrotaac/file_utils.dart';
-import 'package:parrotaac/project_selector_constants.dart';
-import 'package:parrotaac/restorative_navigator.dart';
+import 'package:parrotaac/utils/file_utils.dart';
+import 'package:parrotaac/ui/screens/project_selector/project_selector_constants.dart';
+import 'package:parrotaac/restoration/restorative_navigator.dart';
 import 'package:parrotaac/state/application_state.dart';
 import 'package:parrotaac/state/project_dir_state.dart';
 import 'package:parrotaac/ui/animations/fade_shrink.dart';
 import 'package:parrotaac/ui/popups/loading.dart';
 import 'package:parrotaac/ui/popups/lock_popups/admin_lock.dart';
 import 'package:parrotaac/ui/popups/show_restorable_popup.dart';
-import 'package:parrotaac/utils.dart';
+import 'package:parrotaac/utils/utils.dart';
 
 class DisplayEntry extends StatefulWidget {
   final TextStyle? textStyle;

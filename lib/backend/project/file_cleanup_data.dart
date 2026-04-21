@@ -1,7 +1,7 @@
 import 'dart:io';
 
 import 'package:parrotaac/backend/project/parrot_project.dart';
-import 'package:parrotaac/backend/simple_logger.dart';
+import 'package:parrotaac/utils/debugging/simple_logger.dart';
 import 'package:parrotaac/extensions/directory_extensions.dart';
 import 'package:path/path.dart' as p;
 

@@ -2,9 +2,9 @@ import 'dart:collection';
 import 'dart:io' show Directory;
 
 import 'package:flutter/widgets.dart';
-import 'package:parrotaac/backend/global_restoration_data.dart';
+import 'package:parrotaac/restoration/global_restoration_data.dart';
 import 'package:parrotaac/backend/project/project_interface.dart';
-import 'package:parrotaac/project_selector_constants.dart';
+import 'package:parrotaac/ui/screens/project_selector/project_selector_constants.dart';
 import 'package:parrotaac/state/get_stored_notifiers.dart';
 import 'package:parrotaac/state/has_state.dart';
 

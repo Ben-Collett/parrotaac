@@ -4,14 +4,14 @@ import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:flutter_cache_manager/flutter_cache_manager.dart';
 import 'package:http/http.dart' as http;
-import 'package:parrotaac/backend/attribution_data.dart';
+import 'package:parrotaac/backend/symbol_sets/attribution_data.dart';
 import 'package:parrotaac/backend/network/custom_cache_manager.dart';
-import 'package:parrotaac/backend/simple_logger.dart';
+import 'package:parrotaac/utils/debugging/simple_logger.dart';
 import 'package:parrotaac/backend/symbol_sets/symbol_set.dart';
 import 'package:parrotaac/backend/symbol_sets/token_provider.dart';
 import 'package:parrotaac/extensions/http_extensions.dart';
 import 'package:parrotaac/extensions/map_extensions.dart';
-import 'package:parrotaac/utils.dart';
+import 'package:parrotaac/utils/utils.dart';
 
 class OpenSymbolSet extends SymbolSet {
   @override

@@ -1,9 +1,9 @@
 import 'package:flutter/material.dart';
-import 'package:parrotaac/backend/selection_history.dart';
+import 'package:parrotaac/backend/project/code_gen_allowed/event/selection_history.dart';
 import 'package:parrotaac/backend/settings_utils.dart';
 import 'package:parrotaac/ui/appbar_widgets/compute_contrasting_color.dart';
-import 'package:parrotaac/ui/board_modes.dart';
-import 'package:parrotaac/ui/event_handler.dart';
+import 'package:parrotaac/ui/screens/board_screen/board_modes.dart';
+import 'package:parrotaac/backend/project/code_gen_allowed/event/event_handler.dart';
 import 'package:parrotaac/ui/painters/three_squares.dart';
 import 'package:parrotaac/ui/util_widgets/draggable_grid.dart';
 import 'package:parrotaac/ui/util_widgets/icon_button_on_notfier.dart';

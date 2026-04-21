@@ -4,7 +4,7 @@ import 'dart:ui';
 import 'package:openboard_wrapper/button_data.dart';
 import 'package:openboard_wrapper/obf.dart';
 import 'package:parrotaac/backend/project/code_gen_allowed/event/project_events.dart';
-import 'package:parrotaac/backend/stack.dart';
+import 'package:parrotaac/utils/collections/stack.dart';
 
 class EventHistory {
   ///the bool should be true if the caller is currently undoing an event.

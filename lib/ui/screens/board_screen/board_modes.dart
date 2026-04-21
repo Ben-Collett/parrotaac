@@ -1,7 +1,7 @@
 import 'package:flutter/widgets.dart';
-import 'package:parrotaac/backend/selection_data.dart';
-import 'parrot_button.dart';
-import 'util_widgets/draggable_grid.dart';
+import 'package:parrotaac/backend/project/code_gen_allowed/event/selection_data/selection_data.dart';
+import '../../widgets/parrot_button.dart';
+import '../../util_widgets/draggable_grid.dart';
 
 typedef OnPressOverride = void Function(GridNotifier, int row, int col);
 

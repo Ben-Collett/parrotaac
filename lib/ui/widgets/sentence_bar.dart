@@ -1,15 +1,11 @@
 import 'package:flutter/material.dart';
 
-import 'widgets/sentence_box.dart';
+import 'sentence_box.dart';
 
 class SentenceBar extends StatefulWidget {
   final SentenceBoxController? sentenceBoxController;
   final VoidCallback? goBack;
-  const SentenceBar({
-    super.key,
-    this.sentenceBoxController,
-    this.goBack,
-  });
+  const SentenceBar({super.key, this.sentenceBoxController, this.goBack});
 
   @override
   State<SentenceBar> createState() => _SentenceBarState();
@@ -62,10 +58,7 @@ class _SentenceBarState extends State<SentenceBar> {
     return Row(
       children: [
         backButton,
-        Flexible(
-          flex: 10,
-          child: SentenceBox(controller: _controller),
-        ),
+        Flexible(flex: 10, child: SentenceBox(controller: _controller)),
         speakButton,
         backSpaceButton,
         clearButton,

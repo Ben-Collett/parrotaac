@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
-import 'package:parrotaac/audio_player.dart';
-import 'package:parrotaac/backend/global_restoration_data.dart';
-import 'package:parrotaac/backend/is_computer.dart';
+import 'package:parrotaac/audio/audio_player.dart';
+import 'package:parrotaac/restoration/global_restoration_data.dart';
+import 'package:parrotaac/utils/is_computer.dart';
 import 'package:parrotaac/backend/server/server_utils.dart';
 import 'package:parrotaac/state/project_dir_state.dart';
 import 'package:parrotaac/ui/popups/lock_popups/admin_lock.dart';
@@ -9,7 +9,7 @@ import 'package:parrotaac/ui/settings/labels.dart';
 
 import 'backend/quick_store.dart';
 import 'backend/settings_utils.dart';
-import 'restorative_navigator.dart';
+import 'restoration/restorative_navigator.dart';
 
 void main() async {
   Future refreshProject = defaultProjectDirListener.refresh();

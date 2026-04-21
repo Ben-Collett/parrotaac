@@ -8,7 +8,7 @@ import 'package:parrotaac/extensions/file_extensions.dart';
 import 'package:parrotaac/extensions/list_extensions.dart';
 import 'package:parrotaac/extensions/map_extensions.dart';
 import 'package:parrotaac/extensions/object_extensions.dart';
-import 'package:parrotaac/ui/event_handler.dart';
+import 'package:parrotaac/backend/project/code_gen_allowed/event/event_handler.dart';
 import 'package:path/path.dart' as p;
 import 'package:path_provider/path_provider.dart';
 

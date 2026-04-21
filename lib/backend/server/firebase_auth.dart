@@ -2,7 +2,7 @@ import 'dart:convert';
 import 'package:http/http.dart' as http;
 import 'package:parrotaac/backend/server/firebase_responses.dart';
 import 'package:parrotaac/backend/server/user.dart';
-import 'package:parrotaac/backend/simple_logger.dart';
+import 'package:parrotaac/utils/debugging/simple_logger.dart';
 
 import 'firebase_constants.dart';
 

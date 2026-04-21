@@ -3,7 +3,7 @@ import 'dart:math';
 import 'package:flutter/material.dart';
 import 'package:parrotaac/backend/symbol_sets/open_symbol.dart';
 import 'package:parrotaac/backend/symbol_sets/symbol_set.dart';
-import 'package:parrotaac/ui/board_screen_popup_history.dart';
+import 'package:parrotaac/ui/screens/board_screen/board_screen_popup_history.dart';
 import 'package:parrotaac/ui/codgen/board_screen_popups.dart';
 import 'package:parrotaac/ui/popups/attribution_popup.dart';
 import 'package:parrotaac/ui/popups/skine_tone_picker.dart';

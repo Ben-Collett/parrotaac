@@ -4,9 +4,9 @@ import 'package:flutter/material.dart';
 import 'package:openboard_wrapper/button_data.dart';
 import 'package:openboard_wrapper/obf.dart';
 import 'package:parrotaac/audio/audio_source.dart';
-import 'package:parrotaac/audio_player.dart';
+import 'package:parrotaac/audio/audio_player.dart';
 import 'package:parrotaac/backend/project/parrot_project.dart';
-import 'package:parrotaac/ui/parrot_button.dart';
+import 'package:parrotaac/ui/widgets/parrot_button.dart';
 import 'package:parrotaac/extensions/button_data_extensions.dart';
 
 class SentenceBoxController extends ChangeNotifier {

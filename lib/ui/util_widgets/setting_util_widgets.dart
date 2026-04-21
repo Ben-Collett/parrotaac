@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_colorpicker/flutter_colorpicker.dart';
-import 'package:parrotaac/backend/global_restoration_data.dart';
+import 'package:parrotaac/restoration/global_restoration_data.dart';
 import 'package:parrotaac/backend/settings_utils.dart';
-import 'package:parrotaac/setting_screen.dart';
+import 'package:parrotaac/ui/screens/setting_screen.dart';
 import 'package:parrotaac/ui/util_widgets/settings_listenable.dart';
 
 class SettingsSwitchTile extends StatelessWidget {

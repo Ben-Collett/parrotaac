@@ -1,7 +1,7 @@
 import 'dart:collection';
 
-import 'package:parrotaac/backend/project_restore_write_stream.dart';
-import 'package:parrotaac/backend/simple_logger.dart';
+import 'package:parrotaac/restoration/project_restore_write_stream.dart';
+import 'package:parrotaac/utils/debugging/simple_logger.dart';
 import 'package:parrotaac/ui/codgen/board_screen_popups.dart';
 
 class BoardScreenPopupHistory {

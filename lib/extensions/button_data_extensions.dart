@@ -7,7 +7,7 @@ import 'package:openboard_wrapper/sound_data.dart';
 import 'package:parrotaac/audio/audio_source.dart';
 import 'package:parrotaac/audio/prefered_audio_source.dart';
 import 'package:parrotaac/backend/project/parrot_project.dart';
-import 'package:parrotaac/backend/simple_logger.dart';
+import 'package:parrotaac/utils/debugging/simple_logger.dart';
 
 import 'package:path/path.dart' as p;
 
@@ -23,9 +23,10 @@ extension ButtonDataExtension on ButtonData {
     return source ?? fallback;
   }
 
-  AudioSource? _getAudioSource(
-      {required Iterable<PreferredAudioSourceType> preferredAudioSources,
-      String? rootPath}) {
+  AudioSource? _getAudioSource({
+    required Iterable<PreferredAudioSourceType> preferredAudioSources,
+    String? rootPath,
+  }) {
     for (PreferredAudioSourceType type in preferredAudioSources) {
       if (_validSource(type, rootPath)) {
         return _fromType(type, rootPath);
@@ -159,8 +160,9 @@ extension UpdateFromDiff on ButtonData {
       }
     }
 
-    Iterable<String> changedExtendedProperties =
-        diff.keys.where((e) => e.startsWith('ext_'));
+    Iterable<String> changedExtendedProperties = diff.keys.where(
+      (e) => e.startsWith('ext_'),
+    );
     for (String key in changedExtendedProperties) {
       if (diff[key] == null) {
         extendedProperties.remove(key);

@@ -3,25 +3,25 @@ import 'package:openboard_wrapper/button_data.dart';
 import 'package:openboard_wrapper/image_data.dart';
 import 'package:openboard_wrapper/obf.dart';
 import 'package:openboard_wrapper/sound_data.dart';
-import 'package:parrotaac/backend/event_stack.dart';
-import 'package:parrotaac/backend/history_stack.dart';
+import 'package:parrotaac/backend/project/code_gen_allowed/event/event_stack.dart';
+import 'package:parrotaac/utils/collections/history_stack.dart';
 import 'package:parrotaac/backend/project/code_gen_allowed/event/project_events.dart';
 import 'package:parrotaac/backend/project/parrot_project.dart';
 import 'package:parrotaac/backend/project/patch.dart';
-import 'package:parrotaac/backend/selection_data.dart';
-import 'package:parrotaac/backend/selection_history.dart';
-import 'package:parrotaac/backend/swap_data.dart';
+import 'package:parrotaac/backend/project/code_gen_allowed/event/selection_data/selection_data.dart';
+import 'package:parrotaac/backend/project/code_gen_allowed/event/selection_history.dart';
+import 'package:parrotaac/backend/project/code_gen_allowed/event/swap_data/swap_data.dart';
 import 'package:parrotaac/extensions/color_extensions.dart';
 import 'package:parrotaac/extensions/list_extensions.dart';
 import 'package:parrotaac/extensions/map_extensions.dart';
 import 'package:parrotaac/extensions/null_extensions.dart';
 import 'package:parrotaac/extensions/obf_extensions.dart';
-import 'package:parrotaac/ui/board_modes.dart';
+import 'package:parrotaac/ui/screens/board_screen/board_modes.dart';
 import 'package:parrotaac/ui/util_widgets/draggable_grid.dart';
 
-import '../backend/project_restore_write_stream.dart';
-import 'parrot_button.dart';
-import 'widgets/sentence_box.dart';
+import '../../../../restoration/project_restore_write_stream.dart';
+import '../../../../ui/widgets/parrot_button.dart';
+import '../../../../ui/widgets/sentence_box.dart';
 
 class ProjectEventHandler {
   final ParrotProject project;

@@ -1,11 +1,11 @@
 import 'dart:async';
-import 'package:parrotaac/backend/mutex.dart';
+import 'package:parrotaac/utils/mutex.dart';
 import 'package:parrotaac/backend/project/code_gen_allowed/event/project_events.dart';
-import 'package:parrotaac/backend/state_restoration_utils.dart';
+import 'package:parrotaac/restoration/state_restoration_utils.dart';
 import 'package:parrotaac/ui/codgen/board_screen_popups.dart';
 import 'package:parrotaac/ui/widgets/sentence_box.dart';
 
-import '../ui/board_modes.dart';
+import '../ui/screens/board_screen/board_modes.dart';
 
 class ProjectRestoreStream {
   final _stream = StreamController<_ProjectRestoreEvent>();

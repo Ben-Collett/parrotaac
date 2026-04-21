@@ -4,9 +4,9 @@ import 'package:flutter/widgets.dart';
 import 'package:openboard_wrapper/obf.dart';
 import 'package:parrotaac/backend/project/parrot_project.dart';
 import 'package:parrotaac/backend/quick_store.dart';
-import 'package:parrotaac/backend/selection_data.dart';
-import 'package:parrotaac/backend/simple_logger.dart';
-import 'package:parrotaac/backend/swap_data.dart';
+import 'package:parrotaac/backend/project/code_gen_allowed/event/selection_data/selection_data.dart';
+import 'package:parrotaac/utils/debugging/simple_logger.dart';
+import 'package:parrotaac/backend/project/code_gen_allowed/event/swap_data/swap_data.dart';
 import 'package:parrotaac/extensions/map_extensions.dart';
 import 'package:parrotaac/extensions/obf_extensions.dart';
 

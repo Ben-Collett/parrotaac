@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
-import 'package:parrotaac/ui/board_screen_constants.dart';
-import 'package:parrotaac/ui/event_handler.dart';
+import 'package:parrotaac/ui/screens/board_screen/board_screen_constants.dart';
+import 'package:parrotaac/backend/project/code_gen_allowed/event/event_handler.dart';
 
 void showRenameTitlePopup({
   required BuildContext context,
