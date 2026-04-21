@@ -10,7 +10,7 @@ import 'package:parrotaac/backend/project/board/parrot_board.dart';
 import 'package:parrotaac/backend/project/manifest_utils.dart';
 import 'package:parrotaac/backend/project/project_settings.dart';
 import 'package:parrotaac/utils/file_utils.dart';
-import 'package:parrotaac/utils/utils.dart';
+import 'package:parrotaac/utils/image_utils.dart';
 import 'package:path/path.dart' as p;
 
 import 'custom_manifest_keys.dart';

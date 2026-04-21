@@ -21,6 +21,7 @@ import 'package:parrotaac/ui/widgets/search_bar.dart';
 import 'package:parrotaac/ui/settings/settings_themed_appbar.dart';
 import 'package:parrotaac/ui/util_widgets/gap.dart';
 import 'package:parrotaac/ui/util_widgets/multi_listenable_builder.dart';
+import 'package:parrotaac/utils/image_utils.dart';
 import 'package:parrotaac/utils/utils.dart';
 
 import '../../../backend/project/default_project.dart.dart';
@@ -140,7 +141,7 @@ class _ProjectSelectorState extends State<ProjectSelector> {
     super.dispose();
   }
 
-  Widget _iconButtonThatIsDisabledWhenSelectedNotfierIsEmpty(
+  Widget _iconButtonThatIsDisabledWhenSelectedNotifierIsEmpty(
     Icon icon, {
     required VoidCallback onPressed,
   }) {
@@ -182,7 +183,7 @@ class _ProjectSelectorState extends State<ProjectSelector> {
 
                 if (selectMode) {
                   children.add(
-                    _iconButtonThatIsDisabledWhenSelectedNotfierIsEmpty(
+                    _iconButtonThatIsDisabledWhenSelectedNotifierIsEmpty(
                       Icon(Icons.delete),
                       onPressed: () {
                         _showBulkDeleteDialog(context);
@@ -190,7 +191,7 @@ class _ProjectSelectorState extends State<ProjectSelector> {
                     ),
                   );
                   children.add(
-                    _iconButtonThatIsDisabledWhenSelectedNotfierIsEmpty(
+                    _iconButtonThatIsDisabledWhenSelectedNotifierIsEmpty(
                       Icon(Icons.folder),
                       onPressed: () {
                         showAdminLockPopup(

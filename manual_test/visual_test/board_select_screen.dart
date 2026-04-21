@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:openboard_wrapper/color_data.dart';
 import 'package:openboard_wrapper/obf.dart';
 import 'package:parrotaac/backend/project/parrot_project.dart';
-import 'package:parrotaac/ui/board_screen.dart';
+import 'package:parrotaac/ui/screens/board_screen/board_screen.dart';
 import 'dart:io';
 import 'package:path/path.dart' as p;
 import '../../test/boards/board_strings.dart';

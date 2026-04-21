@@ -5,7 +5,7 @@ import 'package:openboard_wrapper/button_data.dart';
 import 'package:openboard_wrapper/grid_data.dart';
 import 'package:openboard_wrapper/obf.dart';
 import 'package:parrotaac/backend/project/parrot_project.dart';
-import 'package:parrotaac/ui/board_screen.dart';
+import 'package:parrotaac/ui/screens/board_screen/board_screen.dart';
 
 void main() {
   runApp(const MyApp());

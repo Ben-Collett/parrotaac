@@ -2,8 +2,8 @@ import 'dart:io';
 
 import 'package:flutter/material.dart';
 import 'package:parrotaac/audio/audio_source.dart';
-import 'package:parrotaac/audio_player.dart';
-import 'package:parrotaac/audio_recorder.dart';
+import 'package:parrotaac/audio/audio_player.dart';
+import 'package:parrotaac/audio/audio_recorder.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:path/path.dart' as p;
 
@@ -46,7 +46,8 @@ class _MyHomePageState extends State<MyHomePage> {
   void playFromUrl() async {
     PreemptiveAudioPlayer().play(
       AudioUrlSource(
-          'https://www.soundhelix.com/examples/mp3/SoundHelix-Song-1.mp3'),
+        'https://www.soundhelix.com/examples/mp3/SoundHelix-Song-1.mp3',
+      ),
     );
   }
 
@@ -62,24 +63,29 @@ class _MyHomePageState extends State<MyHomePage> {
     PreemptiveAudioPlayer().playIterable([
       TTSSource("hello world"),
       AudioUrlSource(
-          "https://www.soundhelix.com/examples/mp3/SoundHelix-Song-1.mp3"),
+        "https://www.soundhelix.com/examples/mp3/SoundHelix-Song-1.mp3",
+      ),
     ]);
   }
 
   void playMultiPlayerFirst() async {
     PreemptiveAudioPlayer().playIterable([
       AudioUrlSource(
-          "http://codeskulptor-demos.commondatastorage.googleapis.com/GalaxyInvaders/explosion%2001.wav"),
+        "http://codeskulptor-demos.commondatastorage.googleapis.com/GalaxyInvaders/explosion%2001.wav",
+      ),
       TTSSource("hello world"),
     ]);
   }
 
   void playRecorded() async {
     Directory parentDir = await recordTargetDir();
-    String filename =
-        p.setExtension(recordTargetFileName, recordTargetExtension);
-    PreemptiveAudioPlayer()
-        .play(AudioFilePathSource(p.join(parentDir.path, filename)));
+    String filename = p.setExtension(
+      recordTargetFileName,
+      recordTargetExtension,
+    );
+    PreemptiveAudioPlayer().play(
+      AudioFilePathSource(p.join(parentDir.path, filename)),
+    );
   }
 
   @override
@@ -92,10 +98,7 @@ class _MyHomePageState extends State<MyHomePage> {
       body: Center(
         child: Row(
           children: [
-            FloatingActionButton(
-              onPressed: playTTS,
-              child: Text("play tts"),
-            ),
+            FloatingActionButton(onPressed: playTTS, child: Text("play tts")),
             FloatingActionButton(
               onPressed: playFromUrl,
               child: Text("play from url"),
@@ -105,8 +108,9 @@ class _MyHomePageState extends State<MyHomePage> {
               child: Text("play multi"),
             ),
             FloatingActionButton(
-                onPressed: playMultiPlayerFirst,
-                child: Text('multi tts second')),
+              onPressed: playMultiPlayerFirst,
+              child: Text('multi tts second'),
+            ),
             FloatingActionButton(
               onPressed: playRecorded,
               child: Text("play recorded"),
@@ -132,25 +136,27 @@ class _RecordButtonState extends State<RecordButton> {
   @override
   Widget build(BuildContext context) {
     return ValueListenableBuilder(
-        valueListenable: _isRecording,
-        builder: (context, isRecording, child) {
-          return TextButton(
-              onPressed: () async {
-                Directory targetDir = await recordTargetDir();
-                if (isRecording) {
-                  MyAudioRecorder().stop();
-                  _isRecording.value = false;
-                } else {
-                  MyAudioRecorder().start(
-                    parentDirectory: targetDir,
-                    fileName: recordTargetFileName,
-                    extension: recordTargetExtension,
-                  );
-                  _isRecording.value = true;
-                }
-              },
-              child: Text(isRecording ? "stop" : "record"));
-        });
+      valueListenable: _isRecording,
+      builder: (context, isRecording, child) {
+        return TextButton(
+          onPressed: () async {
+            Directory targetDir = await recordTargetDir();
+            if (isRecording) {
+              MyAudioRecorder().stop();
+              _isRecording.value = false;
+            } else {
+              MyAudioRecorder().start(
+                parentDirectory: targetDir,
+                fileName: recordTargetFileName,
+                extension: recordTargetExtension,
+              );
+              _isRecording.value = true;
+            }
+          },
+          child: Text(isRecording ? "stop" : "record"),
+        );
+      },
+    );
   }
 
   @override

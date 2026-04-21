@@ -2,17 +2,15 @@ import 'dart:convert';
 
 import 'package:flutter_test/flutter_test.dart';
 import 'package:parrotaac/backend/project/custom_manifest_keys.dart';
-import 'package:parrotaac/default_board_strings.dart';
+import 'package:parrotaac/utils/default_board_strings.dart';
 
 void main() {
   const Map<String, dynamic> defaultManifestJson = {
     "root": "boards/root.obf",
     "format": "open-board-0.1",
     "paths": {
-      "boards": {
-        "root": "boards/root.obf",
-      }
-    }
+      "boards": {"root": "boards/root.obf"},
+    },
   };
   test('nonAdded manifest', () {
     expect(defaultManifestJson, jsonDecode(defaultManifest()));

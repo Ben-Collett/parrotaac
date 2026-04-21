@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:parrotaac/project_selector.dart';
+import 'package:parrotaac/ui/screens/project_selector/project_selector.dart';
 
 void main() {
   runApp(const MyApp());

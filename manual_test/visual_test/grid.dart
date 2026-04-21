@@ -4,7 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:openboard_wrapper/button_data.dart';
 import 'package:openboard_wrapper/color_data.dart';
 import 'package:openboard_wrapper/image_data.dart';
-import 'package:parrotaac/ui/parrot_button.dart';
+import 'package:parrotaac/ui/widgets/parrot_button.dart';
 import 'package:parrotaac/ui/util_widgets/draggable_grid.dart';
 
 void main() {

@@ -6,7 +6,7 @@ import 'package:openboard_wrapper/obz.dart';
 import 'package:parrotaac/backend/project/board/parrot_board.dart';
 import 'package:parrotaac/backend/project/import_utils.dart';
 import 'package:parrotaac/backend/project/parrot_project.dart';
-import 'package:parrotaac/backend/simple_logger.dart';
+import 'package:parrotaac/utils/debugging/simple_logger.dart';
 
 import 'package:path/path.dart' as p;
 import './boards/board_strings.dart';

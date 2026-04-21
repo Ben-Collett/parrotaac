@@ -6,8 +6,8 @@ import 'package:openboard_wrapper/grid_data.dart';
 import 'package:openboard_wrapper/obf.dart';
 import 'package:parrotaac/backend/project/parrot_project.dart';
 import 'package:parrotaac/ui/actions/button_actions.dart';
-import 'package:parrotaac/ui/board_screen.dart';
-import 'package:parrotaac/ui/parrot_button.dart';
+import 'package:parrotaac/ui/screens/board_screen/board_screen.dart';
+import 'package:parrotaac/ui/widgets/parrot_button.dart';
 
 void main() {
   runApp(const MyApp());
@@ -18,10 +18,7 @@ class MyApp extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return const MaterialApp(
-      title: 'Parrot AAC',
-      home: MainScreen(),
-    );
+    return const MaterialApp(title: 'Parrot AAC', home: MainScreen());
   }
 }
 
@@ -36,10 +33,7 @@ class MainScreen extends StatelessWidget {
     final String backspace = PredefinedSpecialtyAction.backSpace.asString;
     final String home = PredefinedSpecialtyAction.home.asString;
 
-    ButtonData hello = ButtonData(
-      label: "hello",
-      id: "b5",
-    )
+    ButtonData hello = ButtonData(label: "hello", id: "b5")
       ..extendedProperties[parrotActionMode] = true
       ..actions.add(ParrotAction.addToSentenceBox.toString())
       ..actions.add(ParrotAction.playButton.toString());
@@ -50,28 +44,41 @@ class MainScreen extends StatelessWidget {
     link.extendedProperties[parrotActionMode] = true;
     link.addAction(ParrotAction.playButton.toString());
 
-    ButtonData clearButton =
-        ButtonData(label: "clear", id: "b1", action: clear);
+    ButtonData clearButton = ButtonData(
+      label: "clear",
+      id: "b1",
+      action: clear,
+    );
     clearButton.extendedProperties[parrotActionMode];
     ButtonData speakButton = ButtonData(label: "speak", id: "b2", action: speak)
       ..extendedProperties[parrotActionMode] = true;
-    ButtonData backspaceButton =
-        ButtonData(label: "backspace", id: "b3", action: backspace);
+    ButtonData backspaceButton = ButtonData(
+      label: "backspace",
+      id: "b3",
+      action: backspace,
+    );
     backspaceButton.extendedProperties[parrotActionMode] = true;
     //speaks then adds to sentence box so the last home shouldn't be spoken
-    ButtonData homeSpeak =
-        ButtonData(label: "home", id: "b4", actions: [home, speak]);
+    ButtonData homeSpeak = ButtonData(
+      label: "home",
+      id: "b4",
+      actions: [home, speak],
+    );
     homeSpeak.extendedProperties[parrotActionMode] = true;
     homeSpeak.actions.add(ParrotAction.addToSentenceBox.toString());
 
-    GridData g1 = GridData(order: [
-      [clearButton, hello],
-      [speakButton, link]
-    ]);
-    GridData g2 = GridData(order: [
-      [backspaceButton, homeSpeak],
-      [null, null],
-    ]);
+    GridData g1 = GridData(
+      order: [
+        [clearButton, hello],
+        [speakButton, link],
+      ],
+    );
+    GridData g2 = GridData(
+      order: [
+        [backspaceButton, homeSpeak],
+        [null, null],
+      ],
+    );
 
     ob1.grid = g1;
     ob2.grid = g2;
@@ -81,8 +88,9 @@ class MainScreen extends StatelessWidget {
     project.root = ob1;
     return Scaffold(
       appBar: AppBar(
-          title: const Text('board selector'),
-          backgroundColor: Color(0xFFAFABDF)),
+        title: const Text('board selector'),
+        backgroundColor: Color(0xFFAFABDF),
+      ),
       body: BoardScreen(project: project),
     );
   }

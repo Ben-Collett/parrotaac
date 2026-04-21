@@ -11,7 +11,7 @@ import 'package:parrotaac/backend/symbol_sets/symbol_set.dart';
 import 'package:parrotaac/backend/symbol_sets/token_provider.dart';
 import 'package:parrotaac/extensions/http_extensions.dart';
 import 'package:parrotaac/extensions/map_extensions.dart';
-import 'package:parrotaac/utils/utils.dart';
+import 'package:parrotaac/utils/image_utils.dart';
 
 class OpenSymbolSet extends SymbolSet {
   @override
@@ -84,8 +84,6 @@ class OpenSymbolResult extends SymbolResult {
 
   @override
   String get label => json["name"];
-
-  String get _license => json["license"];
 
   final Map<String, dynamic> json;
 

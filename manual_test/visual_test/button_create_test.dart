@@ -2,8 +2,8 @@ import 'dart:io';
 
 import 'package:flutter/material.dart';
 import 'package:parrotaac/backend/project/parrot_project.dart';
-import 'package:parrotaac/default_board_strings.dart';
-import 'package:parrotaac/ui/parrot_button.dart';
+import 'package:parrotaac/utils/default_board_strings.dart';
+import 'package:parrotaac/ui/widgets/parrot_button.dart';
 import 'package:parrotaac/ui/popups/button_config.dart';
 import 'package:path/path.dart';
 

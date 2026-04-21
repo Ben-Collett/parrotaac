@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:parrotaac/backend/project/authentication/math_problem_generator.dart';
-import 'package:parrotaac/backend/simple_logger.dart';
+import 'package:parrotaac/utils/debugging/simple_logger.dart';
 import 'package:parrotaac/ui/popups/lock_popups/math_popup.dart';
 
 void main() {
