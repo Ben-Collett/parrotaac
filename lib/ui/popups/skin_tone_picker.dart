@@ -38,7 +38,7 @@ class SkintoneDialog extends StatefulWidget {
 
 class _SkintoneDialogState extends State<SkintoneDialog> {
   late String selectedTone;
-  //TODO: make this a future somhow and build the options based of of it? ca has the baby with no medium light
+  //TODO: make this a future somehow and build the options based of of it? ca has the baby with no medium light
   late final Future<Map<String, Widget>> _widgetCache;
   @override
   void initState() {

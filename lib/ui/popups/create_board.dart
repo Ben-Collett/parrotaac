@@ -41,7 +41,7 @@ Future<void> showCreateBoardDialog(
 }
 
 class CreateBoardPopup extends StatefulWidget {
-  ///The caller must make sure that the dialog is dismissed before the notfier is disposed
+  ///The caller must make sure that the dialog is dismissed before the notifier is disposed
   final BoardHistoryStack boardHistory;
   final ProjectEventHandler eventHandler;
   final BoardScreenPopupHistory? history;

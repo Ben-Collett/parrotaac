@@ -5,7 +5,7 @@ import 'package:openboard_wrapper/color_data.dart';
 import 'package:openboard_wrapper/image_data.dart';
 import 'package:openboard_wrapper/sound_data.dart';
 import 'package:parrotaac/audio/audio_source.dart';
-import 'package:parrotaac/audio/prefered_audio_source.dart';
+import 'package:parrotaac/audio/preferred_audio_source.dart';
 import 'package:parrotaac/backend/project/parrot_project.dart';
 import 'package:parrotaac/utils/debugging/simple_logger.dart';
 

@@ -107,7 +107,7 @@ class _BoardWidgetState extends State<BoardWidget> {
             return null;
           },
           draggable: false,
-          onSwap: (p1, p2) => _updateButtonNotfierOnDelete(
+          onSwap: (p1, p2) => _updateButtonNotifierOnDelete(
             _gridNotifier.getWidget(p2.row, p2.col)!,
             widget.eventHandler,
             p2.row,
@@ -164,11 +164,11 @@ class _BoardWidgetState extends State<BoardWidget> {
       );
     }
 
-    history.addListener(_updateGridNoifierColor);
+    history.addListener(_updateGridNotifierColor);
 
     //has to be a post framecallback to avoid updating notifier before building with it as that causes an error.
     WidgetsBinding.instance.addPostFrameCallback(
-      (_) => _updateGridNoifierColor(),
+      (_) => _updateGridNotifierColor(),
     );
 
     widget.selectionHistory.existThen((val) {
@@ -215,7 +215,7 @@ class _BoardWidgetState extends State<BoardWidget> {
   void _disposeNotifiers(Iterable<dynamic> toDispose) =>
       toDispose.disposeNotifiers();
 
-  void _updateGridNoifierColor() {
+  void _updateGridNotifierColor() {
     _gridNotifier.backgroundColorNotifier.value = history
         .currentBoard
         .boardColor
@@ -294,7 +294,7 @@ class _BoardWidgetState extends State<BoardWidget> {
     _gridNotifier.selectMode = true;
   }
 
-  void _updateButtonNotfierOnDelete(
+  void _updateButtonNotifierOnDelete(
     Object data,
     ProjectEventHandler eventHandler,
     int row,
@@ -469,7 +469,7 @@ class _BoardWidgetState extends State<BoardWidget> {
                 },
               ),
             ),
-          Expanded(child: DraggableGrid(gridNotfier: _gridNotifier)),
+          Expanded(child: DraggableGrid(gridNotifier: _gridNotifier)),
         ];
         return Column(children: children);
       },

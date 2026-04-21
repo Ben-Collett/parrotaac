@@ -1,10 +1,10 @@
 import 'package:flutter/material.dart';
 
-class IconButtonEnabledOnNotfier extends StatelessWidget {
+class IconButtonEnabledOnNotifier extends StatelessWidget {
   final ValueNotifier<bool> enabledController;
   final Icon icon;
   final VoidCallback onPressed;
-  const IconButtonEnabledOnNotfier({
+  const IconButtonEnabledOnNotifier({
     super.key,
     required this.enabledController,
     required this.onPressed,

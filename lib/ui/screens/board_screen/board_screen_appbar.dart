@@ -8,10 +8,10 @@ import 'package:parrotaac/ui/appbar_widgets/compute_contrasting_color.dart';
 import 'package:parrotaac/backend/project/code_gen_allowed/event/event_handler.dart';
 import 'package:parrotaac/ui/settings/defaults.dart';
 import 'package:parrotaac/ui/settings/labels.dart';
-import 'package:parrotaac/ui/util_widgets/coditional_text_button.dart';
+import 'package:parrotaac/ui/util_widgets/conditional_text_button.dart';
 import 'package:parrotaac/ui/util_widgets/color_popup_button.dart';
 import 'package:parrotaac/ui/util_widgets/draggable_grid.dart';
-import 'package:parrotaac/ui/util_widgets/icon_button_on_notfier.dart';
+import 'package:parrotaac/ui/util_widgets/icon_button_on_notifier.dart';
 import 'package:parrotaac/ui/widgets/empty_spot.dart';
 
 import 'board_modes.dart';
@@ -60,12 +60,12 @@ SettingsThemedAppbar boardScreenAppbar({
         )
       : null;
 
-  final undoButton = IconButtonEnabledOnNotfier(
+  final undoButton = IconButtonEnabledOnNotifier(
     enabledController: eventHandler.canUndo,
     onPressed: eventHandler.undo,
     icon: Icon(Icons.undo),
   );
-  final redoButton = IconButtonEnabledOnNotfier(
+  final redoButton = IconButtonEnabledOnNotifier(
     enabledController: eventHandler.canRedo,
     onPressed: eventHandler.redo,
     icon: Icon(Icons.redo),

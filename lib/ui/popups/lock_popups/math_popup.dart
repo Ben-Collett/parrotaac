@@ -1,5 +1,5 @@
 //TODO: this rebuilds a few to many times in use, I could probably use riverpod to make this nicer as there is only one of everything
-//that or change notfiers
+//that or change notifiers
 //it shouldn't cause a major performance impact because everything here is a relatively simple widget
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';

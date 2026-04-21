@@ -11,7 +11,7 @@ mixin AACProject {
     return sanitzeFileName(name);
   }
 
-  //TODO: I can in the future add an overrde enum, and allow for a safe override if the checksum of the original files is the same as it is now
+  //TODO: I can in the future add an override enum, and allow for a safe override if the checksum of the original files is the same as it is now
   ///returns the path wrote to
   Future<String> write();
 

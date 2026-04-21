@@ -6,7 +6,7 @@ import 'package:parrotaac/ui/screens/board_screen/board_modes.dart';
 import 'package:parrotaac/backend/project/code_gen_allowed/event/event_handler.dart';
 import 'package:parrotaac/ui/painters/three_squares.dart';
 import 'package:parrotaac/ui/util_widgets/draggable_grid.dart';
-import 'package:parrotaac/ui/util_widgets/icon_button_on_notfier.dart';
+import 'package:parrotaac/ui/util_widgets/icon_button_on_notifier.dart';
 import 'package:parrotaac/ui/util_widgets/paint_button.dart';
 
 class BoardSidebar extends StatelessWidget {

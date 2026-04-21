@@ -6,7 +6,7 @@ import 'package:openboard_wrapper/image_data.dart';
 import 'package:openboard_wrapper/obf.dart';
 import 'package:openboard_wrapper/obz.dart';
 import 'package:openboard_wrapper/sound_data.dart';
-import 'package:parrotaac/audio/prefered_audio_source.dart';
+import 'package:parrotaac/audio/preferred_audio_source.dart';
 import 'package:parrotaac/backend/project/parrot_project.dart';
 import 'package:parrotaac/extensions/button_data_extensions.dart';
 import 'package:parrotaac/extensions/color_extensions.dart';
@@ -172,7 +172,7 @@ class ParrotButtonNotifier extends ChangeNotifier {
 }
 
 class ParrotButton extends StatelessWidget
-    with SelectIndecatorStatusDimensions {
+    with SelectIndicatorStatusDimensions {
   final ParrotButtonNotifier controller;
   final bool holdToConfig;
   final BoardScreenPopupHistory? popupHistory;
@@ -221,7 +221,7 @@ class ParrotButton extends StatelessWidget
   );
 
   @override
-  Offset selectIndecatorOffset(Size size) {
+  Offset selectIndicatorOffset(Size size) {
     double shift = size.shortestSide * _padding;
     size = size.shrinkBy(shift);
     shift += size.shortestSide * _borderWidthPreportion;

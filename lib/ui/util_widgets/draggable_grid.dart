@@ -8,7 +8,7 @@ import 'package:parrotaac/extensions/list_extensions.dart';
 import 'package:parrotaac/ui/painters/lines.dart';
 import 'package:parrotaac/ui/painters/painted_color_box.dart';
 
-///WARNING: only one grid notfier can exist per grid if it want's to be  draggable.
+///WARNING: only one grid notifier can exist per grid if it want's to be  draggable.
 class GridNotifier<K, T extends Widget> extends ChangeNotifier {
   bool _draggable;
   bool _selectMode;
@@ -37,7 +37,7 @@ class GridNotifier<K, T extends Widget> extends ChangeNotifier {
 
   void Function(RowColPair p1, RowColPair p2)? onSwap;
 
-  ///this is exclusively used by the grid, and means that only one grid notfier can exist per grid if it want's to be  draggable.
+  ///this is exclusively used by the grid, and means that only one grid notifier can exist per grid if it want's to be  draggable.
   final ValueWrapper<Size> _childSize = ValueWrapper(Size.zero);
 
   set toWidget(T? Function(dynamic)? toWid) {
@@ -242,7 +242,7 @@ class GridNotifier<K, T extends Widget> extends ChangeNotifier {
   }
 }
 
-mixin SelectIndecatorStatusDimensions {
+mixin SelectIndicatorStatusDimensions {
   static Widget _wrapWidgetIfNeeded(
     Widget widget,
     GridNotifier grid,
@@ -260,9 +260,9 @@ mixin SelectIndecatorStatusDimensions {
             builder: (context, constrains) {
               Size size = Size(constrains.maxWidth, constrains.maxHeight);
               final Rect rect;
-              if (widget is SelectIndecatorStatusDimensions) {
-                final dim = widget as SelectIndecatorStatusDimensions;
-                rect = dim._selectIndecatorDimensions(size);
+              if (widget is SelectIndicatorStatusDimensions) {
+                final dim = widget as SelectIndicatorStatusDimensions;
+                rect = dim._selectIndicatorDimensions(size);
               } else {
                 final radius = _defaultComputeIndicatorSize(size);
                 rect = Rect.fromLTWH(0, 0, radius, radius);
@@ -305,9 +305,9 @@ mixin SelectIndecatorStatusDimensions {
     );
   }
 
-  Rect _selectIndecatorDimensions(Size size) {
-    final double indicatorSize = selectIndecatorSize(size);
-    final Offset indicatorOffset = selectIndecatorOffset(size);
+  Rect _selectIndicatorDimensions(Size size) {
+    final double indicatorSize = selectIndicatorSize(size);
+    final Offset indicatorOffset = selectIndicatorOffset(size);
 
     return Rect.fromLTWH(
       indicatorOffset.dx,
@@ -317,29 +317,29 @@ mixin SelectIndecatorStatusDimensions {
     );
   }
 
-  Offset selectIndecatorOffset(Size size) => Offset.zero;
-  double selectIndecatorSize(Size size) => _defaultComputeIndicatorSize(size);
+  Offset selectIndicatorOffset(Size size) => Offset.zero;
+  double selectIndicatorSize(Size size) => _defaultComputeIndicatorSize(size);
 
   static double _defaultComputeIndicatorSize(Size size) =>
       0.2 * size.shortestSide;
 }
 
 class DraggableGrid extends StatelessWidget {
-  final GridNotifier gridNotfier;
-  const DraggableGrid({super.key, required this.gridNotfier});
+  final GridNotifier gridNotifier;
+  const DraggableGrid({super.key, required this.gridNotifier});
 
   @override
   Widget build(BuildContext context) {
     return CustomPaint(
       painter: ColorBoxPainter(
-        colorNotifier: gridNotfier.backgroundColorNotifier,
+        colorNotifier: gridNotifier.backgroundColorNotifier,
       ),
       child: ListenableBuilder(
-        listenable: gridNotfier,
+        listenable: gridNotifier,
         builder: (context, _) {
-          final children = gridNotfier.widgetList;
+          final children = gridNotifier.widgetList;
           return Flow(
-            delegate: GridFlowDelegate(gridNotfier),
+            delegate: GridFlowDelegate(gridNotifier),
             children: children,
           );
         },
@@ -474,7 +474,7 @@ class _GridCellState extends State<GridCell> {
           child: currentWidget,
         ),
         childWhenDragging: ColoredBox(color: Colors.grey),
-        child: SelectIndecatorStatusDimensions._wrapWidgetIfNeeded(
+        child: SelectIndicatorStatusDimensions._wrapWidgetIfNeeded(
           currentWidget,
           widget.gridNotifier,
           row,
@@ -483,7 +483,7 @@ class _GridCellState extends State<GridCell> {
       );
     } else if (widget.cell.value != null &&
         widget.gridNotifier.toWidget != null) {
-      child = SelectIndecatorStatusDimensions._wrapWidgetIfNeeded(
+      child = SelectIndicatorStatusDimensions._wrapWidgetIfNeeded(
         widget.gridNotifier.toWidget!(widget.cell.value) as Widget,
         widget.gridNotifier,
         row,
@@ -536,7 +536,7 @@ class _EmptySpotDragTargetState extends State<EmptySpotDragTarget> {
         final col = widget.cellWidget.cell.col;
         final grid = widget.cellWidget.gridNotifier;
 
-        return SelectIndecatorStatusDimensions._wrapWidgetIfNeeded(
+        return SelectIndicatorStatusDimensions._wrapWidgetIfNeeded(
           InteractiveEmptySpotWidget(cell: widget.cellWidget),
           grid,
           row,
@@ -548,28 +548,28 @@ class _EmptySpotDragTargetState extends State<EmptySpotDragTarget> {
 }
 
 class InteractiveEmptySpotWidget extends StatefulWidget
-    with SelectIndecatorStatusDimensions {
+    with SelectIndicatorStatusDimensions {
   const InteractiveEmptySpotWidget({super.key, required this.cell});
 
   final GridCell cell;
   Widget? get _emptySpotWidget => cell.gridNotifier.emptySpotWidget;
 
   @override
-  Offset selectIndecatorOffset(Size size) {
-    if (_emptySpotWidget is SelectIndecatorStatusDimensions) {
-      final data = _emptySpotWidget as SelectIndecatorStatusDimensions;
-      return data.selectIndecatorOffset(size);
+  Offset selectIndicatorOffset(Size size) {
+    if (_emptySpotWidget is SelectIndicatorStatusDimensions) {
+      final data = _emptySpotWidget as SelectIndicatorStatusDimensions;
+      return data.selectIndicatorOffset(size);
     }
-    return super.selectIndecatorOffset(size);
+    return super.selectIndicatorOffset(size);
   }
 
   @override
-  double selectIndecatorSize(Size size) {
-    if (_emptySpotWidget is SelectIndecatorStatusDimensions) {
-      final data = _emptySpotWidget as SelectIndecatorStatusDimensions;
-      return data.selectIndecatorSize(size);
+  double selectIndicatorSize(Size size) {
+    if (_emptySpotWidget is SelectIndicatorStatusDimensions) {
+      final data = _emptySpotWidget as SelectIndicatorStatusDimensions;
+      return data.selectIndicatorSize(size);
     }
-    return super.selectIndecatorSize(size);
+    return super.selectIndicatorSize(size);
   }
 
   @override

@@ -11,7 +11,7 @@ import 'package:openboard_wrapper/obf.dart';
 import 'package:openboard_wrapper/obz.dart';
 import 'package:openboard_wrapper/sound_data.dart';
 import 'package:parrotaac/audio/audio_source.dart';
-import 'package:parrotaac/audio/prefered_audio_source.dart';
+import 'package:parrotaac/audio/preferred_audio_source.dart';
 import 'package:parrotaac/audio/audio_player.dart';
 import 'package:parrotaac/audio/audio_recorder.dart';
 import 'package:parrotaac/utils/collections/history_stack.dart';

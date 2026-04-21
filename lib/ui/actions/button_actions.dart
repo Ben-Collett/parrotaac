@@ -11,7 +11,7 @@ import '../widgets/sentence_box.dart';
 void executeActions(ParrotButtonNotifier button, {Obf? board}) {
   SentenceBoxController? boxController = button.boxController;
   final dataCopy = boxController?.dataCopyView();
-  final List<SenteceBoxDisplayEntry> sentenceBoxInitialState = List.of(
+  final List<SentenceBoxDisplayEntry> sentenceBoxInitialState = List.of(
     dataCopy ?? [],
   );
   Iterable<ParrotAction> actions;
@@ -25,7 +25,7 @@ void executeActions(ParrotButtonNotifier button, {Obf? board}) {
 
   final String? projectPath = button.projectPath;
   final actionBuilder = _ActionBuilder(
-    displayEntry: SenteceBoxDisplayEntry(data: button.data, board: board),
+    displayEntry: SentenceBoxDisplayEntry(data: button.data, board: board),
     sentenceBoxInitialState,
     projectPath: projectPath,
     goHome: button.goHome,
@@ -40,9 +40,9 @@ void executeActions(ParrotButtonNotifier button, {Obf? board}) {
 
 class _ActionBuilder {
   final List<AudioSource> toSpeak = [];
-  final List<SenteceBoxDisplayEntry> sentenceBoxState;
+  final List<SentenceBoxDisplayEntry> sentenceBoxState;
   final String? projectPath;
-  final SenteceBoxDisplayEntry? displayEntry;
+  final SentenceBoxDisplayEntry? displayEntry;
   ButtonData? get buttonData => displayEntry?.data;
   VoidCallback? goHome;
 

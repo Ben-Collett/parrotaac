@@ -63,7 +63,7 @@ class _SelectedNotifier extends ChangeNotifier {
   int get length => _values.length;
 
   ///if dir is null it won't be added
-  ///if [dir] is in the set or is null then listeners won't be notfied
+  ///if [dir] is in the set or is null then listeners won't be notified
   void addIfNotNull(DisplayData? dir) {
     if (dir != null) {
       emptyNotifier.value = false;

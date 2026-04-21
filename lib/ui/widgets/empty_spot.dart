@@ -6,7 +6,7 @@ import 'package:parrotaac/extensions/color_extensions.dart';
 import 'package:parrotaac/ui/util_widgets/draggable_grid.dart';
 
 class EmptySpotWidget extends StatelessWidget
-    with SelectIndecatorStatusDimensions {
+    with SelectIndicatorStatusDimensions {
   final Color color;
   const EmptySpotWidget({super.key, this.color = Colors.lightBlue});
 
@@ -16,7 +16,7 @@ class EmptySpotWidget extends StatelessWidget
   }
 
   @override
-  Offset selectIndecatorOffset(Size size) {
+  Offset selectIndicatorOffset(Size size) {
     final shortSide = size.shortestSide;
     final shift =
         _EmptyPainter.computePaddingSize(shortSide) +

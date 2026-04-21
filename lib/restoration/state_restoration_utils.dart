@@ -160,10 +160,10 @@ class ProjectRestorationData {
     await quickStore.close();
   }
 
-  List<SenteceBoxDisplayEntry> getSentenceBoxData(ParrotProject project) {
+  List<SentenceBoxDisplayEntry> getSentenceBoxData(ParrotProject project) {
     dynamic sentenceBoxData = quickStore[_sentenceBoxKey];
     if (sentenceBoxData is List) {
-      SenteceBoxDisplayEntry? toEntry(BoardButtonPair? pair) =>
+      SentenceBoxDisplayEntry? toEntry(BoardButtonPair? pair) =>
           _pairToEntry(project, pair);
 
       return sentenceBoxData
@@ -176,7 +176,7 @@ class ProjectRestorationData {
     return [];
   }
 
-  SenteceBoxDisplayEntry? _pairToEntry(
+  SentenceBoxDisplayEntry? _pairToEntry(
     ParrotProject project,
     BoardButtonPair? pair,
   ) {
@@ -189,7 +189,7 @@ class ProjectRestorationData {
     if (board == null || buttonData == null) {
       return null;
     }
-    return SenteceBoxDisplayEntry(board: board, data: buttonData);
+    return SentenceBoxDisplayEntry(board: board, data: buttonData);
   }
 }
 

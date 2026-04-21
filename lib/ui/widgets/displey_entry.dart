@@ -181,7 +181,7 @@ class _DisplayEntryState extends State<DisplayEntry>
                     duration: const Duration(milliseconds: 300),
                     width: widget.selectMode.value ? 32 : 0,
                     height: widget.selectMode.value ? 32 : 0,
-                    child: _CircleSelectionIndecator(selected),
+                    child: _CircleSelectionIndicator(selected),
                   ),
                   Expanded(
                     child: AnimatedContainer(
@@ -211,9 +211,9 @@ class _DisplayEntryState extends State<DisplayEntry>
   }
 }
 
-class _CircleSelectionIndecator extends StatelessWidget {
+class _CircleSelectionIndicator extends StatelessWidget {
   final bool selected;
-  const _CircleSelectionIndecator(this.selected);
+  const _CircleSelectionIndicator(this.selected);
   @override
   Widget build(BuildContext context) {
     return LayoutBuilder(

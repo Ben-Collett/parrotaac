@@ -50,9 +50,9 @@ class ProjectRestoreStream {
   void updateRedoStack(List<ProjectEvent> events) =>
       _stream.sink.add(_UpdateRedoEventHistory(events));
 
-  void updateSentenceBar(List<SenteceBoxDisplayEntry> data) {
-    bool hasBoard(SenteceBoxDisplayEntry entry) => entry.board != null;
-    BoardButtonPair toIdPair(SenteceBoxDisplayEntry entry) =>
+  void updateSentenceBar(List<SentenceBoxDisplayEntry> data) {
+    bool hasBoard(SentenceBoxDisplayEntry entry) => entry.board != null;
+    BoardButtonPair toIdPair(SentenceBoxDisplayEntry entry) =>
         BoardButtonPair(buttonId: entry.data.id, boardId: entry.board!.id);
 
     List<BoardButtonPair> pairs = data.where(hasBoard).map(toIdPair).toList();

@@ -13,7 +13,7 @@ import 'restoration/restorative_navigator.dart';
 
 void main() async {
   Future refreshProject = defaultProjectDirListener.refresh();
-  await initializeQuickStorePluggins();
+  await initializeQuickStorePlugins();
 
   //must be called before RestorativeNavigator().initialize()
   await initializeGlobalRestorationData();

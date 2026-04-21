@@ -10,7 +10,7 @@ import 'package:parrotaac/ui/widgets/parrot_button.dart';
 import 'package:parrotaac/extensions/button_data_extensions.dart';
 
 class SentenceBoxController extends ChangeNotifier {
-  List<SenteceBoxDisplayEntry> _dataToDisplay;
+  List<SentenceBoxDisplayEntry> _dataToDisplay;
   ParrotProject? project;
   String? get projectPath => project?.path;
   double _buttonWidth;
@@ -40,7 +40,7 @@ class SentenceBoxController extends ChangeNotifier {
     double buttonHeight = 100,
     this.enabled = true,
     this.project,
-    List<SenteceBoxDisplayEntry>? initialData,
+    List<SentenceBoxDisplayEntry>? initialData,
   }) : _buttonWidth = buttonWidth,
        _buttonHeight = buttonHeight,
        _dataToDisplay = initialData ?? [];
@@ -66,21 +66,21 @@ class SentenceBoxController extends ChangeNotifier {
     }
   }
 
-  void updateData(List<SenteceBoxDisplayEntry> entries) {
+  void updateData(List<SentenceBoxDisplayEntry> entries) {
     if (enabled) {
       _dataToDisplay = entries;
       notifyListeners();
     }
   }
 
-  void add(SenteceBoxDisplayEntry entry) {
+  void add(SentenceBoxDisplayEntry entry) {
     if (enabled) {
       _dataToDisplay.add(entry);
       notifyListeners();
     }
   }
 
-  UnmodifiableListView<SenteceBoxDisplayEntry> dataCopyView() {
+  UnmodifiableListView<SentenceBoxDisplayEntry> dataCopyView() {
     return UnmodifiableListView(_dataToDisplay);
   }
 
@@ -95,11 +95,11 @@ class SentenceBoxController extends ChangeNotifier {
   }
 }
 
-class SenteceBoxDisplayEntry {
+class SentenceBoxDisplayEntry {
   final ButtonData data;
   final Obf? board;
 
-  SenteceBoxDisplayEntry({required this.data, this.board});
+  SentenceBoxDisplayEntry({required this.data, this.board});
 }
 
 class SentenceBox extends StatelessWidget {

@@ -5,7 +5,7 @@ import '../../util_widgets/draggable_grid.dart';
 
 typedef OnPressOverride = void Function(GridNotifier, int row, int col);
 
-//this is functinally very similar to an enum, there is a private constractore the a bunch of static final instances you can reference so only those insteances should exist.
+//this is functionally very similar to an enum, there is a private constractore the a bunch of static final instances you can reference so only those instances should exist.
 class BoardMode {
   final bool hideEmptySpotWidget;
   final bool configOnButtonHold;

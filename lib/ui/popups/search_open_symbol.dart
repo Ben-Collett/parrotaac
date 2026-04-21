@@ -6,7 +6,7 @@ import 'package:parrotaac/backend/symbol_sets/symbol_set.dart';
 import 'package:parrotaac/ui/screens/board_screen/board_screen_popup_history.dart';
 import 'package:parrotaac/ui/codgen/board_screen_popups.dart';
 import 'package:parrotaac/ui/popups/attribution_popup.dart';
-import 'package:parrotaac/ui/popups/skine_tone_picker.dart';
+import 'package:parrotaac/ui/popups/skin_tone_picker.dart';
 import 'package:parrotaac/ui/util_widgets/simple_future_builder.dart';
 
 const _gridBackgroundColor = Colors.blue;

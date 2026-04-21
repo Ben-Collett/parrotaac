@@ -17,7 +17,7 @@ extension Grid<T> on List<List<T>> {
     );
     assert(
       pair.col.exclusiveIsInBetween(-1, this[pair.row].length),
-      "can't get from pair column out of boudns",
+      "can't get from pair column out of bounds",
     );
 
     return this[pair.row][pair.col];
