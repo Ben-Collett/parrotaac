@@ -11,5 +11,5 @@
 11) restore settings screen when restarting in one panel mode, also restore elicense state as best possible
 __________________________________________________________
 after realse
-pass words to other window so parrottaac can act as a keyboar
+pass words to other window so parrottaac can act as a keyboard
 

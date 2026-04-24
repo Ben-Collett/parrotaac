@@ -201,7 +201,7 @@ const String idCollision = """
   }
 }
 """;
-const String fullExtendedPorpertiesManfiest = """
+const String fullExtendedPropertiesManifest = """
 {
   "format": "open-board-0.1",
   "root": "boards/root_board.obf",

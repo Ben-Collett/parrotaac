@@ -27,7 +27,7 @@ class MainScreen extends StatelessWidget {
 
     final buttons = List.generate(
       100,
-      (i) => SenteceBoxDisplayEntry(data: genButton("$i")),
+      (i) => SentenceBoxDisplayEntry(data: genButton("$i")),
     );
     var controller = SentenceBoxController(initialData: buttons);
     return Scaffold(

@@ -92,7 +92,7 @@ class MainScreen extends StatelessWidget {
         ),
         backgroundColor: Color(0xFFAFABDF),
       ),
-      body: DraggableGrid(gridNotfier: grid),
+      body: DraggableGrid(gridNotifier: grid),
     );
   }
 }
