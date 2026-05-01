@@ -33,11 +33,11 @@ class MainScreen extends StatelessWidget {
     );
 
     List<ButtonData> dataList = [
-      ButtonData(label: "TTS test", backgroundColor: ColorData(green: 255)),
+      ButtonData(label: "TTS test", backgroundColor: PooledColorData(green: 255)),
       ButtonData(
         label: "voclization",
         voclization: "hello world",
-        backgroundColor: ColorData(blue: 255),
+        backgroundColor: PooledColorData(blue: 255),
       ),
       ButtonData(image: urlImage, label: "url", sound: urlSound),
     ];
@@ -69,10 +69,11 @@ class MainScreen extends StatelessWidget {
                 notifier.setLabel("hello");
                 notifier.setSound(urlSound);
                 notifier.setBackgroundColor(
-                  ColorData.fromString("RGB(255,0,0)"),
+                  ColorData.fromString("RGB(255,0,0)").asMutable(),
                 );
                 notifier.setImage(rawSvg);
-                notifier.setBorderColor(ColorData.fromString("RGB(0,0,255)"));
+                notifier.setBorderColor(
+                    ColorData.fromString("RGB(0,0,255)").asMutable());
               },
             ),
           ),

@@ -25,9 +25,9 @@ class MainScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    ColorData red = ColorData(red: 255);
-    ColorData blue = ColorData(blue: 255);
-    ColorData green = ColorData(green: 255);
+    PooledColorData red = PooledColorData(red: 255);
+    PooledColorData blue = PooledColorData(blue: 255);
+    PooledColorData green = PooledColorData(green: 255);
 
     ButtonData bd = ButtonData(label: "hi", backgroundColor: red);
     ButtonData bd2 = ButtonData(label: "hi", backgroundColor: blue);
@@ -73,11 +73,11 @@ class MainScreen extends StatelessWidget {
               child: Text('set top left'),
               onPressed: () {
                 Random random = Random();
-                ColorData randomColor = ColorData(
+                PooledColorData randomColor = PooledColorData(
                   red: random.nextInt(256),
                   blue: random.nextInt(256),
                   green: random.nextInt(256),
-                );
+                )
                 ButtonData buttonData = ButtonData(
                   backgroundColor: randomColor,
                   label: "hello",

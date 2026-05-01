@@ -4,6 +4,7 @@ import 'dart:collection';
 import 'dart:io';
 
 import 'package:flutter/material.dart';
+import 'package:openboard_wrapper/color_data.dart';
 import 'package:openboard_wrapper/obf.dart';
 import 'package:parrotaac/backend/project/parrot_project.dart';
 import 'package:parrotaac/backend/project/project_settings.dart';
@@ -148,16 +149,21 @@ class RestorativeNavigator {
 
   Future<void> pop(BuildContext context) async {
     await _quickStore.removeTop();
+    bool wasOnProjectScreen = screens.last is BoardScreen;
     if (screens.isNotEmpty) {
       if (screens.last is BoardScreen) {
         BoardScreen last = screens.last as BoardScreen;
-        Future.wait([
+        await Future.wait([
           last.restorationData.close(),
           if (last.project.settings != null) last.project.settings!.close(),
           if (last.restoreStream != null) last.restoreStream!.close(),
         ]);
       }
       screens.removeAt(screens.length - 1);
+    }
+
+    if (wasOnProjectScreen) {
+      PooledColorData.cleanPool();
     }
 
     if (context.mounted) return goToTopScreen(context);

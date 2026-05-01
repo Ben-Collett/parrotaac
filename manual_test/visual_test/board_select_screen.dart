@@ -27,9 +27,8 @@ class MainScreen extends StatelessWidget {
   Widget build(BuildContext context) {
     final Obf simpleObf = Obf.fromJsonString(simpleBoard);
     final Obf voclization = Obf.fromJsonString(vocilizationBoard);
-    voclization.grid.getButtonData(0, 0)?.backgroundColor = ColorData(
-      blue: 255,
-    );
+    voclization.grid.getButtonData(0, 0)?.backgroundColor =
+        PooledColorData(blue: 255);
 
     simpleObf.grid.getButtonData(0, 0)?.linkedBoard = voclization;
     voclization.grid.getButtonData(0, 0)?.linkedBoard = simpleObf;

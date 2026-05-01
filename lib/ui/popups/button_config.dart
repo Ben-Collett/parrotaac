@@ -237,9 +237,10 @@ class _ButtonConfigPopupState extends State<ButtonConfigPopup> {
   late final Future<List<String>> _audioFileNames;
   late final Future<List<String>> _imageFileNames;
 
-  ColorData? get currentBackgroundColor =>
-      widget.buttonController.data.backgroundColor;
-  ColorData? get currentBorderColor => widget.buttonController.data.borderColor;
+  MutableColorData? get currentBackgroundColor =>
+      widget.buttonController.data.backgroundColor?.asMutable();
+  MutableColorData? get currentBorderColor =>
+      widget.buttonController.data.borderColor?.asMutable();
   ParrotProject? get project => widget.buttonController.project;
 
   @override
@@ -393,7 +394,8 @@ class _ButtonConfigPopupState extends State<ButtonConfigPopup> {
 
   void changeBackgroundColor(Color color) {
     setState(() {
-      ColorData colorData = ColorDataCovertor.fromColorToColorData(color);
+      MutableColorData colorData =
+          ColorDataCovertor.fromColorToColorData(color).asMutable();
       widget.restorableButtonDiff?.update(
         ButtonData.bgColorKey,
         colorData.toString(),
@@ -434,7 +436,8 @@ class _ButtonConfigPopupState extends State<ButtonConfigPopup> {
 
   void changeBorderColor(Color color) {
     setState(() {
-      ColorData colorData = ColorDataCovertor.fromColorToColorData(color);
+      MutableColorData colorData =
+          ColorDataCovertor.fromColorToColorData(color).asMutable();
       widget.restorableButtonDiff?.update(
         ButtonData.borderColorKey,
         colorData.toString(),
@@ -819,9 +822,11 @@ class _ButtonConfigPopupState extends State<ButtonConfigPopup> {
   @override
   Widget build(BuildContext context) {
     ButtonData buttonData = buttonController.data;
-    ColorData? backGroundColorData = buttonData.backgroundColor;
+    MutableColorData? backGroundColorData =
+        buttonData.backgroundColor?.asMutable();
     Color backgroundColor = backGroundColorData?.toColor() ?? Colors.white;
-    Color borderColor = buttonData.borderColor?.toColor() ?? Colors.white;
+    Color borderColor =
+        buttonData.borderColor?.asMutable().toColor() ?? Colors.white;
     Widget image = Container();
     const double maxWidth = 500;
     if (buttonData.image != null) {

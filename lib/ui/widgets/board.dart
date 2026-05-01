@@ -359,10 +359,10 @@ class _BoardWidgetState extends State<BoardWidget> {
                   notifier.data.id = Obz.generateButtonId(widget.project);
                   notifier.data.backgroundColor =
                       notifier.data.backgroundColor ??
-                      ColorData(red: 255, green: 255, blue: 255);
+                      PooledColorData(red: 255, green: 255, blue: 255);
                   notifier.data.borderColor =
                       notifier.data.borderColor ??
-                      ColorData(red: 255, green: 255, blue: 255);
+                      PooledColorData(red: 255, green: 255, blue: 255);
 
                   eventHandler.addButton(row, col, notifier.data);
                   notifier.dispose();

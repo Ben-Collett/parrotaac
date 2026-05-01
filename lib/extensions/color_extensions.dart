@@ -7,13 +7,13 @@ extension ColorDataCovertor on ColorData {
     return Color.fromARGB(alpha, red, green, blue);
   }
 
-  static ColorData fromColorToColorData(Color color) {
-    return ColorData(
+  static PooledColorData fromColorToColorData(Color color) {
+    return PooledColorData(
       red: _decimalColorToIntColor(color.r),
       green: _decimalColorToIntColor(color.g),
       blue: _decimalColorToIntColor(color.b),
       alpha: color.a,
-    );
+    ).asPooled();
   }
 }
 

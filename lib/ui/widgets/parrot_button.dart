@@ -156,13 +156,13 @@ class ParrotButtonNotifier extends ChangeNotifier {
     notifyListeners();
   }
 
-  void setBackgroundColor(ColorData color) {
-    data.backgroundColor = color;
+  void setBackgroundColor(MutableColorData color) {
+    data.backgroundColor = color.asMutable();
     notifyListeners();
   }
 
-  void setBorderColor(ColorData border) {
-    data.borderColor = border;
+  void setBorderColor(MutableColorData border) {
+    data.borderColor = border.asMutable();
     notifyListeners();
   }
 
