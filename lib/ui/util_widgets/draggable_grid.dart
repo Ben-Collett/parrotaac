@@ -40,6 +40,8 @@ class GridNotifier<K, T extends Widget> extends ChangeNotifier {
   ///this is exclusively used by the grid, and means that only one grid notifier can exist per grid if it want's to be  draggable.
   final ValueWrapper<Size> _childSize = ValueWrapper(Size.zero);
 
+  final ValueNotifier<int?> hoveredChildIndex = ValueNotifier(null);
+
   set toWidget(T? Function(dynamic)? toWid) {
     _toWidget = toWid;
     notifyListeners();
@@ -56,6 +58,7 @@ class GridNotifier<K, T extends Widget> extends ChangeNotifier {
   void dispose() {
     backgroundColorNotifier.dispose();
     selectionController.dispose();
+    hoveredChildIndex.dispose();
     super.dispose();
   }
 
@@ -335,11 +338,17 @@ class DraggableGrid extends StatelessWidget {
         colorNotifier: gridNotifier.backgroundColorNotifier,
       ),
       child: ListenableBuilder(
-        listenable: gridNotifier,
+        listenable: Listenable.merge([
+          gridNotifier,
+          gridNotifier.hoveredChildIndex,
+        ]),
         builder: (context, _) {
           final children = gridNotifier.widgetList;
           return Flow(
-            delegate: GridFlowDelegate(gridNotifier),
+            delegate: GridFlowDelegate(
+              gridNotifier,
+              hoveredIndex: gridNotifier.hoveredChildIndex.value,
+            ),
             children: children,
           );
         },
@@ -352,8 +361,9 @@ class GridFlowDelegate extends FlowDelegate {
   final GridNotifier notifier;
   final int rowCount;
   final int colCount;
+  final int? hoveredIndex;
 
-  GridFlowDelegate(this.notifier)
+  GridFlowDelegate(this.notifier, {this.hoveredIndex})
     : rowCount = notifier.rows,
       colCount = notifier.columns;
 
@@ -365,13 +375,11 @@ class GridFlowDelegate extends FlowDelegate {
     final size = context.size;
 
     final dpr = PlatformDispatcher.instance.views.first.devicePixelRatio;
-    // total physical pixels
     final totalPhysW = (size.width * dpr).round();
     final totalPhysH = (size.height * dpr).round();
 
     final basePhysW = totalPhysW ~/ colCount;
-    final remW = totalPhysW - basePhysW * colCount; // leftover physical pixels
-
+    final remW = totalPhysW - basePhysW * colCount;
     final basePhysH = totalPhysH ~/ rowCount;
     final remH = totalPhysH - basePhysH * rowCount;
 
@@ -387,19 +395,38 @@ class GridFlowDelegate extends FlowDelegate {
         final physW = basePhysW + (c < remW ? 1 : 0);
         final logicalW = physW / dpr;
 
-        const z = 0.0;
-        const w = 1.0;
-
-        context.paintChild(
-          childIndex,
-          transform: Matrix4.identity()..translateByDouble(x, y, z, w),
-        );
+        if (childIndex != hoveredIndex) {
+          context.paintChild(
+            childIndex,
+            transform: Matrix4.identity()..translateByDouble(x, y, 0.0, 1.0),
+          );
+        }
 
         x += logicalW;
         childIndex++;
       }
 
       y += logicalH;
+    }
+
+    if (hoveredIndex != null && hoveredIndex! >= 0) {
+      final hc = hoveredIndex! % colCount;
+      final hr = hoveredIndex! ~/ colCount;
+
+      double hy = 0.0;
+      for (int r = 0; r < hr; r++) {
+        hy += (basePhysH + (r < remH ? 1 : 0)) / dpr;
+      }
+
+      double hx = 0.0;
+      for (int c = 0; c < hc; c++) {
+        hx += (basePhysW + (c < remW ? 1 : 0)) / dpr;
+      }
+
+      context.paintChild(
+        hoveredIndex!,
+        transform: Matrix4.identity()..translateByDouble(hx, hy, 0.0, 1.0),
+      );
     }
   }
 
@@ -428,7 +455,6 @@ class GridFlowDelegate extends FlowDelegate {
     final logicalW = physW / dpr;
     final logicalH = physH / dpr;
 
-    // update notifier with the actual (logical) childgrid size for this index
     notifier._childSize.value = Size(logicalW, logicalH);
 
     return BoxConstraints.tightFor(width: logicalW, height: logicalH);
@@ -437,7 +463,9 @@ class GridFlowDelegate extends FlowDelegate {
   @override
   bool shouldRepaint(covariant FlowDelegate oldDelegate) {
     oldDelegate = oldDelegate as GridFlowDelegate;
-    return oldDelegate.rowCount != rowCount || oldDelegate.colCount != colCount;
+    return oldDelegate.rowCount != rowCount ||
+        oldDelegate.colCount != colCount ||
+        oldDelegate.hoveredIndex != hoveredIndex;
   }
 }
 
@@ -467,11 +495,22 @@ class _GridCellState extends State<GridCell> {
         widget.gridNotifier.draggable) {
       final currentWidget = widget.gridNotifier.toWidget!(widget.cell.value)!;
       child = Draggable<Cell>(
-        data: Cell(widget.cell.row, widget.cell.col, widget.cell),
+        data: Cell(widget.cell.row, widget.cell.col, widget.cell.value),
         //WARNING: resizing will not update
         feedback: ValueWrapperSizedBox(
           size: widget.gridNotifier._childSize,
-          child: currentWidget,
+          child: DecoratedBox(
+            decoration: BoxDecoration(
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.black.withAlpha(64),
+                  blurRadius: 8,
+                  offset: Offset(2, 4),
+                ),
+              ],
+            ),
+            child: currentWidget,
+          ),
         ),
         childWhenDragging: ColoredBox(color: Colors.grey),
         child: SelectIndicatorStatusDimensions._wrapWidgetIfNeeded(
@@ -511,16 +550,26 @@ class _EmptySpotDragTargetState extends State<EmptySpotDragTarget> {
 
   @override
   Widget build(BuildContext context) {
+    final notifier = widget.cellWidget.gridNotifier;
+    final int cellIndex =
+        widget.cellWidget.cell.row * notifier.columns +
+        widget.cellWidget.cell.col;
+
     return DragTarget<Cell>(
       onWillAcceptWithDetails: (data) {
         setState(() => _isHovering = true);
+        notifier.hoveredChildIndex.value = cellIndex;
         return true;
       },
       onLeave: (_) {
         setState(() => _isHovering = false);
+        if (notifier.hoveredChildIndex.value == cellIndex) {
+          notifier.hoveredChildIndex.value = null;
+        }
       },
       onAcceptWithDetails: (details) {
         setState(() => _isHovering = false);
+        notifier.hoveredChildIndex.value = null;
         widget.cellWidget.gridNotifier.swap(
           RowColPair(details.data.row, details.data.col),
           RowColPair(widget.cellWidget.cell.row, widget.cellWidget.cell.col),
@@ -528,19 +577,78 @@ class _EmptySpotDragTargetState extends State<EmptySpotDragTarget> {
         );
       },
       builder: (context, List<Cell?> accepted, List<Object?> rejected) {
+        Widget content;
         if (_isHovering) {
-          return ColoredBox(color: Colors.lightGreenAccent);
+          if (accepted.isNotEmpty) {
+            final draggedCell = accepted.first;
+            if (draggedCell != null) {
+              final grid = widget.cellWidget.gridNotifier;
+              final previewWidget = grid.toWidget?.call(draggedCell.value);
+              if (previewWidget != null) {
+                const brightnessOffset = 100.0;
+                content = ValueWrapperSizedBox(
+                  size: grid._childSize,
+                  child: ColorFiltered(
+                    colorFilter: const ColorFilter.matrix([
+                      0,
+                      0,
+                      0,
+                      0,
+                      brightnessOffset,
+                      0,
+                      1,
+                      0,
+                      0,
+                      brightnessOffset,
+                      0,
+                      0,
+                      0,
+                      0,
+                      brightnessOffset,
+                      0,
+                      0,
+                      0,
+                      1,
+                      0,
+                    ]),
+                    child: previewWidget,
+                  ),
+                );
+              } else {
+                content = const ColoredBox(color: Colors.lightGreenAccent);
+              }
+            } else {
+              content = const ColoredBox(color: Colors.lightGreenAccent);
+            }
+          } else {
+            content = const ColoredBox(color: Colors.lightGreenAccent);
+          }
+        } else {
+          final row = widget.cellWidget.cell.row;
+          final col = widget.cellWidget.cell.col;
+          final grid = widget.cellWidget.gridNotifier;
+          content = SelectIndicatorStatusDimensions._wrapWidgetIfNeeded(
+            InteractiveEmptySpotWidget(cell: widget.cellWidget),
+            grid,
+            row,
+            col,
+          );
         }
 
-        final row = widget.cellWidget.cell.row;
-        final col = widget.cellWidget.cell.col;
-        final grid = widget.cellWidget.gridNotifier;
-
-        return SelectIndicatorStatusDimensions._wrapWidgetIfNeeded(
-          InteractiveEmptySpotWidget(cell: widget.cellWidget),
-          grid,
-          row,
-          col,
+        return AnimatedScale(
+          scale: _isHovering ? 1.08 : 1.0,
+          duration: const Duration(milliseconds: 200),
+          curve: Curves.easeOutBack,
+          child: AnimatedContainer(
+            duration: const Duration(milliseconds: 200),
+            decoration: BoxDecoration(
+              border: _isHovering
+                  ? Border.all(color: Colors.blueAccent, width: 2.5)
+                  : Border.all(color: Colors.blueAccent.withAlpha(0), width: 0),
+              borderRadius: BorderRadius.circular(8),
+            ),
+            child: content,
+          ),
         );
       },
     );
